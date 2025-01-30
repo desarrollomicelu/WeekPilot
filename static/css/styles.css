@@ -1,3 +1,33 @@
+/* Estilos Generales */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #F3F4F6; /* Gris Neutro */
+    color: #1E3A8A; /* Azul Marino */
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    padding: 0;
+    color: #1E3A8A; /* Azul Marino */
+}
+
+a {
+    text-decoration: none;
+    color: #60A5FA; /* Celeste Suave */
+}
+
+a:hover {
+    color: #1E3A8A; /* Azul Marino */
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+}
+
 /* Sidebar */
 .sidebar {
     height: 100%;
@@ -5,7 +35,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #111;
+    background-color: #1E3A8A; /* Azul Marino */
     color: white;
     transition: all 0.3s ease;
     padding-top: 60px;
@@ -17,7 +47,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 15px;
-    background-color: #333;
+    background-color: #60A5FA; /* Celeste Suave */
 }
 
 .sidebar-header h2 {
@@ -33,7 +63,7 @@
 
 .sidebar-menu li {
     padding: 15px 25px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #F3F4F6; /* Gris Neutro */
 }
 
 .sidebar-menu li a {
@@ -44,7 +74,7 @@
 }
 
 .sidebar-menu li a:hover {
-    background-color: #575757;
+    background-color: #60A5FA; /* Celeste Suave */
     transition: background-color 0.3s;
 }
 
