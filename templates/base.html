@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}WEEKPILOT{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tu archivo CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container d-flex justify-content-center">
+            <a class="navbar-brand text-center" href="{{ url_for('index') }}">
+                <span style="font-weight: bold; font-size: 1.5rem; color: #ffffff;">WEEKPILOT</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>WEEKPILOT</h2>
+            <button id="close-btn" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('technical_service') }}"><i class="fas fa-tools"></i> Servicio Tecnico </a></li>
+            <li><a href="{{ url_for('warranty') }}"><i class="fas fa-gift"></i> Garantia</a></li>
+            <li><a href="{{ url_for('internal_repair') }}"><i class="fas fa-wrench"></i> Reparación interna</a></li>
+        </ul>
+    </div>
+
+    <!-- Content Area -->
+    <div id="content" class="content">
+        <button id="open-btn" class="open-btn"><i class="fas fa-bars"></i></button>
+        <div class="container mt-4">
+            <!-- Aquí se inserta el contenido de cada página que herede de base.html -->
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
