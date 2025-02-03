@@ -1,77 +1,202 @@
-/* Sidebar */
+:root {
+    --color-primario: #60A5FA;       /* Celeste (color principal) */
+    --color-secundario: #4590E8;    /* Azul marino (para contrastes) */
+    --color-fondo: #F3F4F6;         /* Gris neutro (fondo) */
+    --color-texto: #000000;         /* Negro (texto principal) */
+    --color-blanco: #FFFFFF;        /* Blanco (texto y elementos claros) */
+    --sombra: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
+
+body {
+    background-color: var(--color-fondo);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    color: var(--color-texto);
+    
+}
+
 .sidebar {
-    height: 100%;
-    width: 250px; /* Puedes ajustar el tamaño del sidebar */
+    height: 100vh;
+    width: 250px;
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #111;
-    color: white;
-    transition: all 0.3s ease;
-    padding-top: 60px;
-    z-index: 1000; /* Asegura que el sidebar esté encima del contenido */
+    background-color: var(--color-primario);
+    padding: 20px;
+    box-shadow: var(--sombra);
+    transition: width 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.sidebar.collapsed {
+    width: 80px; /* Ancho aumentado cuando está colapsado */
 }
 
 .sidebar-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-secundario);
+    white-space: nowrap; /* Evita que el texto se rompa */
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    background-color: #333;
+    justify-content: space-between;
 }
 
 .sidebar-header h2 {
+    font-size: 1.5rem;
     margin: 0;
-    color: white;
+    color: var(--color-blanco);
+    font-weight: 600;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
-/* Lista de elementos en el sidebar */
-.sidebar-menu {
-    list-style-type: none;
+.sidebar.collapsed .sidebar-header h2 {
+    opacity: 0; /* Oculta el texto cuando está colapsado */
+}
+
+.close-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--color-blanco);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: color 0.3s;
     padding: 0;
+    margin: 0;
+}
+
+.close-btn:hover {
+    color: var(--color-secundario);
+}
+
+.sidebar-menu {
+    padding-left: 0;
 }
 
 .sidebar-menu li {
-    padding: 15px 25px;
-    border-bottom: 1px solid #444;
+    margin-bottom: 15px;
 }
 
-.sidebar-menu li a {
-    color: white;
+.sidebar-menu a {
+    color: var(--color-blanco);
     text-decoration: none;
+    padding: 12px 15px;
     display: flex;
     align-items: center;
+    border-radius: 8px;
+    transition: all 0.3s;
+    background-color: transparent;
+    white-space: nowrap; /* Evita que el texto se rompa */
+    border: 1px solid var(--color-secundario); /* Borde del color secundario */
 }
 
-.sidebar-menu li a:hover {
-    background-color: #575757;
-    transition: background-color 0.3s;
+.sidebar-menu a:hover {
+    background-color: var(--color-secundario);
+}
+
+.sidebar-menu a.active {
+    background-color: var(--color-secundario);
+    font-weight: 500;
 }
 
 .sidebar-menu i {
-    margin-right: 15px;
+    margin-left: 5px;
+    margin-right: 5px;
+    font-size: 1.1rem;
+    min-width: 20px; /* Asegura que los íconos no se muevan */
+    text-align: center; /* Centra los íconos */
 }
 
-/* Ajustes para el contenido cuando el sidebar está abierto */
-#content {
-    margin-left: 0;
+.sidebar.collapsed .sidebar-menu a {
+    justify-content: center; /* Centra los íconos cuando está colapsado */
+    padding: 10px; /* Padding uniforme para simetría */
+    border-radius: 8px; /* Bordes redondeados */
+}
+
+.sidebar.collapsed .sidebar-menu a:hover {
+    background-color: var(--color-secundario); /* Fondo al hacer hover */
+    padding: 10px; /* Mantén el padding uniforme */
+}
+
+.sidebar.collapsed .sidebar-menu a span {
+    display: none; /* Oculta el texto cuando está colapsado */
+}
+
+.content {
+    margin-left: 250px;
+    padding: 30px;
     transition: margin-left 0.3s ease;
 }
 
-.open-btn {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background-color: transparent;
-    border: none;
-    color: white;
-    font-size: 30px;
-    cursor: pointer;
+.sidebar.collapsed + .content {
+    margin-left: 80px; /* Ajusta el contenido cuando el sidebar está colapsado */
 }
 
-@media screen and (max-width: 768px) {
-    /* Ajustes para pantallas pequeñas */
+.open-btn {
+    background-color: var(--color-primario);
+    border: none;
+    color: var(--color-blanco);
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: var(--sombra);
+    transition: background-color 0.3s;
+    margin-bottom: 20px;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    display: none; /* Oculto por defecto */
+}
+
+.open-btn:hover {
+    background-color: var(--color-secundario);
+}
+
+/* Mostrar el botón de apertura solo cuando el sidebar está colapsado */
+.sidebar.collapsed + .content .open-btn {
+    display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
     .sidebar {
-        width: 200px;
+        transform: translateX(-250px);
+        width: 250px; /* Asegura que el sidebar tenga su ancho completo */
+    }
+
+    .sidebar.collapsed {
+        transform: translateX(-250px); /* Oculta completamente el sidebar */
+    }
+
+    .sidebar.active {
+        transform: translateX(0); /* Muestra el sidebar al activarse */
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 20px; /* Reduce el padding en móviles */
+    }
+
+    .sidebar.collapsed + .content {
+        margin-left: 0;
+    }
+
+    .open-btn {
+        display: block; /* Muestra el botón en móviles */
+        top: 10px;
+        left: 10px;
+        padding: 10px;
+        font-size: 1rem;
+    }
+
+    /* Evitar hover en dispositivos táctiles */
+    @media (hover: none) {
+        .sidebar-menu a:hover {
+            background-color: transparent;
+        }
     }
 }

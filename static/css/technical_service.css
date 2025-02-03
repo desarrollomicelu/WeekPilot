@@ -1,0 +1,88 @@
+:root {
+  --color-primario: #60A5FA;       /* Celeste (color principal) */
+  --color-secundario: #4590E8;    /* Azul marino (para contrastes) */
+  --color-fondo: #F3F4F6;         /* Gris neutro (fondo) */
+  --color-texto: #000000;         /* Negro (texto principal) */
+  --color-blanco: #FFFFFF;        /* Blanco (texto y elementos claros) */
+  --sombra: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
+
+body {
+  background-color: var(--color-fondo);
+  font-family: 'Arial', sans-serif;
+  color: var(--color-texto);
+}
+
+.table-container {
+  background-color: var(--color-blanco);
+  border-radius: 8px;
+  box-shadow: var(--sombra);
+  padding: 20px;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--color-primario);
+  color: var(--color-blanco);
+  cursor: pointer;
+}
+
+.status-badge {
+  padding: 0.4em 0.6em;
+  font-size: 0.75em;
+  border-radius: 4px;
+  background-color: var(--color-secundario);
+  color: var(--color-blanco);
+  text-align: center;
+}
+
+.action-icons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.action-icons button {
+  background-color: var(--color-primario);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  color: var(--color-blanco);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.action-icons button i {
+  font-size: 1.2em;
+}
+
+.action-icons button:hover {
+  background-color: var(--color-secundario);
+  transform: translateY(-2px);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-icons button:active {
+  transform: translateY(0);
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-actions {
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: var(--color-primario);
+}
+
+#searchInput {
+  max-width: 300px;
+  padding: 8px;
+  border: 1px solid var(--color-primario);
+  border-radius: 4px;
+  outline: none;
+}
+
+#searchInput:focus {
+  box-shadow: 0 0 5px var(--color-secundario);
+}
