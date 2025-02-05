@@ -12,35 +12,50 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
-
-    <!-- Navbar -->
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container d-flex justify-content-center">
-            <a class="navbar-brand text-center" href="{{ url_for('index') }}">
-                <span style="font-weight: bold; font-size: 1.5rem; color: #ffffff;">WEEKPILOT</span>
-            </a>
+    
+     <!-- Sidebar -->
+     <div id="sidebar" class="sidebar">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
+            <h2 class="text-white">WEEKPILOT</h2>
+            <button id="close-btn" class="close-btn btn btn-light"><i class="fas fa-chevron-left"></i></button>
         </div>
-    </nav>
-
-    <!-- Sidebar -->
-    <div id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <h2>WEEKPILOT</h2>
-            <button id="close-btn" class="close-btn"><i class="fas fa-times"></i></button>
-        </div>
-        <ul class="sidebar-menu">
-            <li><a href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="{{ url_for('technical_service') }}"><i class="fas fa-tools"></i> Servicio Tecnico </a></li>
-            <li><a href="{{ url_for('warranty') }}"><i class="fas fa-gift"></i> Garantia</a></li>
-            <li><a href="{{ url_for('internal_repair') }}"><i class="fas fa-wrench"></i> Reparación interna</a></li>
+        <ul class="sidebar-menu list-unstyled">
+            <li><a href="{{ url_for('dashboard') }}" class="d-flex align-items-center">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a></li>
+            <li><a href="{{ url_for('technical_service') }}" class="d-flex align-items-center">
+                <i class="fas fa-tools"></i>
+                <span>Servicio Técnico</span>
+            </a></li>
+            <li><a href="{{ url_for('warranty') }}" class="d-flex align-items-center">
+                <i class="fas fa-gift"></i>
+                <span>Garantía</span>
+            </a></li>
+            <li><a href="{{ url_for('internal_repair') }}" class="d-flex align-items-center">
+                <i class="fas fa-wrench"></i>
+                <span>Reparación interna</span>
+            </a></li>
         </ul>
+
+        <!-- Menú de usuario -->
+        <div class="sidebar-user-menu">
+          <div class="dropdown dropup">
+            <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-2"></i> Usuario
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+            </ul>
+          </div>
+        </div>
     </div>
 
     <!-- Content Area -->
     <div id="content" class="content">
-        <button id="open-btn" class="open-btn"><i class="fas fa-bars"></i></button>
-        <div class="container mt-4">
-            <!-- Aquí se inserta el contenido de cada página que herede de base.html -->
+        <button id="open-btn" class="open-btn btn btn-light ms-n2"><i class="fas fa-chevron-right"></i></button>
+        <div class="container mt-3">
             {% block content %}
             {% endblock %}
         </div>
