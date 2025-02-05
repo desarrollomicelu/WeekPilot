@@ -1,101 +1,110 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, UserMixin
 from flask_bcrypt import Bcrypt
-from sqlalchemy import text  # Importa 'text' de SQLAlchemy
-import os
 
 app = Flask(__name__)
 
-#Configurar la base de datos y la clave secreta
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:vWUiwzFrdvcyroebskuHXMlBoAiTfgzP@junction.proxy.rlwy.net:47834/railway'
-app.config['SECRET_KEY'] = 'clave_secreta'
+app.config['SQLALCHEMY_BINDS'] = {
+    'db1': 'postgresql://postgres:japrWZtfUvaBYEyfGtYKwmleuIYvKWMs@viaduct.proxy.rlwy.net:43934/railway',
+    'db2': 'postgresql://postgres:aAB2Be35CBAd2GgA5*DdC45FaCf26G44@viaduct.proxy.rlwy.net:58920/railway'
+}
 
-# Inicialización de las extensiones
-db=SQLAlchemy(app)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['SECRET_KEY'] = 'aAB2Be35CBAd2GgA5*DdC45FaCf26G44'
+
+db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
+login_manager.needs_login_message = ("Acceso denegado. Por favor, inicie sesión para acceder a esta página.")
 login_manager.login_view = 'login'
 
-# Definición del modelo de Empleados con SQLAlchemy
-class Empleados(db.Model):
-    __bind_key__ = 'db3'
-
-    # Campos de la tabla Empleados
-    id = db.Column(db.String(100), primary_key=True)
+# Creación de la clase Empleados
+class Empleados(db.Model, UserMixin):
+    __bind_key__ = 'db2'
+    __tablename__ = 'empleados'
+    id = db.Column(db.String(200), primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     sede = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(60), nullable=False)
+    password = db.Column(db.String(100), nullable=False)
     isAdmin = db.Column(db.Boolean, default=False)
-    jefeTienda = db.Column(db.Boolean, default=False)
+    jefeTienda = db.Column(db.String(100), nullable=False)
     isSede = db.Column(db.Boolean, default=False)
     isTV = db.Column(db.Boolean, default=False)
-    password_secret=db.Column(db.String(60))
-    cargo=db.Column(db.Enum('Admin', 'jefeTienda', 'Sede','TV','servicioTecnico','vendedorMedellin','vendedorBogota','encargadoBodega','domiciliario',name='cargo'))
 
 
 
+#------------------Rutas------------------#
 @login_manager.user_loader
 def load_user(user_id):
-    return Empleados.query.get(int(user_id))
+    return Empleados.query.filter_by(id=user_id).first()
 
-@app.route('/home')
-def home ():
-     return render_template("login.html")
- 
-@app.route('/' , methods=['GET', 'POST'])
-def login ():
+@app.route('/', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
-        id_empleado = request.form['id_empleado']
-        password = request.form['password']
-        
-        empleado = Empleados.query.filter_by(id=id_empleado).first()
-        
-        if empleado and bcrypt.check_password_hash(empleado.password, password):
-            login_user(empleado)
-            return redirect(url_for('index'))
-        else:
-            flash('Usuario o contraseña incorrectos', 'error')
+        nombre = request.form.get('nombre') 
+        password = request.form.get('password')
+
+        if not nombre or not password:
+            flash('Debe ingresar un nombre y una contraseña', 'error')
+            return redirect(url_for('login'))
+
+        try:
+            empleado = Empleados.query.filter_by(nombre=nombre).first()
+            if empleado and bcrypt.check_password_hash(empleado.password, password):
+                login_user(empleado)
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Nombre o contraseña incorrectos', 'error')
+        except Exception as e:
+            flash(f'Error al intentar iniciar sesión: {str(e)}', 'error')
+
     return render_template("login.html")
 
+# Ruta de perfil
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
+
+# Ruta de logout
+@app.route('/logout')
+
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+#ruta index
 @app.route('/index')
-def index ():
-     return render_template("index.html")
- 
+@login_required
+def index():
+    return render_template("index.html")
+
+#ruta dashboard
 @app.route('/dashboard')
-def dashboard ():
-     return render_template("dashboard.html")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
 
+#ruta servicio tecnico
 @app.route('/technical_service')
+@login_required
 def technical_service():
-    return render_template('technical_service.html')
+    return render_template("technical_service.html")
 
+#ruta garantia
 @app.route('/warranty')
+@login_required
 def warranty():
-    return render_template('warranty.html')
+    return render_template("warranty.html")
 
+#ruta reparacion interna
 @app.route('/internal_repair')
+@login_required
 def internal_repair():
-    return render_template('internal_repair.html')
-
-@app.route('/sidebar')
-def sidebar():
-    return render_template('sidebar.html')
-
-@app.route('/detail')
-def detail():
-    datos_detail = {
-        "fecha_ingreso": "2023-10-01",
-        "fecha_salida": "2023-10-05",
-        "valor_servicio": "150,000 COP",
-        "valor_repuesto": "200,000 COP"
-    }
-    return render_template('detail_modal.html', detail=datos_detail)
-
-
-
+    return render_template("internal_repair.html")
 
 
 if __name__ == '__main__':
     app.run(debug=True)
-

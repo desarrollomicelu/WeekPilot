@@ -15,7 +15,7 @@
     
      <!-- Sidebar -->
      <div id="sidebar" class="sidebar">
-        <div class="sidebar-header d-flex justify-content-between ali   gn-items-center">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
             <h2 class="text-white">WEEKPILOT</h2>
             <button id="close-btn" class="close-btn btn btn-light"><i class="fas fa-chevron-left"></i></button>
         </div>
@@ -37,16 +37,29 @@
                 <span>Reparación interna</span>
             </a></li>
         </ul>
+
+        <!-- Menú de usuario -->
+        <div class="sidebar-user-menu">
+          <div class="dropdown dropup">
+            <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-2"></i> Usuario
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+            </ul>
+          </div>
+        </div>
     </div>
 
     <!-- Content Area -->
-<div id="content" class="content">
-    <button id="open-btn" class="open-btn btn btn-light ms-n2"><i class="fas fa-chevron-right"></i></button>
-    <div class="container mt-3">
-        {% block content %}
-        {% endblock %}
+    <div id="content" class="content">
+        <button id="open-btn" class="open-btn btn btn-light ms-n2"><i class="fas fa-chevron-right"></i></button>
+        <div class="container mt-3">
+            {% block content %}
+            {% endblock %}
+        </div>
     </div>
-</div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

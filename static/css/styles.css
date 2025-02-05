@@ -13,7 +13,6 @@ body {
     margin: 0;
     padding: 0;
     color: var(--color-texto);
-    
 }
 
 .sidebar {
@@ -31,14 +30,14 @@ body {
 }
 
 .sidebar.collapsed {
-    width: 80px; /* Ancho aumentado cuando está colapsado */
+    width: 80px;
 }
 
 .sidebar-header {
     margin-bottom: 30px;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--color-secundario);
-    white-space: nowrap; /* Evita que el texto se rompa */
+    white-space: nowrap;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -54,7 +53,7 @@ body {
 }
 
 .sidebar.collapsed .sidebar-header h2 {
-    opacity: 0; /* Oculta el texto cuando está colapsado */
+    opacity: 0;
 }
 
 .close-btn {
@@ -63,7 +62,6 @@ body {
     color: var(--color-blanco);
     font-size: 1.25rem;
     cursor: pointer;
-    transition: color 0.3s;
     padding: 0;
     margin: 0;
 }
@@ -89,8 +87,8 @@ body {
     border-radius: 8px;
     transition: all 0.3s;
     background-color: transparent;
-    white-space: nowrap; /* Evita que el texto se rompa */
-    border: 1px solid var(--color-secundario); /* Borde del color secundario */
+    white-space: nowrap;
+    border: 1px solid var(--color-secundario);
 }
 
 .sidebar-menu a:hover {
@@ -106,23 +104,22 @@ body {
     margin-left: 5px;
     margin-right: 5px;
     font-size: 1.1rem;
-    min-width: 20px; /* Asegura que los íconos no se muevan */
-    text-align: center; /* Centra los íconos */
+    min-width: 20px;
+    text-align: center;
 }
 
 .sidebar.collapsed .sidebar-menu a {
-    justify-content: center; /* Centra los íconos cuando está colapsado */
-    padding: 10px; /* Padding uniforme para simetría */
-    border-radius: 8px; /* Bordes redondeados */
+    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
 }
 
 .sidebar.collapsed .sidebar-menu a:hover {
-    background-color: var(--color-secundario); /* Fondo al hacer hover */
-    padding: 10px; /* Mantén el padding uniforme */
+    background-color: var(--color-secundario);
 }
 
 .sidebar.collapsed .sidebar-menu a span {
-    display: none; /* Oculta el texto cuando está colapsado */
+    display: none;
 }
 
 .content {
@@ -132,7 +129,7 @@ body {
 }
 
 .sidebar.collapsed + .content {
-    margin-left: 80px; /* Ajusta el contenido cuando el sidebar está colapsado */
+    margin-left: 80px;
 }
 
 .open-btn {
@@ -143,60 +140,35 @@ body {
     border-radius: 8px;
     cursor: pointer;
     box-shadow: var(--sombra);
-    transition: background-color 0.3s;
     margin-bottom: 20px;
     position: fixed;
     top: 20px;
     left: 20px;
     z-index: 1001;
-    display: none; /* Oculto por defecto */
+    display: none;
 }
 
 .open-btn:hover {
     background-color: var(--color-secundario);
 }
 
-/* Mostrar el botón de apertura solo cuando el sidebar está colapsado */
-.sidebar.collapsed + .content .open-btn {
-    display: block;
+.sidebar-user-menu {
+    position: absolute;
+    bottom: 20px;
+    width: 90%;
+    left: 5%;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-250px);
-        width: 250px; /* Asegura que el sidebar tenga su ancho completo */
-    }
+.sidebar-user-menu .dropdown-toggle {
+    background-color: var(--color-primario);
+    color: var(--color-blanco);
+    text-align: left;
+    border: 1px solid var(--color-secundario);
+    border-radius: 8px;
+    width: 100%;
+}
 
-    .sidebar.collapsed {
-        transform: translateX(-250px); /* Oculta completamente el sidebar */
-    }
-
-    .sidebar.active {
-        transform: translateX(0); /* Muestra el sidebar al activarse */
-    }
-
-    .content {
-        margin-left: 0;
-        padding: 20px; /* Reduce el padding en móviles */
-    }
-
-    .sidebar.collapsed + .content {
-        margin-left: 0;
-    }
-
-    .open-btn {
-        display: block; /* Muestra el botón en móviles */
-        top: 10px;
-        left: 10px;
-        padding: 10px;
-        font-size: 1rem;
-    }
-
-    /* Evitar hover en dispositivos táctiles */
-    @media (hover: none) {
-        .sidebar-menu a:hover {
-            background-color: transparent;
-        }
-    }
+.sidebar-user-menu .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: var(--sombra);
 }
