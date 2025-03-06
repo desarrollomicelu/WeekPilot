@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Subir Imágenes{% endblock %}
+{% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Cabecera con título y controles -->
+  <div class="row align-items-center mb-4">
+    <div class="col-md-6">
+      <h2 class="mb-0">
+        <i class="fas fa-upload text-primary me-2"></i> Subir Imágenes
+      </h2>
+    </div>
+    <div class="col-md-6 d-flex justify-content-end gap-2">
+      <!-- Botón para volver a la vista anterior -->
+      <a href="{{ url_for('technical_service') }}" class="btn btn-secondary d-flex align-items-center">
+        <i class="fas fa-arrow-left me-2"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <!-- Tarjeta de subida de imágenes -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form action="{{ url_for('upload_images') }}" method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+          <label for="imageFiles" class="form-label">Selecciona las imágenes a subir</label>
+          <input class="form-control" type="file" id="imageFiles" name="images" multiple accept="image/*">
+        </div>
+
+        <!-- Botón y campo para tomar foto -->
+        <div class="mb-3">
+          <!-- El label actúa como botón para disparar el input oculto -->
+          <label for="takePhotoInput" class="btn btn-info d-flex align-items-center">
+            <i class="fas fa-camera me-2"></i> Tomar Foto
+          </label>
+          <!-- Input oculto con atributo capture para abrir la cámara -->
+          <input type="file" id="takePhotoInput" name="photo" accept="image/*" capture="environment" style="display: none;">
+        </div>
+
+        <div class="mb-3">
+          <button type="submit" class="btn btn-primary d-flex align-items-center">
+            <i class="fas fa-upload me-2"></i> Subir
+          </button>
+        </div>
+      </form>
+      <!-- Área de previsualización (opcional) -->
+      <div id="previewImages" class="row mt-4">
+        <!-- Aquí se mostrarán las imágenes seleccionadas antes de subir -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Ejemplo de script para previsualizar imágenes seleccionadas
+  document.getElementById('imageFiles').addEventListener('change', function(event) {
+    const preview = document.getElementById('previewImages');
+    preview.innerHTML = "";
+    Array.from(event.target.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const col = document.createElement('div');
+        col.className = "col-md-3 mb-3";
+        col.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded" alt="Preview">`;
+        preview.appendChild(col);
+      }
+      reader.readAsDataURL(file);
+    });
+  });
+</script>
+
+{% endblock %}
