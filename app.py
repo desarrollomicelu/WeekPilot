@@ -4,12 +4,93 @@ from flask_login import LoginManager, login_user, login_required, logout_user, U
 from flask_bcrypt import Bcrypt
 from flask_migrate import Migrate
 from datetime import datetime
+import pyodbc
 
 # Si deseas usar alguna librería para PDF, por ejemplo, xhtml2pdf:
 # from xhtml2pdf import pisa
 # import io
 
 app = Flask(__name__)
+
+def execute_query(query):
+    # Conectar a la base de datos
+    conn = pyodbc.connect('''DRIVER={ODBC Driver 18 for SQL Server};
+                             SERVER=20.109.21.246;
+                             DATABASE=MICELU;
+                             UID=db_read;
+                             PWD=mHRL_<='(],#aZ)T"A3QeD;
+                             TrustServerCertificate=yes''')
+    cursor = conn.cursor()
+
+    # Ejecutar la consulta
+    cursor.execute(query)
+    
+    # Traer todos los resultados
+    results = cursor.fetchall()
+
+    # Cerrar la conexión
+    cursor.close()
+    conn.close()
+
+    return results
+# Función para obtener las descripciones de los productos
+def get_product_reference():
+    query = '''
+    SELECT DESCRIPCIO, CODLINEA
+    FROM MTMERCIA 
+    WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
+    '''
+    # Ejecutar la consulta y obtener los resultados
+    results = execute_query(query)
+
+    # Convertir los resultados a un formato adecuado
+    reference = []
+    for row in results:
+        reference.append({
+            "description": row[0],  # DESCRIPCIO
+            "CODLINEA": row[1]      # CODLINEA
+        })
+
+    return reference
+
+
+# Función para obtener los códigos de los productos
+def get_product_code():
+    query = '''
+    SELECT CODIGO, CODLINEA
+    FROM MTMERCIA 
+    WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
+    '''
+    # Ejecutar la consulta y obtener los resultados
+    results = execute_query(query)
+
+    # Convertir los resultados a un formato adecuado
+    product_code = []
+    for row in results:
+        product_code.append({
+            "id": row[0],        # CODIGO
+            "CODLINEA": row[1]   # CODLINEA
+        })
+    
+    return product_code
+
+
+
+def get_technicians():
+    query = """
+        SELECT NOMBRE 
+        FROM Venden 
+        WHERE COMENTARIO LIKE '%ASESOR SERVICIO TECNICO%' 
+        OR COMENTARIO LIKE '%TECNICO MEDELLIN%' 
+        OR COMENTARIO LIKE '%REPARACIÒN%'
+    """
+    # Ejecutar la consulta y obtener los resultados
+    results = execute_query(query)
+
+    return results
+
+
+
 
 # Definir la URI predeterminada (default bind)
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:vWUiwzFrdvcyroebskuHXMlBoAiTfgzP@junction.proxy.rlwy.net:47834/railway"
@@ -21,6 +102,7 @@ app.config["SQLALCHEMY_BINDS"] = {
     "db2": "postgresql://postgres:japrWZtfUvaBYEyfGtYKwmleuIYvKWMs@viaduct.proxy.rlwy.net:43934/railway",
     # Base de datos para Tickets y Clients_tickets (db3)
     "db3": "postgresql://postgres:vWUiwzFrdvcyroebskuHXMlBoAiTfgzP@junction.proxy.rlwy.net:47834/railway",
+    "db4": 'mssql+pyodbc://db_read:mHRL_<=''(],#aZ)T"A3QeD@20.109.21.246/MICELU?''driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes'
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "aAB2Be35CBAd2GgA5*DdC45FaCf26G44"
@@ -36,7 +118,7 @@ migrate = Migrate(app, db)
 
 # ------------------ MODELOS DE BASE DE DATOS ------------------#
 
-# Modelo para clientes (db3)
+# Modelo para clientes 
 class Clients_tickets(db.Model, UserMixin):
     __bind_key__ = "db3"
     __tablename__ = "Clients_tickets"
@@ -47,7 +129,7 @@ class Clients_tickets(db.Model, UserMixin):
     lastname = db.Column(db.String(33), nullable=False)
     mail = db.Column(db.String(50), nullable=False)
     phone = db.Column(db.String(11), nullable=False)
-    
+
     # Usamos lambda para diferir la evaluación hasta que la clase Tickets esté definida
     tickets = db.relationship(
         "Tickets",
@@ -57,17 +139,18 @@ class Clients_tickets(db.Model, UserMixin):
         foreign_keys=lambda: [Tickets.client]
     )
 
-# Modelo para tickets (db3)
+# Modelo para tickets
 class Tickets(db.Model, UserMixin):
     __bind_key__ = "db3"
     __tablename__ = "Tickets"
     __table_args__ = {"schema": "plan_beneficios"}
-    
+
     id_ticket = db.Column(db.Integer, primary_key=True, autoincrement=True)
     state = db.Column(db.String(50), nullable=False, default="received")
     priority = db.Column(db.String(50), nullable=False)
     technical_name = db.Column(db.String(33), nullable=False)
     product_code = db.Column(db.String(50), nullable=False)
+    spare_parts = db.Column(db.String(50), nullable=False)
     IMEI = db.Column(db.String(20), nullable=False)
     reference = db.Column(db.String(100), nullable=False)
     assigned = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
@@ -78,7 +161,8 @@ class Tickets(db.Model, UserMixin):
     product_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
-    client = db.Column(db.Integer, db.ForeignKey("plan_beneficios.Clients_tickets.id_client"), nullable=False)
+    client = db.Column(db.Integer, db.ForeignKey(
+        "plan_beneficios.Clients_tickets.id_client"), nullable=False)
 
 # Modelo para empleados (db1, sin modificar)
 class Empleados(db.Model, UserMixin):
@@ -112,11 +196,13 @@ class Empleados(db.Model, UserMixin):
     )
     pass_encrip = db.Column(db.String(400))
 
+
 # ------------------ RUTAS ------------------#
 
 @login_manager.user_loader
 def load_user(user_id):
     return Empleados.query.filter_by(id=user_id).first()
+
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -132,7 +218,8 @@ def login():
                 elif empleado.cargo == "servicioTecnico":
                     return redirect(url_for("view_technical"))
                 else:
-                    flash("Acceso denegado. No tienes permisos para acceder a esta página.", "error")
+                    flash(
+                        "Acceso denegado. No tienes permisos para acceder a esta página.", "error")
                     return redirect(url_for("login"))
             else:
                 flash("Nombre o contraseña incorrectos", "error")
@@ -142,16 +229,20 @@ def login():
 
 # ------------------ CRUD DE TICKETS ------------------#
 
-# Crear Ticket (incluye la creación/actualización del cliente)
+# Crear Ticket 
 @app.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 def create_ticket():
-    technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
+    technicians = get_technicians()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     if not technicians:
         flash("No hay técnicos disponibles en este momento.", "warning")
-    
+        
+    # Llamamos a la función global para obtener los códigos de productos y las referencias
+    reference = get_product_reference()
+    product_code = get_product_code()
+
     if request.method == "POST":
         # Datos del cliente
         client_names = request.form.get("client_names")
@@ -159,33 +250,34 @@ def create_ticket():
         document = request.form.get("document")
         mail = request.form.get("mail")
         phone = request.form.get("phone")
-        
+
         # Datos del ticket
         technical_name = request.form.get("technical_name")
         state = request.form.get("state", "received")
         priority = request.form.get("priority")
-        product_code = request.form.get("product_code")
+        spare_parts = request.form.get("spare_parts")
         IMEI = request.form.get("IMEI")
-        reference = request.form.get("reference")
+        reference_selected = request.form.get("reference")
+        product_code_selected = request.form.get("product_code")
         service_value = request.form.get("service_value")
         spare_value = request.form.get("spare_value")
         assigned = request.form.get("assigned")
         if assigned:
-            assigned = datetime.strptime(assigned, "%Y-%m-%dT%H:%M")
+            assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
         received = request.form.get("received")
         in_progress = request.form.get("in_progress")
         finished = request.form.get("finished")
         total = request.form.get("total")
-        
-        
+
         try:
             service_value = float(service_value or 0)
             spare_value = float(spare_value or 0)
             total = service_value + spare_value
         except ValueError:
-            flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
+            flash(
+                "Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("create_ticket"))
-        
+
         # Buscar el cliente por el campo "document"
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -198,16 +290,19 @@ def create_ticket():
                 phone=phone,
             )
             db.session.add(client)
-            db.session.commit()  # Se confirma el cliente, asignándole un id_client válido
+            db.session.commit()  
+            
+        
 
         # Crear el ticket usando el id confirmado del cliente
         new_ticket = Tickets(
             technical_name=technical_name,
             state=state,
             priority=priority,
-            product_code=product_code,
+            spare_parts=spare_parts,
             IMEI=IMEI,
-            reference=reference,
+            reference=reference_selected,
+            product_code=product_code_selected,
             service_value=service_value,
             spare_value=spare_value,
             total=total,
@@ -221,20 +316,22 @@ def create_ticket():
         db.session.commit()
         flash("Ticket creado correctamente", "success")
         return redirect(url_for("technical_service"))
-    
-    return render_template("create_ticket.html", technicians=technicians, current_date=current_date)
+
+    return render_template("create_ticket.html", technicians=technicians, current_date=current_date, reference=reference, product_code=product_code)
 
 
 # Listar Tickets
 @app.route("/technical_service")
 @login_required
 def technical_service():
-    clients =  Clients_tickets.query.all()
+    clients = Clients_tickets.query.all()
     tickets = Tickets.query.all()
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
     return render_template("technical_service.html", tickets=tickets, technicians=technicians, clients=clients)
 
 # Editar Ticket
+
+
 @app.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):
@@ -245,7 +342,7 @@ def edit_ticket(ticket_id):
         ticket.technical_name = request.form.get("technical_name")
         ticket.state = request.form.get("state")
         ticket.priority = request.form.get("priority")
-        ticket.product_code = request.form.get("product_code")
+        ticket.spare_parts = request.form.get("spare_parts")
         ticket.IMEI = request.form.get("IMEI")
         ticket.reference = request.form.get("reference")
         try:
@@ -255,25 +352,12 @@ def edit_ticket(ticket_id):
         except ValueError:
             flash("Error: Los valores deben ser numéricos.", "danger")
             return redirect(url_for("edit_ticket", ticket_id=ticket_id))
-        
+
         db.session.commit()
         flash("Ticket actualizado correctamente", "success")
         return redirect(url_for("technical_service"))
-    
-    return render_template("edit_ticket.html", ticket=ticket, technicians=technicians)
 
-# Eliminar Ticket
-@app.route("/delete_ticket/<int:ticket_id>", methods=["POST"])
-@login_required
-def delete_ticket(ticket_id):
-    ticket = Tickets.query.get(ticket_id)
-    if ticket:
-        db.session.delete(ticket)
-        db.session.commit()
-        flash("Ticket eliminado correctamente", "success")
-    else:
-        flash("Ticket no encontrado.", "danger")
-    return redirect(url_for("technical_service"))
+    return render_template("edit_ticket.html", ticket=ticket, technicians=technicians)
 
 # Ver detalle del Ticket
 @app.route("/view_detail_ticket/<int:ticket_id>", methods=["GET", "POST"])
@@ -285,25 +369,6 @@ def view_detail_ticket(ticket_id):
         return redirect(url_for("technical_service"))
     return render_template("view_detail_ticket.html", ticket=ticket, now=datetime.utcnow())
 
-# Ejemplo opcional: Exportar Ticket a PDF (requiere implementación adicional)
-# @app.route("/export_ticket/<int:ticket_id>")
-# @login_required
-# def export_ticket(ticket_id):
-#     ticket = Tickets.query.get(ticket_id)
-#     if not ticket:
-#         flash("Ticket no encontrado", "danger")
-#         return redirect(url_for("technical_service"))
-#     rendered = render_template("ticket_pdf.html", ticket=ticket)
-#     pdf = io.BytesIO()
-#     pisa_status = pisa.CreatePDF(rendered, dest=pdf)
-#     if pisa_status.err:
-#         flash("Error al generar PDF", "danger")
-#         return redirect(url_for("view_detail_ticket", ticket_id=ticket_id))
-#     pdf.seek(0)
-#     response = make_response(pdf.read())
-#     response.headers['Content-Type'] = 'application/pdf'
-#     response.headers['Content-Disposition'] = f'attachment; filename=ticket_{ticket_id}.pdf'
-#     return response
 
 # ------------------ OTRAS RUTAS ------------------#
 
@@ -352,4 +417,3 @@ def upload_images():
 
 if __name__ == "__main__":
     app.run(debug=True)
-    

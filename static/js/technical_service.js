@@ -15,3 +15,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 });
+
+
+  $(document).ready(function() {
+    // Función para filtrar las filas de la tabla
+    function filterTickets(status) {
+      $('tbody tr').each(function() {
+        var ticketStatus = $(this).data('status');
+        if (status === 'Todos' || ticketStatus === status) {
+          $(this).show();
+        } else {
+          $(this).hide();
+        }
+      });
+    }
+
+    // Evento al cambiar el filtro
+    $('input[name="filterStatus"]').on('change', function() {
+      var selectedStatus = $(this).next('label').text().trim();
+      filterTickets(selectedStatus);
+    });
+
+    // Aplicar el filtro inicial (por defecto "Todos")
+    filterTickets('Todos');
+  });

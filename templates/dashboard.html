@@ -1,8 +1,289 @@
 {% extends "base.html" %}
-
-{% block title %}Dashboard - WEEKPILOT{% endblock %}
-
+{% block title %}Dashboard Técnico{% endblock %}
 {% block content %}
-    <h1>Bienvenido al Dashboard</h1>
-    <p>Este es el área donde puedes ver estadísticas y gráficos.</p>
+
+<div class="container-fluid py-4">
+  <!-- Fila del título -->
+  <div class="row mb-3">
+    <div class="col">
+      <h2 class="mb-0">
+        <i class="fas fa-tools text-primary me-2"></i>Dashboard de Servicio Técnico y Garantías
+      </h2>
+      <p class="text-muted">Monitoreo de servicios técnicos, reparaciones y gestión de garantías</p>
+    </div>
+    <div class="col-auto">
+      <div class="d-flex gap-2">
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-primary active">
+            <i class="fas fa-calendar-alt me-1"></i> Hoy
+          </button>
+          <button type="button" class="btn btn-outline-primary">Esta semana</button>
+          <button type="button" class="btn btn-outline-primary">Este mes</button>
+          <button type="button" class="btn btn-outline-primary">Este año</button>
+        </div>
+        <button class="btn btn-outline-secondary">
+          <i class="fas fa-download me-1"></i> Exportar informe
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tarjetas de resumen principal -->
+  <div class="row g-3 mb-4">
+    <!-- Tarjeta 1: Tickets activos -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted mb-1 fw-light">Tickets activos</p>
+              <h3 class="mb-2">42</h3>
+              <div class="badge bg-danger">
+                <i class="fas fa-arrow-up me-1"></i> 8.5%
+              </div>
+            </div>
+            <div class="icon-shape rounded-circle bg-warning bg-opacity-10 p-3">
+              <i class="fas fa-ticket-alt text-warning fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tarjeta 2: Tiempo promedio -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted mb-1 fw-light">Tiempo promedio</p>
+              <h3 class="mb-2">2.4 días</h3>
+              <div class="badge bg-success">
+                <i class="fas fa-arrow-down me-1"></i> 0.5 días
+              </div>
+            </div>
+            <div class="icon-shape rounded-circle bg-info bg-opacity-10 p-3">
+              <i class="fas fa-clock text-info fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tarjeta 3: Garantías activas -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted mb-1 fw-light">Garantías activas</p>
+              <h3 class="mb-2">156</h3>
+              <div class="badge bg-success">
+                <i class="fas fa-arrow-up me-1"></i> 12.3%
+              </div>
+            </div>
+            <div class="icon-shape rounded-circle bg-success bg-opacity-10 p-3">
+              <i class="fas fa-shield-alt text-success fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tarjeta 4: Satisfacción cliente -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="text-muted mb-1 fw-light">Satisfacción cliente</p>
+              <h3 class="mb-2">4.7/5</h3>
+              <div class="badge bg-success">
+                <i class="fas fa-arrow-up me-1"></i> 0.2
+              </div>
+            </div>
+            <div class="icon-shape rounded-circle bg-primary bg-opacity-10 p-3">
+              <i class="fas fa-smile text-primary fa-lg"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila de gráficos principales -->
+  <div class="row g-3 mb-4">
+    <!-- Gráfico de tickets y servicio -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Rendimiento de servicio técnico</h5>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-primary active">Tickets</button>
+            <button type="button" class="btn btn-sm btn-outline-primary">Tiempo</button>
+            <button type="button" class="btn btn-sm btn-outline-primary">Técnicos</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="height: 300px; position: relative;">
+            <!-- Aquí iría el gráfico real, se simula con una imagen placeholder -->
+            <div class="bg-light rounded d-flex justify-content-center align-items-center" style="height: 100%;">
+              <div class="text-center">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Gráfico de tickets por día/semana/mes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Distribución de garantías -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Estado de garantías</h5>
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            Este mes
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="height: 300px; position: relative;">
+            <!-- Aquí iría el gráfico real, se simula con una imagen placeholder -->
+            <div class="bg-light rounded d-flex justify-content-center align-items-center" style="height: 100%;">
+              <div class="text-center">
+                <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Distribución de garantías por estado</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila inferior con tickets pendientes y alertas -->
+  <div class="row g-3">
+    <!-- Tickets pendientes -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Tickets pendientes de atención</h5>
+          <button class="btn btn-sm btn-outline-primary">Ver todos</button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Equipo/Producto</th>
+                  <th>Estado</th>
+                  <th>Técnico</th>
+                  <th>Tiempo en espera</th>
+                  <th>Prioridad</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>#5423</td>
+                  <td>Carlos Mendoza</td>
+                  <td>Laptop Dell XPS</td>
+                  <td><span class="badge bg-warning">En proceso</span></td>
+                  <td>Miguel Ángel Pérez</td>
+                  <td>4h 23m</td>
+                  <td><span class="badge bg-danger">Alta</span></td>
+                </tr>
+                <tr>
+                  <td>#5424</td>
+                  <td>Laura Gómez</td>
+                  <td>Impresora HP LaserJet</td>
+                  <td><span class="badge bg-info">Asignado</span></td>
+                  <td>Diana Martínez</td>
+                  <td>2h 47m</td>
+                  <td><span class="badge bg-warning">Media</span></td>
+                </tr>
+                <tr>
+                  <td>#5425</td>
+                  <td>Roberto Sánchez</td>
+                  <td>PC Desktop Lenovo</td>
+                  <td><span class="badge bg-warning">En proceso</span></td>
+                  <td>Carlos Jiménez</td>
+                  <td>5h 12m</td>
+                  <td><span class="badge bg-danger">Alta</span></td>
+                </tr>
+                <tr>
+                  <td>#5426</td>
+                  <td>María Fernández</td>
+                  <td>Smartphone Samsung</td>
+                  <td><span class="badge bg-info">Asignado</span></td>
+                  <td>Patricia López</td>
+                  <td>1h 30m</td>
+                  <td><span class="badge bg-success">Baja</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Alertas de garantías -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Alertas de garantías</h5>
+          <span class="badge bg-danger">5 por vencer</span>
+        </div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <p class="mb-0 fw-bold">Laptop HP Pavilion #8756</p>
+                <small class="text-muted">Cliente: Javier Rodríguez</small>
+              </div>
+              <span class="badge bg-danger rounded-pill">Vence hoy</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <p class="mb-0 fw-bold">Monitor LG Ultrawide #8742</p>
+                <small class="text-muted">Cliente: Sofía García</small>
+              </div>
+              <span class="badge bg-warning rounded-pill">3 días</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <p class="mb-0 fw-bold">Impresora Epson L3150 #8734</p>
+                <small class="text-muted">Cliente: Daniel Morales</small>
+              </div>
+              <span class="badge bg-warning rounded-pill">5 días</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <p class="mb-0 fw-bold">Smartphone Xiaomi Mi 11 #8729</p>
+                <small class="text-muted">Cliente: Carolina Vega</small>
+              </div>
+              <span class="badge bg-warning rounded-pill">7 días</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <p class="mb-0 fw-bold">Tablet Samsung Tab S7 #8715</p>
+                <small class="text-muted">Cliente: Fernando Torres</small>
+              </div>
+              <span class="badge bg-warning rounded-pill">10 días</span>
+            </li>
+          </ul>
+        </div>
+        <div class="card-footer bg-white">
+          <button class="btn btn-sm btn-outline-primary w-100">Gestionar todas las garantías</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/technical_dashboard.js"></script>
 {% endblock %}

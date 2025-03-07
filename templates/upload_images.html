@@ -18,54 +18,66 @@
     </div>
   </div>
 
-  <!-- Tarjeta de subida de imágenes -->
+  <!-- Tarjeta con formulario para subir imágenes -->
   <div class="card shadow-sm border-0">
     <div class="card-body">
       <form action="{{ url_for('upload_images') }}" method="POST" enctype="multipart/form-data">
-        <div class="mb-3">
-          <label for="imageFiles" class="form-label">Selecciona las imágenes a subir</label>
-          <input class="form-control" type="file" id="imageFiles" name="images" multiple accept="image/*">
+        <div class="row">
+          <!-- Campo para subir fotos desde galería -->
+          <div class="col-md-6 mb-3">
+            <label for="uploadImages" class="form-label">Subir Fotos</label>
+            <input type="file" id="uploadImages" name="images" class="form-control" multiple accept="image/*">
+          </div>
+          <!-- Campo para tomar foto con la cámara -->
+          <div class="col-md-6 mb-3">
+            <label for="takePhoto" class="form-label">Tomar Foto</label>
+            <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*" capture="environment">
+          </div>
         </div>
-
-        <!-- Botón y campo para tomar foto -->
-        <div class="mb-3">
-          <!-- El label actúa como botón para disparar el input oculto -->
-          <label for="takePhotoInput" class="btn btn-info d-flex align-items-center">
-            <i class="fas fa-camera me-2"></i> Tomar Foto
-          </label>
-          <!-- Input oculto con atributo capture para abrir la cámara -->
-          <input type="file" id="takePhotoInput" name="photo" accept="image/*" capture="environment" style="display: none;">
-        </div>
-
         <div class="mb-3">
           <button type="submit" class="btn btn-primary d-flex align-items-center">
             <i class="fas fa-upload me-2"></i> Subir
           </button>
         </div>
       </form>
-      <!-- Área de previsualización (opcional) -->
-      <div id="previewImages" class="row mt-4">
-        <!-- Aquí se mostrarán las imágenes seleccionadas antes de subir -->
+
+      <!-- Área de previsualización de imágenes -->
+      <div id="previewContainer" class="row mt-4">
+        <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // Ejemplo de script para previsualizar imágenes seleccionadas
-  document.getElementById('imageFiles').addEventListener('change', function(event) {
-    const preview = document.getElementById('previewImages');
-    preview.innerHTML = "";
-    Array.from(event.target.files).forEach(file => {
+  // Función para agregar imagen al contenedor de previsualización
+  function addPreview(src) {
+    const previewContainer = document.getElementById('previewContainer');
+    const col = document.createElement('div');
+    col.className = "col-6 col-md-3 mb-3";
+    col.innerHTML = `<img src="${src}" class="img-fluid rounded" alt="Preview">`;
+    previewContainer.appendChild(col);
+  }
+
+  // Función para procesar y previsualizar archivos
+  function handleFiles(files) {
+    Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onload = function(e) {
-        const col = document.createElement('div');
-        col.className = "col-md-3 mb-3";
-        col.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded" alt="Preview">`;
-        preview.appendChild(col);
+        addPreview(e.target.result);
       }
       reader.readAsDataURL(file);
     });
+  }
+
+  // Eventos para el input de "Subir Fotos"
+  document.getElementById('uploadImages').addEventListener('change', function(event) {
+    handleFiles(event.target.files);
+  });
+
+  // Eventos para el input de "Tomar Foto"
+  document.getElementById('takePhoto').addEventListener('change', function(event) {
+    handleFiles(event.target.files);
   });
 </script>
 
