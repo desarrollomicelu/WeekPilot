@@ -14,13 +14,14 @@
             </h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="{{ url_for('technical_service') }}" class="btn btn-outline-secondary">
+            <!-- Actualizamos el enlace "Cancelar" para que apunte al endpoint correcto -->
+            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i> Volver
             </a>
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('create_ticket') }}">
+    <form method="POST" action="{{ url_for('technical_service.create_ticket') }}">
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
             <!-- Información del Cliente -->
@@ -33,35 +34,33 @@
                         <div class="mb-3 row">
                             <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_names" name="client_names" value=""
-                                    required>
+                                <input type="text" class="form-control" id="client_names" name="client_names" required>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames"
-                                    value="" required>
+                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames" required>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="document" name="document" value="" required>
+                                <input type="text" class="form-control" id="document" name="document" required>
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="phone" name="phone" value="">
+                                <input type="text" class="form-control" id="phone" name="phone">
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
                             <div class="col-sm-8">
-                                <input type="mail" class="form-control" id="mail" name="mail" value="" required>
+                                <input type="mail" class="form-control" id="mail" name="mail" required>
                             </div>
                         </div>
                     </div>
@@ -93,13 +92,6 @@
                                 <input type="text" class="form-control" value="Asignado" readonly>
                             </div>
                         </div>
-                        <!-- <div class="mb-3 row">
-                            <label for="assigned" class="col-sm-4 col-form-label">Fecha asignación</label>
-                            <div class="col-sm-8">
-                                <input type="datetime-local" class="form-control" id="assigned" name="assigned"
-                                    value="">
-                            </div>
-                        </div> -->
 
                         <div class="mb-3 row">
                             <label for="assigned" class="col-sm-4 col-form-label">Fecha asignación</label>
@@ -149,8 +141,7 @@
                                 </thead>
                                 <tbody>
                                     <tr id="noPartsRow">
-                                        <td colspan="6" class="text-center py-3">No se han agregado repuestos para este
-                                            servicio.</td>
+                                        <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -210,8 +201,7 @@
                                     <select name="reference" id="reference" class="form-control select2">
                                         <option value="" selected disabled>Seleccione una referencia</option>
                                         {% for ref in reference %}
-                                        <option value="{{ ref.description }}">{{ ref.description }} ({{ ref.CODLINEA }})
-                                        </option>
+                                        <option value="{{ ref.description }}">{{ ref.description }} ({{ ref.CODLINEA }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -243,8 +233,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="service_value" name="service_value"
-                                        value="0" min="0" required>
+                                    <input type="number" class="form-control" id="service_value" name="service_value" value="0" min="0" required>
                                 </div>
                             </div>
                         </div>
@@ -254,8 +243,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="spare_value" name="spare_value"
-                                        value="0" min="0" readonly>
+                                    <input type="number" class="form-control" id="spare_value" name="spare_value" value="0" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -265,8 +253,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control fw-bold" id="total" name="total" value="0"
-                                        readonly>
+                                    <input type="number" class="form-control fw-bold" id="total" name="total" value="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -274,10 +261,10 @@
                 </div>
             </div>
 
-
             <!-- Botones de acción -->
             <div class="d-flex justify-content-between my-2">
-                <a href="{{ url_for('technical_service') }}" class="btn btn-outline-secondary">
+                <!-- Actualizamos el enlace de Cancelar para apuntar al endpoint correcto -->
+                <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-times me-2"></i>Cancelar
                 </a>
                 <div>
@@ -300,12 +287,10 @@
             <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
         </td>
         <td>
-            <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0"
-                required>
+            <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0" required>
         </td>
         <td>
-            <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="0"
-                readonly>
+            <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="0" readonly>
         </td>
         <td>
             <button type="button" class="btn btn-sm btn-danger remove-part">
@@ -323,9 +308,9 @@
 <script>
     $(document).ready(function () {
         $('.select2').select2({
-            width: '100%', // Asegura que el select ocupe todo el ancho
-            placeholder: "Seleccione una opción", // Mensaje de ayuda
-            allowClear: true // Permite limpiar la selección
+            width: '100%',
+            placeholder: "Seleccione una opción",
+            allowClear: true
         });
     });
 </script>
@@ -337,17 +322,14 @@
             allowClear: true,
             width: '100%',
             templateSelection: function (data) {
-                // Muestra el texto de la opción seleccionada
                 return data.text;
             }
         }).on('change', function () {
-            // Obtiene los valores seleccionados y actualiza el textarea
             const selected = $(this).val();
             $('#selected_problems').val(selected ? selected.join(', ') : '');
         });
     });
     document.addEventListener('DOMContentLoaded', function () {
-        // Referencias para repuestos
         const partsTable = document.getElementById('partsTable');
         const partsTableBody = partsTable.querySelector('tbody');
         const addPartBtn = document.getElementById('addPartBtn');

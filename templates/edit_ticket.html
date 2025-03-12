@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ url_for('edit_ticket', ticket_id=ticket.id_ticket) }}">
+  <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}">
     <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
     <div class="row mb-2">
       <!-- Información del Cliente -->

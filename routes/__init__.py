@@ -1,7 +1,7 @@
 # routes/__init__.py
 
 from .auth import auth_bp
-from .dashboard import dashboard_bp
+from .dashboard import dashboard_bp  
 from .internal_repair import internal_repair_bp
 from .technical_service import technical_service_bp
 from .upload_images import upload_images_bp

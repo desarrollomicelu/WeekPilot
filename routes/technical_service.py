@@ -1,20 +1,25 @@
+# routes/technical_service.py
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
-from app import db, get_product_code, get_product_reference, get_technicians
+from datetime import datetime
+# Importa las funciones desde el módulo de servicios para romper el ciclo
+from services.queries import get_product_code, get_product_reference, get_technicians
+# Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
 from models.tickets import Tickets
-import datetime
+from extensions import  db 
 
-# ------------------ CRUD DE TICKETS ------------------#
-technical_service = Blueprint("tickets", __name__)
-# Crear Ticket 
-@technical_service.route("/create_ticket", methods=["GET", "POST"])
+technical_service_bp = Blueprint("technical_service", __name__, template_folder="templates")
+
+# Crear Ticket
+@technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 def create_ticket():
     technicians = get_technicians()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
     if not technicians:
         flash("No hay técnicos disponibles en este momento.", "warning")
         
@@ -52,9 +57,8 @@ def create_ticket():
             spare_value = float(spare_value or 0)
             total = service_value + spare_value
         except ValueError:
-            flash(
-                "Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
-            return redirect(url_for("create_ticket"))
+            flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
+            return redirect(url_for("technical_service.create_ticket"))
 
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -67,8 +71,6 @@ def create_ticket():
             )
             db.session.add(client)
             db.session.commit()  
-            
-        
 
         new_ticket = Tickets(
             technical_name=technical_name,
@@ -90,28 +92,26 @@ def create_ticket():
         db.session.add(new_ticket)
         db.session.commit()
         flash("Ticket creado correctamente", "success")
-        return redirect(url_for("technical_service"))
+        return redirect(url_for("technical_service.list_tickets"))
 
     return render_template("create_ticket.html", technicians=technicians, current_date=current_date, reference=reference, product_code=product_code)
 
-
 # Listar Tickets
-@technical_service.route("/technical_service")
+@technical_service_bp.route("/technical_service")
 @login_required
-def technical_service():
+def list_tickets():
     clients = Clients_tickets.query.all()
     tickets = Tickets.query.all()
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
     return render_template("technical_service.html", tickets=tickets, technicians=technicians, clients=clients)
 
 # Editar Ticket
-@technical_service.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
+@technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):
     ticket = Tickets.query.get(ticket_id)
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
     if request.method == "POST":
-        # Actualizamos solo los campos del ticket (no se modifica el cliente)
         ticket.technical_name = request.form.get("technical_name")
         ticket.state = request.form.get("state")
         ticket.priority = request.form.get("priority")
@@ -124,25 +124,24 @@ def edit_ticket(ticket_id):
             ticket.total = ticket.service_value + ticket.spare_value
         except ValueError:
             flash("Error: Los valores deben ser numéricos.", "danger")
-            return redirect(url_for("edit_ticket", ticket_id=ticket_id))
-
+            return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket_id))
         db.session.commit()
         flash("Ticket actualizado correctamente", "success")
-        return redirect(url_for("technical_service"))
+        return redirect(url_for("technical_service.list_tickets"))
 
     return render_template("edit_ticket.html", ticket=ticket, technicians=technicians)
 
 # Ver detalle del Ticket
-@technical_service.route("/view_detail_ticket/<int:ticket_id>", methods=["GET", "POST"])
+@technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def view_detail_ticket(ticket_id):
     ticket = Tickets.query.filter_by(id_ticket=ticket_id).first()
     if not ticket:
         flash("Ticket no encontrado", "danger")
-        return redirect(url_for("technical_service"))
+        return redirect(url_for("technical_service.list_tickets"))
     return render_template("view_detail_ticket.html", ticket=ticket, now=datetime.utcnow())
-
-@technical_service.route("/view_technical.html")
+    
+@technical_service_bp.route("/view_technical.html")
 @login_required
 def view_technical():
     return render_template("view_technical.html")
