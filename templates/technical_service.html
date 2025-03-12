@@ -23,11 +23,11 @@
           aria-label="Buscar tickets">
       </div>
       <!-- Botón de nuevo ticket -->
-      <a href="{{ url_for('create_ticket') }}" class="btn btn-success d-flex align-items-center">
+      <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-success d-flex align-items-center">
         <i class="fas fa-plus me-2"></i>Nuevo Ticket
       </a>
       <!-- Botón de subir imágenes -->
-      <a href="{{ url_for('upload_images') }}" class="btn btn-secondary d-flex align-items-center">
+      <a href="{{ url_for('upload_images.upload') }}" class="btn btn-secondary d-flex align-items-center">
         <i class="fas fa-upload me-2"></i>Subir Imágenes
       </a>
     </div>
@@ -160,7 +160,7 @@
             <td colspan="11" class="text-center py-5">
               <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
               <p class="text-muted">No hay tickets registrados actualmente.</p>
-              <a href="{{ url_for('create_ticket') }}" class="btn btn-primary">
+              <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Crear nuevo ticket
               </a>
             </td>
