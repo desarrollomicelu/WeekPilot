@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Subir Imágenes{% endblock %}
+{% block content %}
+
+<div class="container-fluid py-4">
+  <!-- Cabecera con título y controles -->
+  <div class="row align-items-center mb-4">
+    <div class="col-md-6">
+      <h2 class="mb-0">
+        <i class="fas fa-upload text-primary me-2"></i> Subir Imágenes
+      </h2>
+    </div>
+    <div class="col-md-6 d-flex justify-content-end gap-2">
+      <!-- Botón para volver a la vista anterior -->
+      <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-secondary d-flex align-items-center">
+        <i class="fas fa-arrow-left me-2"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <!-- Tarjeta con formulario para subir imágenes -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form action="{{ url_for('upload_images.upload') }}" method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <!-- Campo para subir fotos desde galería -->
+          <div class="col-md-6 mb-3">
+            <label for="uploadImages" class="form-label">Subir Fotos</label>
+            <input type="file" id="uploadImages" name="images" class="form-control" multiple accept="image/*">
+          </div>
+          <!-- Campo para tomar foto con la cámara -->
+          <div class="col-md-6 mb-3">
+            <label for="takePhoto" class="form-label">Tomar Foto</label>
+            <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*" capture="environment">
+          </div>
+        </div>
+        <div class="mb-3">
+          <button type="submit" class="btn btn-primary d-flex align-items-center">
+            <i class="fas fa-upload me-2"></i> Subir
+          </button>
+        </div>
+      </form>
+
+      <!-- Área de previsualización de imágenes -->
+      <div id="previewContainer" class="row mt-4">
+        <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Función para agregar imagen al contenedor de previsualización
+  function addPreview(src) {
+    const previewContainer = document.getElementById('previewContainer');
+    const col = document.createElement('div');
+    col.className = "col-6 col-md-3 mb-3";
+    col.innerHTML = `<img src="${src}" class="img-fluid rounded" alt="Preview">`;
+    previewContainer.appendChild(col);
+  }
+
+  // Función para procesar y previsualizar archivos
+  function handleFiles(files) {
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        addPreview(e.target.result);
+      }
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Eventos para el input de "Subir Fotos"
+  document.getElementById('uploadImages').addEventListener('change', function(event) {
+    handleFiles(event.target.files);
+  });
+
+  // Eventos para el input de "Tomar Foto"
+  document.getElementById('takePhoto').addEventListener('change', function(event) {
+    handleFiles(event.target.files);
+  });
+</script>
+
+{% endblock %}

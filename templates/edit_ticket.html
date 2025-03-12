@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% block title %}Editar Ticket de Servicio Técnico{% endblock %}
+{% block content %}
+
+<!-- Se incluyen los estilos de select2 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<div class="container-fluid py-4">
+  <!-- Cabecera -->
+  <div class="row align-items-center mb-2">
+    <div class="col-md-6">
+      <h2 class="mb-0">
+        <i class="fas fa-edit text-primary me-2"></i>Editar Ticket #{{ ticket.id_ticket }}
+      </h2>
+    </div>
+    <div class="col-md-6 text-end">
+      <a href="{{ url_for('technical_service') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i> Volver
+      </a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}">
+    <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
+    <div class="row mb-2">
+      <!-- Información del Cliente -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-2">
+          <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3 row">
+              <label for="client_names" class="col-sm-4 col-form-label">Nombre</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="client_names" name="client_names" value="{{ ticket.client_names }}" required>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="document" class="col-sm-4 col-form-label">Documento</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="document" name="document" value="{{ ticket.document }}" required>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="phone" name="phone" value="{{ ticket.phone|default('') }}">
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="mail" class="col-sm-4 col-form-label">Mail</label>
+              <div class="col-sm-8">
+                <input type="email" class="form-control" id="mail" name="mail" value="{{ ticket.mail|default('') }}" required>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Detalles del Ticket -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-2">
+          <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3 row">
+              <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
+              <div class="col-sm-8">
+                <select class="form-select" id="technical_name" name="technical_name">
+                  <option value="" {% if not ticket.technical_name %}selected{% endif %}>Sin asignar</option>
+                  {% for technician in technicians %}
+                    <option value="{{ technician.username }}" {% if ticket.technical_name == technician.username %}selected{% endif %}>
+                      {{ technician.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="status" class="col-sm-4 col-form-label">Estado</label>
+              <div class="col-sm-8">
+                <select class="form-select" id="status" name="status">
+                  {% for status in ['Asignado', 'En proceso', 'Terminado'] %}
+                    <option value="{{ status }}" {% if ticket.status == status %}selected{% endif %}>{{ status }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="received" class="col-sm-4 col-form-label">Fecha recepción</label>
+              <div class="col-sm-8">
+                <input type="datetime-local" class="form-control" id="received" name="received" 
+                  value="{{ ticket.received.strftime('%Y-%m-%dT%H:%M') if ticket.received else '' }}">
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
+              <div class="col-sm-8">
+                <select class="form-select" id="priority" name="priority">
+                  {% for priority in ['Alta', 'Media', 'Baja'] %}
+                    <option value="{{ priority }}" {% if ticket.priority == priority %}selected{% endif %}>{{ priority }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila 2: Repuestos Utilizados (Full Width) -->
+    <div class="row mb-2">
+      <div class="col-md-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+            <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
+              <i class="fas fa-plus me-1"></i> Agregar repuesto
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table" id="partsTable">
+                <thead class="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th style="width:40%;">Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Valor Unitario</th>
+                    <th>Valor Total</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if ticket.spare_parts %}
+                    {% for part in ticket.spare_parts %}
+                      <tr class="part-row">
+                        <td class="part-index">{{ loop.index }}</td>
+                        <td>
+                          <input type="text" class="form-control part-description" name="part_description[]" value="{{ part.description }}" required>
+                        </td>
+                        <td>
+                          <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="{{ part.quantity }}" required>
+                        </td>
+                        <td>
+                          <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="{{ part.unit_value }}" required>
+                        </td>
+                        <td>
+                          <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="{{ part.total_value }}" readonly>
+                        </td>
+                        <td>
+                          <button type="button" class="btn btn-sm btn-danger remove-part">
+                            <i class="fas fa-trash-alt"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr id="noPartsRow">
+                      <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila 3: Problemas del Dispositivo (izquierda) y Valores (derecha) -->
+    <div class="row mb-2">
+      <!-- Problemas del Dispositivo -->
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-light">
+            <h5 class="mb-0">
+              <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
+            </h5>
+          </div>
+          <div class="card-body">
+            <select id="device_problems" name="device_problems[]" class="form-select" multiple="multiple">
+              {% set problems = [
+                "Flex de carga", "Bocinas", "Linterna", "Táctil", "Bandeja SIM", "Visor de cámara", "Display",
+                "Auriculares/altavoz", "Revisión", "No enciende", "Mantenimiento", "Visor táctil", "Sin señal",
+                "Máquina de vacío", "Backcover", "Software", "Cámara frontal", "Humedad", "Limpieza",
+                "Cambio de luces", "Cámara", "Cambio de pantalla", "Reconexión de batería", "Tapa",
+                "Módulo WiFi", "Chip de pantalla", "Tapa trasera", "Visor", "Micrófono", "Corto",
+                "Flex encendido", "Lógica de carga", "Flex auricular", "Batería", "Revisión", "Face ID",
+                "IC Audio", "IC Carga", "No carga", "Línea Power"
+              ] %}
+              {% for prob in problems %}
+                <option value="{{ prob }}"
+                  {% if ticket.device_problems and (prob in ticket.device_problems) %}selected{% endif %}>
+                  {{ prob }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="mt-3">
+              <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
+              <textarea id="selected_problems" class="form-control" rows="3" readonly>{% if ticket.device_problems %}{{ ticket.device_problems | join(', ') }}{% endif %}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Valores -->
+      <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header bg-light">
+            <h5 class="mb-0">Valores</h5>
+          </div>
+          <div class="card-body">
+            <!-- Información del Equipo -->
+            <div class="mb-2">
+              <h6 class="mb-3">Información del Equipo</h6>
+              <div class="row">
+                <!-- Campo de referencia -->
+                <div class="col-sm-6 mb-3">
+                  <label for="reference_field" class="form-label">Referencia</label>
+                  <select name="reference_field" id="reference_field" class="form-control select2">
+                    <option value="" selected disabled>Seleccione una referencia</option>
+                    {% for ref in reference %}
+                      <option value="{{ ref.description }}"
+                        {% if ticket.reference == ref.description %}selected{% endif %}>
+                        {{ ref.description }} ({{ ref.CODLINEA }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <!-- Campo de código de producto -->
+                <div class="col-sm-6 mb-3">
+                  <label for="product_code_field" class="form-label">Código Producto</label>
+                  <select name="product_code_field" id="product_code_field" class="form-control select2">
+                    <option value="" selected disabled>Seleccione un código de producto</option>
+                    {% for code in product_code %}
+                      <option value="{{ code.id }}"
+                        {% if ticket.product_code == code.id %}selected{% endif %}>
+                        {{ code.id }} ({{ code.CODLINEA }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <!-- Campo IMEI o Serial -->
+                <div class="col-sm-6 mb-3">
+                  <label for="imei_serial" class="form-label">IMEI o Serial</label>
+                  <input type="text" class="form-control" id="imei_serial" name="imei_serial" value="{{ ticket.serial|default('') }}">
+                </div>
+              </div>
+            </div>
+            <hr class="my-4">
+            <!-- Valores Financieros -->
+            <div class="mb-3 row">
+              <label for="service_value_field" class="col-sm-5 col-form-label">Valor del Servicio</label>
+              <div class="col-sm-7">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="service_value_field" name="service_value_field"
+                    value="{{ ticket.service_value|default(0) }}" min="0" required>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label for="spare_value_field" class="col-sm-5 col-form-label">Valor de Repuestos</label>
+              <div class="col-sm-7">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="spare_value_field" name="spare_value_field"
+                    value="{{ ticket.spare_value|default(0) }}" min="0" readonly>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <label for="total_field" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
+              <div class="col-sm-7">
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control fw-bold" id="total_field" name="total_field" value="{{ ticket.total|default(0) }}" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="d-flex justify-content-between mb-2">
+      <a href="{{ url_for('technical_service') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-times me-2"></i>Cancelar
+      </a>
+      <div>
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-save me-2"></i>Guardar Cambios
+        </button>
+        <a href="{{ url_for('view_detail_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-primary ms-2">
+          <i class="fas fa-eye me-2"></i>Ver Detalle
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Template para nueva fila de repuesto -->
+<template id="partRowTemplate">
+  <tr class="part-row">
+    <td class="part-index"></td>
+    <td>
+      <input type="text" class="form-control part-description" name="part_description[]" required>
+    </td>
+    <td>
+      <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
+    </td>
+    <td>
+      <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0" required>
+    </td>
+    <td>
+      <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="0" readonly>
+    </td>
+    <td>
+      <button type="button" class="btn btn-sm btn-danger remove-part">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </td>
+  </tr>
+</template>
+
+<!-- Se incluye jQuery, select2 y Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  $(document).ready(function() {
+    $('.select2').select2({
+      width: '100%',
+      placeholder: "Seleccione una opción",
+      allowClear: true
+    });
+  });
+</script>
+
+<script>
+  $(document).ready(function () {
+    $('#device_problems').select2({
+      placeholder: "Seleccione los problemas",
+      allowClear: true,
+      width: '100%',
+      templateSelection: function(data) {
+        return data.text;
+      }
+    }).on('change', function () {
+      const selected = $(this).val();
+      $('#selected_problems').val(selected ? selected.join(', ') : '');
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+    const partsTable = document.getElementById('partsTable');
+    const partsTableBody = partsTable.querySelector('tbody');
+    const addPartBtn = document.getElementById('addPartBtn');
+    const partRowTemplate = document.getElementById('partRowTemplate');
+    const noPartsRow = document.getElementById('noPartsRow');
+    const serviceValueInput = document.getElementById('service_value_field');
+    const spareValueInput = document.getElementById('spare_value_field');
+    const totalInput = document.getElementById('total_field');
+
+    function editPartTotal(row) {
+      const quantity = parseFloat(row.querySelector('.part-quantity').value) || 0;
+      const unitValue = parseFloat(row.querySelector('.part-unit-value').value) || 0;
+      row.querySelector('.part-total-value').value = quantity * unitValue;
+      editTotals();
+    }
+
+    function editTotals() {
+      let spareTotal = 0;
+      document.querySelectorAll('.part-total-value').forEach(input => {
+        spareTotal += parseFloat(input.value) || 0;
+      });
+      spareValueInput.value = spareTotal;
+      const serviceValue = parseFloat(serviceValueInput.value) || 0;
+      totalInput.value = serviceValue + spareTotal;
+    }
+
+    function editRowIndices() {
+      const rows = partsTableBody.querySelectorAll('.part-row');
+      rows.forEach((row, index) => {
+        row.querySelector('.part-index').textContent = index + 1;
+      });
+    }
+
+    addPartBtn.addEventListener('click', function () {
+      if (noPartsRow) { noPartsRow.remove(); }
+      const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
+      partsTableBody.appendChild(newRow);
+      newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
+      newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
+      newRow.querySelector('.remove-part').addEventListener('click', () => {
+        newRow.remove();
+        editRowIndices();
+        editTotals();
+        if (partsTableBody.querySelectorAll('.part-row').length === 0) {
+          const emptyRow = document.createElement('tr');
+          emptyRow.id = 'noPartsRow';
+          emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
+          partsTableBody.appendChild(emptyRow);
+        }
+      });
+      editRowIndices();
+    });
+
+    document.querySelectorAll('.part-row').forEach(row => {
+      row.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(row));
+      row.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(row));
+      row.querySelector('.remove-part').addEventListener('click', () => {
+        row.remove();
+        editRowIndices();
+        editTotals();
+        if (partsTableBody.querySelectorAll('.part-row').length === 0) {
+          const emptyRow = document.createElement('tr');
+          emptyRow.id = 'noPartsRow';
+          emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
+          partsTableBody.appendChild(emptyRow);
+        }
+      });
+    });
+
+    serviceValueInput.addEventListener('input', editTotals);
+    editTotals();
+  });
+</script>
+
+{% endblock %}
