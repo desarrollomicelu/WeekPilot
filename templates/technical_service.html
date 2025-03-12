@@ -1,280 +1,223 @@
 {% extends "base.html" %}
-
 {% block title %}Technical Service{% endblock %}
-
 {% block content %}
-<div class="container-fluid mt-5">
-  <div class="row mb-3">
-      <div class="col-12">
-          <h2>Gestión de Tickets de Servicio Técnico</h2>
-      </div>
+
+<div class="container-fluid py-4">
+  <!-- Fila del título -->
+  <div class="row mb-2">
+    <div class="col">
+      <h2 class="mb-0">
+        <i class="fas fa-ticket-alt text-primary me-2"></i>Gestión de Tickets Servicio Técnico
+      </h2>
+    </div>
   </div>
-  
-  <div class="row mb-3">
-      <div class="col-md-6">
-          <div class="input-group">
-              <span class="input-group-text"><i class="fas fa-search"></i></span>
-              <input type="text" id="searchInput" class="form-control" placeholder="Buscar tickets...">
-          </div>
+  <!-- Fila de controles -->
+  <div class="row">
+    <div class="col d-flex justify-content-end align-items-center gap-2">
+      <!-- Barra de búsqueda compacta -->
+      <div class="input-group" style="max-width: 250px;">
+        <span class="input-group-text bg-light">
+          <i class="fas fa-search text-muted"></i>
+        </span>
+        <input type="text" class="form-control" placeholder="Buscar tickets..." id="searchTickets"
+          aria-label="Buscar tickets">
       </div>
-      <div class="col-md-6 text-end">
-          <button class="btn btn-primary" id="addTicketBtn">
-              <i class="fas fa-plus"></i> Nuevo Ticket
-          </button>
-      </div>
+      <!-- Botón de nuevo ticket -->
+      <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-success d-flex align-items-center">
+        <i class="fas fa-plus me-2"></i>Nuevo Ticket
+      </a>
+      <!-- Botón de subir imágenes -->
+      <a href="{{ url_for('upload_images.upload') }}" class="btn btn-secondary d-flex align-items-center">
+        <i class="fas fa-upload me-2"></i>Subir Imágenes
+      </a>
+    </div>
   </div>
+</div>
 
-  <div class="row bulk-actions">
-      <div class="col-12">
-          <button id="deleteSelectedBtn" class="btn btn-danger d-none">
-              🗑️ Eliminar Seleccionados
-          </button>
+
+<!-- Filtros rápidos -->
+<div class="card mb-4 border-0 shadow-sm">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-8">
+        <div class="d-flex gap-2 flex-wrap">
+          {% for status in ['Todos', 'Asignados', 'En Proceso', 'Terminados'] %}
+          <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
+            %}checked{% endif %}>
+          <label class="btn btn-outline-primary" for="btn{{ status }}">
+            <i
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Asignados' %}user-check{% elif status == 'En Proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
+            {{ status }}
+          </label>
+          {% endfor %}
+        </div>
       </div>
+      <div class="col-md-4">
+
+      </div>
+    </div>
   </div>
+</div>
 
-  <div class="table-container">
-      <div class="table-responsive">
-          <table id="ticketsTable" class="table table-striped table-hover">
-              <thead>
-                  <tr>
-                      <th>
-                          <input type="checkbox" id="selectAllCheckbox">
-                      </th>
-                      <th data-sort="ticket">Ticket # <i class="fas fa-sort"></i></th>
-                      <th data-sort="cliente">Cliente <i class="fas fa-sort"></i></th>
-                      <th data-sort="tecnico">Técnico Asignado <i class="fas fa-sort"></i></th>
-                      <th data-sort="estado">Estado <i class="fas fa-sort"></i></th>
-                      <th data-sort="fecha">Fecha de Creación <i class="fas fa-sort"></i></th>
-                      <th data-sort="prioridad">Prioridad <i class="fas fa-sort"></i></th>
-                      <th>Acciones</th>
-                  </tr>
-              </thead>
-              <tbody>
-                  <tr>
-                      <td><input type="checkbox" class="row-checkbox"></td>
-                      <td>#12345</td>
-                      <td>Empresa ABC</td>
-                      <td>Juan Pérez</td>
-                      <td>
-                          <select class="form-select status-dropdown">
-                              <option value="abierto" selected>Abierto</option>
-                              <option value="en-progreso">En Progreso</option>
-                              <option value="cerrado">Cerrado</option>
-                          </select>
-                      </td>
-                      <td>2023-10-01</td>
-                      <td>
-                          <span class="badge bg-danger status-badge">Alta</span>
-                      </td>
-                      <td>
-                        <div class="action-icons">
-                          <button class="edit-btn" title="Editar">
-                            <i class="fas fa-pen"></i>
-                          </button>
-                          <button class="view-btn" title="Ver Detalles">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="delete-btn" title="Eliminar">
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                  </tr>
-
-                  <tr>
-                    <td><input type="checkbox" class="row-checkbox"></td>
-                    <td>#12345</td>
-                    <td>Empresa ABC</td>
-                    <td>Juan Pérez</td>
-                    <td>
-                        <select class="form-select status-dropdown">
-                            <option value="abierto" selected>Abierto</option>
-                            <option value="en-progreso">En Progreso</option>
-                            <option value="cerrado">Cerrado</option>
-                        </select>
-                    </td>
-                    <td>2023-10-01</td>
-                    <td>
-                        <span class="badge bg-danger status-badge">Alta</span>
-                    </td>
-                    <td>
-                      <div class="action-icons">
-                        <button class="edit-btn" title="Editar">
-                          <i class="fas fa-pen"></i>
-                        </button>
-                        <button class="view-btn" title="Ver Detalles">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="delete-btn" title="Eliminar">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                </tr>
-              
-                <tr>
-                  <td><input type="checkbox" class="row-checkbox"></td>
-                  <td>#12345</td>
-                  <td>Empresa ABC</td>
-                  <td>Juan Pérez</td>
-                  <td>
-                      <select class="form-select status-dropdown">
-                          <option value="abierto" selected>Abierto</option>
-                          <option value="en-progreso">En Progreso</option>
-                          <option value="cerrado">Cerrado</option>
-                      </select>
-                  </td>
-                  <td>2023-10-01</td>
-                  <td>
-                      <span class="badge bg-danger status-badge">Alta</span>
-                  </td>
-                  <td>
-                    <div class="action-icons">
-                      <button class="edit-btn" title="Editar">
-                        <i class="fas fa-pen"></i>
-                      </button>
-                      <button class="view-btn" title="Ver Detalles">
-                        <i class="fas fa-eye"></i>
-                      </button>
-                      <button class="delete-btn" title="Eliminar">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-              </tr>
-
-              <tr>
-                <td><input type="checkbox" class="row-checkbox"></td>
-                <td>#12345</td>
-                <td>Empresa ABC</td>
-                <td>Juan Pérez</td>
-                <td>
-                    <select class="form-select status-dropdown">
-                        <option value="abierto" selected>Abierto</option>
-                        <option value="en-progreso">En Progreso</option>
-                        <option value="cerrado">Cerrado</option>
-                    </select>
-                </td>
-                <td>2023-10-01</td>
-                <td>
-                    <span class="badge bg-danger status-badge">Alta</span>
-                </td>
-                <td>
-                  <div class="action-icons">
-                    <button class="edit-btn" title="Editar">
-                      <i class="fas fa-pen"></i>
-                    </button>
-                    <button class="view-btn" title="Ver Detalles">
-                      <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="delete-btn" title="Eliminar">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="row-checkbox"></td>
-              <td>#12345</td>
-              <td>Empresa ABC</td>
-              <td>Juan Pérez</td>
-              <td>
-                  <select class="form-select status-dropdown">
-                      <option value="abierto" selected>Abierto</option>
-                      <option value="en-progreso">En Progreso</option>
-                      <option value="cerrado">Cerrado</option>
-                  </select>
-              </td>
-              <td>2023-10-01</td>
-              <td>
-                  <span class="badge bg-danger status-badge">Alta</span>
-              </td>
-              <td>
-                <div class="action-icons">
-                  <button class="edit-btn" title="Editar">
-                    <i class="fas fa-pen"></i>
-                  </button>
-                  <button class="view-btn" title="Ver Detalles">
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button class="delete-btn" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </td>
+<!-- Tabla de tickets -->
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+        <label class="form-check-label fw-bold ms-2" for="selectAllCheckbox">Seleccionar todos</label>
+      </div>
+      <div class="ms-3">
+        <button class="btn btn-sm btn-outline-secondary" disabled id="bulkActionBtn">
+          <i class="fas fa-cogs me-1"></i> Acciones
+        </button>
+      </div>
+    </div>
+    <span class="badge bg-primary rounded-pill py-2 px-3">
+      <i class="fas fa-ticket-alt me-2"></i>
+      Tickets activos: <strong>{{ tickets|length }}</strong>
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-nowrap">
+          <tr>
+            <th class="ps-3">#</th>
+            <th>Cliente</th>
+            <th>Documento</th>
+            <th>Técnico</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Prioridad</th>
+            <th>Valor Servicio</th>
+            <th>Valor Repuesto</th>
+            <th>Total</th>
+            <th class="text-center">Acciones</th>
           </tr>
-              </tbody>
-          </table>
-      </div>
+        </thead>
+        <tbody>
+          {% for ticket in tickets %}
+          <tr class="align-middle" data-status="{{ ticket.status }}">
+            <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
+            <td>
+              <div class="d-flex align-items-center">
 
-      <nav>
-          <ul class="pagination justify-content-center">
-              <li class="page-item disabled">
-                  <a class="page-link" href="#" tabindex="-1">Anterior</a>
-              </li>
-              <li class="page-item active"><a class="page-link" href="#">1</a></li>
-              <li class="page-item"><a class="page-link" href="#">2</a></li>
-              <li class="page-item"><a class="page-link" href="#">3</a></li>
-              <li class="page-item">
-                  <a class="page-link" href="#">Siguiente</a>
-              </li>
-          </ul>
-      </nav>
+
+                <div>{{ ticket.client_info.name }}</div>
+              </div>
+            </td>
+            <td>{{ ticket.client_info.document }}</td>
+            <td>
+              {% if ticket.technical_name %}
+              {{ ticket.technical_name.replace('.', ' ') | title }}
+              {% else %}
+              Sin asignar
+              {% endif %}
+            </td>
+
+            <td>
+              <select class="form-select form-select-sm" data-ticket-id="{{ ticket.id }}" name="status">
+                {% for status in ['Asignado', 'En proceso', 'Terminado'] %}
+                <option value="{{ status }}" {% if ticket.status==status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              {% if ticket.received %}
+              <div>{{ ticket.received.strftime("%d/%m/%Y") if ticket.received else "Fecha no disponible" }}</div>
+              <small class="text-muted">{{ ticket.received.strftime("%H:%M:%S") if ticket.received else "" }}</small>
+              {% else %}
+              <span class="badge bg-secondary">No registrada</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {{ ticket.priority }}
+            </td>
+
+            <td><i class="fas fa-tools text-muted me-1"></i>${{ "{:,.0f}".format(ticket.service_value) }}</td>
+            <td><i class="fas fa-cogs text-muted me-1"></i>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
+            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
+            <td class="text-center">
+              <div class="btn-group">
+                <a href="{{ url_for('edit_ticket', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{{ url_for('view_detail_ticket', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
+                  <i class="fas fa-envelope"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="11" class="text-center py-5">
+              <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
+              <p class="text-muted">No hay tickets registrados actualmente.</p>
+              <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Crear nuevo ticket
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+      <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
+        <option value="10">10 filas</option>
+        <option value="25">25 filas</option>
+        <option value="50">50 filas</option>
+        <option value="100">100 filas</option>
+      </select>
+      <small class="text-muted">Mostrando <strong>{{ tickets|length }}</strong> tickets</small>
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item disabled">
+          <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
+        </li>
+        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        ¿Está seguro que desea eliminar este ticket? Esta acción no se puede deshacer.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const searchInput = document.getElementById('searchInput');
-  const table = document.getElementById('ticketsTable');
-  const rows = table.querySelectorAll('tbody tr');
-
-  searchInput.addEventListener('keyup', function() {
-      const searchTerm = this.value.toLowerCase();
-      rows.forEach(row => {
-          const visible = Array.from(row.cells).some(cell => 
-              cell.textContent.toLowerCase().includes(searchTerm)
-          );
-          row.style.display = visible ? '' : 'none';
-      });
-  });
-
-  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-  const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-  const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-
-  selectAllCheckbox.addEventListener('change', function() {
-      rowCheckboxes.forEach(checkbox => {
-          checkbox.checked = this.checked;
-      });
-      deleteSelectedBtn.classList.toggle('d-none', !this.checked);
-  });
-
-  rowCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', function() {
-          const anyChecked = Array.from(rowCheckboxes).some(cb => cb.checked);
-          deleteSelectedBtn.classList.toggle('d-none', !anyChecked);
-      });
-  });
-
-  const sortableHeaders = document.querySelectorAll('thead th[data-sort]');
-  sortableHeaders.forEach(header => {
-      header.addEventListener('click', function() {
-          const column = this.getAttribute('data-sort');
-          const tbody = table.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          
-          rows.sort((a, b) => {
-              const cellA = a.querySelector(`td:nth-child(${this.cellIndex + 1})`).textContent;
-              const cellB = b.querySelector(`td:nth-child(${this.cellIndex + 1})`).textContent;
-              return cellA.localeCompare(cellB);
-          });
-
-          rows.forEach(row => tbody.appendChild(row));
-      });
-  });
-});
-</script>
+<script src="/static/js/technical_service.js"></script>
 {% endblock %}
+
