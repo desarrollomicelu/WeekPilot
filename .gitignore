@@ -1,3 +1,8 @@
-#Ignorar el entorno virtual.
+# Ignorar entorno virtual (si tu carpeta se llama "venv" o "env")
+venv/
 flask/
-env/
+
+# Ignorar el archivo .env con variables de entorno
+.env
+.env.development/
+
