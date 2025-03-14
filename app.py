@@ -13,11 +13,14 @@ from config import Config
 # Importa las extensiones (única instancia)
 from extensions import db, bcrypt
 
-# Importa el modelo de usuario (asegúrate de que implemente UserMixin)
+# Importa el modelo de usuario desde la carpeta app/models
 from models.employees import Empleados
-
-# Importa la función para registrar blueprints
+from models.problems import Problems
+from models.problemsTickets import Problems_tickets
+# Importa la función para registrar blueprints desde la carpeta app/routes
 from routes import register_blueprints
+
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -39,6 +42,9 @@ def load_user(user_id):
 
 # Registra los blueprints
 register_blueprints(app)
+
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
     app.run(debug=True)

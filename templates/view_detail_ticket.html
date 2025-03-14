@@ -121,6 +121,18 @@
       </div>
     </div>
 
+    <div class="mb-3 row">
+      <label for="device_problems" class="col-sm-4 col-form-label">Problemas del Dispositivo</label>
+      <div class="col-sm-8">
+        <select id="device_problems" name="device_problems[]" class="form-control select2" multiple="multiple">
+          {% for problem in problems %}
+            <option value="{{ problem.id }}">{{ problem.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    
+
     <!-- Descripción del problema y solución -->
     <div class="row mb-4">
       <div class="col-md-6">

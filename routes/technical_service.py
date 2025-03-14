@@ -10,6 +10,8 @@ from models.employees import Empleados
 from models.clients import Clients_tickets
 from models.tickets import Tickets
 from extensions import  db 
+from models.problems import Problems  # Ajusta la ruta según tu estructura
+
 
 technical_service_bp = Blueprint("technical_service", __name__, template_folder="templates")
 
@@ -17,14 +19,13 @@ technical_service_bp = Blueprint("technical_service", __name__, template_folder=
 @technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 def create_ticket():
+    # Datos auxiliares para el formulario
     technicians = get_technicians()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    if not technicians:
-        flash("No hay técnicos disponibles en este momento.", "warning")
-        
     reference = get_product_reference()
     product_code = get_product_code()
+
+    problems_list = Problems.query.order_by(Problems.name).all()
 
     if request.method == "POST":
         # Datos del cliente
@@ -60,6 +61,7 @@ def create_ticket():
             flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
 
+        # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
             client = Clients_tickets(
@@ -70,8 +72,20 @@ def create_ticket():
                 phone=phone,
             )
             db.session.add(client)
-            db.session.commit()  
+            db.session.commit()
 
+        # Aquí obtenemos los problemas seleccionados en el formulario.
+        # Se usa el campo "device_problems[]" que ahora debe contener los IDs de los problemas.
+        selected_problem_ids = request.form.getlist("device_problems[]")
+        try:
+            selected_problem_ids = [int(pid) for pid in selected_problem_ids]
+        except ValueError:
+            selected_problem_ids = []
+
+        # Consultar los objetos Problems que correspondan a los IDs seleccionados
+        selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
+
+        # Crear el nuevo ticket, asignando la lista de problemas seleccionados
         new_ticket = Tickets(
             technical_name=technical_name,
             state=state,
@@ -87,14 +101,24 @@ def create_ticket():
             assigned=assigned,
             received=received,
             in_progress=in_progress,
-            finished=finished
+            finished=finished,
+            problems=selected_problems  # Aquí se asigna la relación muchos a muchos
         )
         db.session.add(new_ticket)
         db.session.commit()
         flash("Ticket creado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets"))
 
-    return render_template("create_ticket.html", technicians=technicians, current_date=current_date, reference=reference, product_code=product_code)
+    # Método GET: se pasan los datos auxiliares y la lista de problemas reales al template
+    return render_template(
+        "create_ticket.html",
+        technicians=technicians,
+        current_date=current_date,
+        reference=reference,
+        product_code=product_code,
+        problems=problems_list  # Usada para generar las opciones del select
+    )
+
 
 # Listar Tickets
 @technical_service_bp.route("/technical_service")

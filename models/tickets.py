@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_login import UserMixin
 from . import db
 
+
 class Tickets(db.Model, UserMixin):
     __bind_key__ = "db3"
     __tablename__ = "Tickets"
@@ -11,6 +12,7 @@ class Tickets(db.Model, UserMixin):
     state = db.Column(db.String(50), nullable=False, default="received")
     priority = db.Column(db.String(50), nullable=False)
     technical_name = db.Column(db.String(33), nullable=False)
+    technical_document = db.Column(db.String(11), nullable=False)
     product_code = db.Column(db.String(50), nullable=False)
     spare_parts = db.Column(db.String(50), nullable=False)
     IMEI = db.Column(db.String(20), nullable=False)
@@ -25,3 +27,9 @@ class Tickets(db.Model, UserMixin):
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     client = db.Column(db.Integer, db.ForeignKey(
         "plan_beneficios.Clients_tickets.id_client"), nullable=False)
+
+    problems = db.relationship(
+        "Problems",
+        secondary="Problems_tickets",
+        back_populates="tickets"
+    )
