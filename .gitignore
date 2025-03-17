@@ -1,5 +1,4 @@
+#Ignorar el entorno virtual.
 
-flask/
+env/
 venv/
-.env/
-.env.development/
