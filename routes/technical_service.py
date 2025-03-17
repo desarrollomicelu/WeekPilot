@@ -4,13 +4,15 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios para romper el ciclo
-from services.queries import get_product_code, get_product_reference, get_technicians
+from models.problemsTickets import Problems_tickets
+from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_name, get_technicians
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
 from models.tickets import Tickets
 from extensions import  db 
-from models.problems import Problems  # Ajusta la ruta según tu estructura
+from models.problems import Problems 
+
 
 
 technical_service_bp = Blueprint("technical_service", __name__, template_folder="templates")
@@ -24,6 +26,8 @@ def create_ticket():
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     reference = get_product_reference()
     product_code = get_product_code()
+    spare_name = get_spare_name()
+    sertec = get_sertec()
 
     problems_list = Problems.query.order_by(Problems.name).all()
 
@@ -39,12 +43,13 @@ def create_ticket():
         technical_name = request.form.get("technical_name")
         state = request.form.get("state", "received")
         priority = request.form.get("priority")
-        spare_parts = request.form.get("spare_parts")
+        spare_name = request.form.get("spare_parts")
+        sertec = request.form.get("sertec")
         IMEI = request.form.get("IMEI")
         reference_selected = request.form.get("reference")
         product_code_selected = request.form.get("product_code")
         service_value = request.form.get("service_value")
-        spare_value = request.form.get("spare_value")
+        spare_name = request.form.get("spare_name")
         assigned = request.form.get("assigned")
         if assigned:
             assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
@@ -55,8 +60,8 @@ def create_ticket():
 
         try:
             service_value = float(service_value or 0)
-            spare_value = float(spare_value or 0)
-            total = service_value + spare_value
+            spare_name = float(spare_name or 0)
+            total = service_value + spare_name
         except ValueError:
             flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
@@ -90,19 +95,19 @@ def create_ticket():
             technical_name=technical_name,
             state=state,
             priority=priority,
-            spare_parts=spare_parts,
+            sertec=sertec,
             IMEI=IMEI,
             reference=reference_selected,
             product_code=product_code_selected,
             service_value=service_value,
-            spare_value=spare_value,
+            spare_name=spare_name,
             total=total,
             client=client.id_client,
             assigned=assigned,
             received=received,
             in_progress=in_progress,
             finished=finished,
-            problems=selected_problems  # Aquí se asigna la relación muchos a muchos
+            problems=selected_problems  
         )
         db.session.add(new_ticket)
         db.session.commit()
@@ -116,7 +121,9 @@ def create_ticket():
         current_date=current_date,
         reference=reference,
         product_code=product_code,
-        problems=problems_list  # Usada para generar las opciones del select
+        problems=problems_list,
+        sertec=sertec,
+        spare_name  = spare_name
     )
 
 
@@ -144,8 +151,8 @@ def edit_ticket(ticket_id):
         ticket.reference = request.form.get("reference")
         try:
             ticket.service_value = float(request.form.get("service_value", 0))
-            ticket.spare_value = float(request.form.get("spare_value", 0))
-            ticket.total = ticket.service_value + ticket.spare_value
+            ticket.spare_name = float(request.form.get("spare_name", 0))
+            ticket.total = ticket.service_value + ticket.spare_name
         except ValueError:
             flash("Error: Los valores deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket_id))
@@ -160,12 +167,16 @@ def edit_ticket(ticket_id):
 @login_required
 def view_detail_ticket(ticket_id):
     ticket = Tickets.query.filter_by(id_ticket=ticket_id).first()
+    problems = Problems.query.join(Problems_tickets).filter(
+        Problems_tickets.id_ticket == ticket_id
+    ).all()
     if not ticket:
         flash("Ticket no encontrado", "danger")
         return redirect(url_for("technical_service.list_tickets"))
-    return render_template("view_detail_ticket.html", ticket=ticket, now=datetime.utcnow())
+    return render_template("view_detail_ticket.html", ticket=ticket, problems=problems, now=datetime.utcnow())
     
 @technical_service_bp.route("/view_technical.html")
 @login_required
 def view_technical():
     return render_template("view_technical.html")
+

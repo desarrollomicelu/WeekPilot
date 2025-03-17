@@ -41,8 +41,7 @@
                         <div class="mb-3 row">
                             <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames"
-                                    required>
+                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames" required>
                             </div>
                         </div>
 
@@ -117,7 +116,7 @@
             </div>
         </div>
 
-        <!-- Fila 2: Repuestos Utilizados (Full Width) -->
+        <!-- Fila 2: Repuestos Utilizados -->
         <div class="row mb-2">
             <div class="col-md-12">
                 <div class="card shadow-sm">
@@ -142,8 +141,7 @@
                                 </thead>
                                 <tbody>
                                     <tr id="noPartsRow">
-                                        <td colspan="6" class="text-center py-3">No se han agregado repuestos para este
-                                            servicio.</td>
+                                        <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -165,134 +163,107 @@
                     </div>
                     <div class="card-body">
                         <select id="device_problems" name="device_problems[]" class="form-select" multiple="multiple">
-                            {% set problems = [
-                            "Flex de carga", "Bocinas", "Linterna", "Táctil", "Bandeja SIM", "Visor de cámara",
-                            "Display",
-                            "Auriculares/altavoz", "Revisión", "No enciende", "Mantenimiento", "Visor táctil", "Sin
-                            señal",
-                            "Máquina de vacío", "Backcover", "Software", "Cámara frontal", "Humedad", "Limpieza",
-                            "Cambio de luces", "Cámara", "Cambio de pantalla", "Reconexión de batería", "Tapa",
-                            "Módulo WiFi", "Chip de pantalla", "Tapa trasera", "Visor", "Micrófono", "Corto",
-                            "Flex encendido", "Lógica de carga", "Flex auricular", "Batería", "Revisión", "Face ID",
-                            "IC Audio", "IC Carga", "No carga", "Línea Power"
-                            ] %}
-                            {% for prob in problems %}
-                            <option value="{{ prob }}">{{ prob }}</option>
+                            {% for problem in problems %}
+                            <option value="{{ problem.name }}">{{ problem.name }}</option>
                             {% endfor %}
                         </select>
+                        
+                        <div class="mt-3">
+                            <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Valores -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Valores</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Información del Equipo -->
+                        <div class="mb-2">
+                            <h6 class="mb-3">Información del Equipo</h6>
+                            <div class="row">
+                                <!-- Campo de referencia -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="reference" class="form-label">Referencia</label>
+                                    <select name="reference" id="reference" class="form-control select2">
+                                        <option value="" selected disabled>Seleccione una referencia</option>
+                                        {% for ref in reference %}
+                                        <option value="{{ ref.description }}">{{ ref.description }} ({{ ref.CODLINEA }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Campo de código de producto -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="product_code" class="form-label">Código Producto</label>
+                                    <select name="product_code" id="product_code" class="form-control select2">
+                                        <option value="" selected disabled>Seleccione un código de producto</option>
+                                        {% for code in product_code %}
+                                        <option value="{{ code.id }}">{{ code.id }} ({{ code.CODLINEA }})</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Campo IMEI o Serial -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="IMEI" class="form-label">IMEI o Serial</label>
+                                    <input type="text" class="form-control" id="IMEI" name="IMEI">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Valores Financieros -->
+                        <div class="mb-3 row">
+                            <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="service_value" name="service_value" value="0" min="0" required>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="mb-3 row">
-                            <label for="device_problems" class="col-sm-4 col-form-label">Problemas del
-                                Dispositivo</label>
-                            <div class="col-sm-8">
-                                <select id="device_problems" name="device_problems[]" class="form-control select2"
-                                    multiple="multiple">
-                                    {% for problem in problems %}
-                                    <option value="{{ problem.id }}">{{ problem.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Valores -->
-                        <div class="col-md-6">
-                            <div class="card shadow-sm h-100">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0">Valores</h5>
-                                </div>
-                                <div class="card-body">
-                                    <!-- Información del Equipo -->
-                                    <div class="mb-2">
-                                        <h6 class="mb-3">Información del Equipo</h6>
-                                        <div class="row">
-                                            <!-- Campo de referencia -->
-                                            <div class="col-sm-6 mb-3">
-                                                <label for="reference" class="form-label">Referencia</label>
-                                                <select name="reference" id="reference" class="form-control select2">
-                                                    <option value="" selected disabled>Seleccione una referencia
-                                                    </option>
-                                                    {% for ref in reference %}
-                                                    <option value="{{ ref.description }}">{{ ref.description }} ({{
-                                                        ref.CODLINEA }})</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-
-                                            <!-- Campo de código de producto -->
-                                            <div class="col-sm-6 mb-3">
-                                                <label for="product_code" class="form-label">Código Producto</label>
-                                                <select name="product_code" id="product_code"
-                                                    class="form-control select2">
-                                                    <option value="" selected disabled>Seleccione un código de producto
-                                                    </option>
-                                                    {% for code in product_code %}
-                                                    <option value="{{ code.id }}">{{ code.id }} ({{ code.CODLINEA }})
-                                                    </option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-
-                                            <!-- Campo IMEI o Serial -->
-                                            <div class="col-sm-6 mb-3">
-                                                <label for="IMEI" class="form-label">IMEI o Serial</label>
-                                                <input type="text" class="form-control" id="IMEI" name="IMEI">
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <hr class="my-4">
-
-                                    <!-- Valores Financieros -->
-                                    <div class="mb-3 row">
-                                        <label for="service_value" class="col-sm-5 col-form-label">Valor del
-                                            Servicio</label>
-                                        <div class="col-sm-7">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" id="service_value"
-                                                    name="service_value" value="0" min="0" required>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mb-3 row">
-                                        <label for="spare_value" class="col-sm-5 col-form-label">Valor de
-                                            Repuestos</label>
-                                        <div class="col-sm-7">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control" id="spare_value"
-                                                    name="spare_value" value="0" min="0" readonly>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
-                                        <div class="col-sm-7">
-                                            <div class="input-group">
-                                                <span class="input-group-text">$</span>
-                                                <input type="number" class="form-control fw-bold" id="total"
-                                                    name="total" value="0" readonly>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="spare_value" name="spare_value" value="0" min="0" readonly>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Botones de acción -->
-                        <div class="d-flex justify-content-between my-2">
-                            <!-- Actualizamos el enlace de Cancelar para apuntar al endpoint correcto -->
-                            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>Cancelar
-                            </a>
-                            <div>
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save me-2"></i>Crear Ticket
-                                </button>
+                        <div class="row">
+                            <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control fw-bold" id="total" name="total" value="0" readonly>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-between my-2">
+                <!-- Actualizamos el enlace de Cancelar para apuntar al endpoint correcto -->
+                <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Crear Ticket
+                    </button>
+                </div>
+            </div>
     </form>
 </div>
 
@@ -301,18 +272,24 @@
     <tr class="part-row">
         <td class="part-index"></td>
         <td>
-            <input type="text" class="form-control part-description" name="part_description[]" required>
+            <select class="form-control part-description select2" name="part_description[]" required>
+                <option value="" disabled selected>Seleccione un repuesto</option>
+                {% for spare in spare_name %}
+                <option value="{{ spare }}">{{ spare }}</option>
+                {% endfor %}
+                {% for spare in sertec %}
+                <option value="{{ spare }}">{{ spare }}</option>
+                {% endfor %}
+            </select>
         </td>
         <td>
             <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
         </td>
         <td>
-            <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0"
-                required>
+            <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0" required>
         </td>
         <td>
-            <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="0"
-                readonly>
+            <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="0" readonly>
         </td>
         <td>
             <button type="button" class="btn btn-sm btn-danger remove-part">
@@ -389,6 +366,14 @@
             if (noPartsRow) { noPartsRow.remove(); }
             const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
             partsTableBody.appendChild(newRow);
+
+            // Inicializar select2 para el nuevo select de repuestos
+            $(newRow).find('.select2').select2({
+                width: '100%',
+                placeholder: 'Seleccione un repuesto',
+                allowClear: true
+            });
+
             newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
             newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
             newRow.querySelector('.remove-part').addEventListener('click', () => {
@@ -406,6 +391,11 @@
         });
 
         document.querySelectorAll('.part-row').forEach(row => {
+            $(row).find('.select2').select2({
+                width: '100%',
+                placeholder: 'Seleccione un repuesto',
+                allowClear: true
+            });
             row.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(row));
             row.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(row));
             row.querySelector('.remove-part').addEventListener('click', () => {

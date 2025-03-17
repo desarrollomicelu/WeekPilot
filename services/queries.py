@@ -2,6 +2,7 @@
 
 import pyodbc
 
+
 def execute_query(query):
     conn = pyodbc.connect('''DRIVER={ODBC Driver 18 for SQL Server};
                              SERVER=20.109.21.246;
@@ -16,10 +17,11 @@ def execute_query(query):
     conn.close()
     return results
 
+
 def get_product_reference():
     query = '''
     SELECT DESCRIPCIO, CODLINEA
-    FROM MTMERCIA 
+    FROM MTMERCIA
     WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
     '''
     results = execute_query(query)
@@ -31,10 +33,11 @@ def get_product_reference():
         })
     return reference
 
+
 def get_product_code():
     query = '''
     SELECT CODIGO, CODLINEA
-    FROM MTMERCIA 
+    FROM MTMERCIA
     WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
     '''
     results = execute_query(query)
@@ -46,12 +49,30 @@ def get_product_code():
         })
     return product_code
 
+
+def get_spare_name():
+    query = '''
+    SELECT DESCRIPCIO
+    FROM MTMERCIA
+    WHERE CODLINEA = 'ST'
+    '''
+    return execute_query(query)
+
+
+def get_sertec():
+    query = '''
+    SELECT CODIGO
+    FROM MTMERCIA
+    WHERE CODIGO = 'SERTEC'
+    '''   
+    return execute_query(query)
+
 def get_technicians():
     query = """
     SELECT NOMBRE 
     FROM Venden 
     WHERE COMENTARIO LIKE '%ASESOR SERVICIO TECNICO%' 
-       OR COMENTARIO LIKE '%TECNICO MEDELLIN%' 
-       OR COMENTARIO LIKE '%REPARACIÒN%'
+    OR COMENTARIO LIKE '%TECNICO MEDELLIN%' 
+    OR COMENTARIO LIKE '%REPARACIÒN%'
     """
     return execute_query(query)
