@@ -12,7 +12,7 @@
     </div>
     <div class="col-md-6 d-flex justify-content-end gap-2">
       <!-- Botón para volver a la vista anterior -->
-      <a href="{{ url_for('technical_service') }}" class="btn btn-secondary d-flex align-items-center">
+      <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-secondary d-flex align-items-center">
         <i class="fas fa-arrow-left me-2"></i> Volver
       </a>
     </div>
@@ -21,7 +21,7 @@
   <!-- Tarjeta con formulario para subir imágenes -->
   <div class="card shadow-sm border-0">
     <div class="card-body">
-      <form action="{{ url_for('upload_images') }}" method="POST" enctype="multipart/form-data">
+      <form action="{{ url_for('upload_images.upload') }}" method="POST" enctype="multipart/form-data">
         <div class="row">
           <!-- Campo para subir fotos desde galería -->
           <div class="col-md-6 mb-3">

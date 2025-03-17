@@ -1,8 +1,4 @@
-# Ignorar entorno virtual (si tu carpeta se llama "venv" o "env")
+#Ignorar el entorno virtual.
+
+env/
 venv/
-flask/
-
-# Ignorar el archivo .env con variables de entorno
-.env
-.env.development/
-
