@@ -1,4 +1,4 @@
-#Ignorar el entorno virtual.
+
 flask/
 venv/
 .env/
