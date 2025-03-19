@@ -5,7 +5,7 @@ from flask_login import login_required
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_name, get_technicians
+from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_value, get_technicians
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -26,7 +26,7 @@ def create_ticket():
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     reference = get_product_reference()
     product_code = get_product_code()
-    spare_name = get_spare_name()
+    spare_value = get_spare_value()
     sertec = get_sertec()
 
     problems_list = Problems.query.order_by(Problems.name).all()
@@ -43,13 +43,13 @@ def create_ticket():
         technical_name = request.form.get("technical_name")
         state = request.form.get("state", "received")
         priority = request.form.get("priority")
-        spare_name = request.form.get("spare_parts")
+        spare_value = request.form.get("spare_parts")
         sertec = request.form.get("sertec")
         IMEI = request.form.get("IMEI")
         reference_selected = request.form.get("reference")
         product_code_selected = request.form.get("product_code")
         service_value = request.form.get("service_value")
-        spare_name = request.form.get("spare_name")
+        spare_value = request.form.get("spare_value")
         assigned = request.form.get("assigned")
         if assigned:
             assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
@@ -60,8 +60,8 @@ def create_ticket():
 
         try:
             service_value = float(service_value or 0)
-            spare_name = float(spare_name or 0)
-            total = service_value + spare_name
+            spare_value = float(spare_value or 0)
+            total = service_value + spare_value
         except ValueError:
             flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
@@ -100,7 +100,7 @@ def create_ticket():
             reference=reference_selected,
             product_code=product_code_selected,
             service_value=service_value,
-            spare_name=spare_name,
+            spare_value=spare_value,
             total=total,
             client=client.id_client,
             assigned=assigned,
@@ -123,7 +123,7 @@ def create_ticket():
         product_code=product_code,
         problems=problems_list,
         sertec=sertec,
-        spare_name  = spare_name
+        spare_value  = spare_value
     )
 
 
@@ -151,8 +151,8 @@ def edit_ticket(ticket_id):
         ticket.reference = request.form.get("reference")
         try:
             ticket.service_value = float(request.form.get("service_value", 0))
-            ticket.spare_name = float(request.form.get("spare_name", 0))
-            ticket.total = ticket.service_value + ticket.spare_name
+            ticket.spare_value = float(request.form.get("spare_value", 0))
+            ticket.total = ticket.service_value + ticket.spare_value
         except ValueError:
             flash("Error: Los valores deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket_id))

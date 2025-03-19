@@ -20,43 +20,46 @@ def execute_query(query):
 
 def get_product_reference():
     query = '''
-    SELECT DESCRIPCIO, CODLINEA
+    SELECT DESCRIPCIO
     FROM MTMERCIA
-    WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
+    WHERE (CODLINEA = 'CEL' AND CODGRUPO = 'SEMI') OR (CODLINEA = 'CYT' AND CODGRUPO = 'NUE')
     '''
     results = execute_query(query)
     reference = []
     for row in results:
         reference.append({
             "description": row[0],
-            "CODLINEA": row[1]
         })
     return reference
 
 
 def get_product_code():
     query = '''
-    SELECT CODIGO, CODLINEA
+    SELECT CODIGO
     FROM MTMERCIA
-    WHERE CODLINEA = 'CEL' OR CODLINEA = 'CYT'
+    WHERE (CODLINEA = 'CEL' AND CODGRUPO = 'SEMI') OR (CODLINEA = 'CYT' AND CODGRUPO = 'NUE')
     '''
     results = execute_query(query)
     product_code = []
     for row in results:
         product_code.append({
             "id": row[0],
-            "CODLINEA": row[1]
         })
     return product_code
 
 
-def get_spare_name():
+
+def get_spare_value():
     query = '''
     SELECT DESCRIPCIO
     FROM MTMERCIA
     WHERE CODLINEA = 'ST'
     '''
-    return execute_query(query)
+    results = execute_query(query)
+    spare_values = []
+    for row in results:
+        spare_values.append(row[0])  
+    return spare_values
 
 
 def get_sertec():
@@ -65,11 +68,15 @@ def get_sertec():
     FROM MTMERCIA
     WHERE CODIGO = 'SERTEC'
     '''   
-    return execute_query(query)
+    results = execute_query(query)
+    sertec_values = []
+    for row in results:
+        sertec_values.append(row[0])  # Extraer solo el valor de CODIGO
+    return sertec_values
 
 def get_technicians():
     query = """
-    SELECT NOMBRE 
+    SELECT NOMBRE, CODVEN
     FROM Venden 
     WHERE COMENTARIO LIKE '%ASESOR SERVICIO TECNICO%' 
     OR COMENTARIO LIKE '%TECNICO MEDELLIN%' 
