@@ -1,260 +1,166 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detalle de Ticket #{{ ticket.id_ticket }}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body class="bg-white">
-  <div class="container py-4">
-    <!-- Cabecera del documento con logo e información básica -->
-    <div class="row mb-4 border-bottom pb-3">
-      <div class="col-6">
-        <h2 class="fw-bold">
-          <i class="fas fa-ticket-alt text-primary me-2"></i>Detalle de Ticket Servicio Técnico
-        </h2>
-        <h4 class="text-muted">#{{ ticket.id_ticket }}</h4>
-      </div>
-      <div class="col-6 text-end">
-        <h5 class="mb-1">Servicio Técnico Especializado</h5>
-        <p>Fecha actual: {{ now.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-      </div>
+{% extends "base.html" %}
+{% block title %}Detalle de Ticket de Servicio Técnico{% endblock %}
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<div class="container-fluid py-4">
+    <!-- Cabecera -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h2 class="mb-0">
+                <i class="fas fa-ticket-alt text-primary me-2"></i>
+                Detalle de Ticket de Servicio Técnico 
+                <small class="text-muted">#{{ ticket.id_ticket }}</small>
+            </h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-primary ms-2">
+                <i class="fas fa-edit me-2"></i>Editar Ticket
+            </a>
+        </div>
     </div>
 
-    <!-- Información del cliente y del ticket -->
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
-          </div>
-          <div class="card-body">
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Nombre:</div>
-              <div class="col-8">{{ ticket.client_names }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Documento:</div>
-              <div class="col-8">{{ ticket.document }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Teléfono:</div>
-              <div class="col-8">{{ ticket.phone|default('No registrado') }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Dirección:</div>
-              <div class="col-8">{{ ticket.address|default('No registrada') }}</div>
-            </div>
-          </div>
+    <!-- Información del Cliente -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-user me-2 text-primary"></i>
+                Información del Cliente
+            </h5>
         </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket</h5>
-          </div>
-          <div class="card-body">
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Técnico:</div>
-              <div class="col-8">{{ ticket.technical_name.replace('.', ' ')|title|default('Sin asignar') }}</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Nombres:</strong> {{ ticket.client_names }}</p>
+                    <p><strong>Documento:</strong> {{ ticket.document }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Apellidos:</strong> {{ ticket.client_lastnames }}</p>
+                    <p><strong>Teléfono:</strong> {{ ticket.phone }}</p>
+                </div>
             </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Estado:</div>
-              <div class="col-8">
-                <span class="badge {% if ticket.status == 'Terminado' %}bg-success{% elif ticket.status == 'En proceso' %}bg-warning{% else %}bg-primary{% endif %} px-3 py-2">
-                  {{ ticket.status }}
-                </span>
-              </div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Fecha recepción:</div>
-              <div class="col-8">{{ ticket.received.strftime("%d/%m/%Y %H:%M")|default('No registrada') }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Prioridad:</div>
-              <div class="col-8">
-                <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning{% else %}bg-info{% endif %} px-3 py-2">
-                  {{ ticket.priority }}
-                </span>
-              </div>
-            </div>
-          </div>
+            <p><strong>Correo electrónico:</strong> {{ ticket.mail }}</p>
         </div>
-      </div>
     </div>
 
-    <!-- Información del equipo -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="fas fa-laptop me-2 text-primary"></i>Información del Equipo</h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Tipo de Equipo:</div>
-              <div class="col-8">{{ ticket.equipment_type|default('No especificado') }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Marca:</div>
-              <div class="col-8">{{ ticket.brand|default('No especificada') }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Modelo:</div>
-              <div class="col-8">{{ ticket.model|default('No especificado') }}</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Serial:</div>
-              <div class="col-8">{{ ticket.serial|default('No especificado') }}</div>
-            </div>
-            <div class="row mb-2">
-              <div class="col-4 fw-bold">Accesorios:</div>
-              <div class="col-8">{{ ticket.accessories|default('Ninguno') }}</div>
-            </div>
-          </div>
+    <!-- Detalles del Ticket -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2 text-primary"></i>
+                Detalles del Ticket
+            </h5>
         </div>
-      </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Técnico:</strong> {{ ticket.technical_name or 'Sin asignar' }}</p>
+                    <p><strong>Documento Técnico:</strong> {{ ticket.technical_document or 'Sin asignar' }}</p>
+                    <p><strong>Estado:</strong> {{ ticket.status or 'N/A' }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Ciudad:</strong> {{ ticket.city }}</p>
+                    <p><strong>Prioridad:</strong> {{ ticket.priority }}</p>
+                    <p><strong>Tipo de Servicio:</strong> {{ ticket.type_of_service }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Fecha de Creación:</strong>
+                        {% if ticket.creation_date %}
+                            {{ ticket.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                    <p><strong>Asignado:</strong> {{ ticket.assigned or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-3 row">
-      <label for="device_problems" class="col-sm-4 col-form-label">Problemas del Dispositivo</label>
-      <div class="col-sm-8">
-        <select id="device_problems" name="device_problems[]" class="form-control select2" multiple="multiple">
-          {% for problem in problems %}
-            <option value="{{ problem.id }}">{{ problem.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-    
-
-    <!-- Descripción del problema y solución -->
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Descripción del Problema</h5>
-          </div>
-          <div class="card-body">
-            <p>{{ ticket.problem_description|default('No se ha registrado una descripción del problema.') }}</p>
-          </div>
+    <!-- Repuestos Utilizados -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-cogs me-2 text-primary"></i>
+                Repuestos Utilizados
+            </h5>
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-tools me-2 text-success"></i>Solución Aplicada</h5>
-          </div>
-          <div class="card-body">
-            <p>{{ ticket.solution_description|default('Pendiente de solución.') }}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detalles de repuestos utilizados -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
-      </div>
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead class="table-light">
-              <tr>
-                <th>#</th>
-                <th>Descripción</th>
-                <th>Cantidad</th>
-                <th>Valor Unitario</th>
-                <th>Valor Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% if ticket.spare_parts %}
-                {% for part in ticket.spare_parts %}
-                <tr>
-                  <td>{{ loop.index }}</td>
-                  <td>{{ part.description }}</td>
-                  <td class="text-center">{{ part.quantity }}</td>
-                  <td class="text-end">${{ "{:,.0f}".format(part.unit_value) }}</td>
-                  <td class="text-end">${{ "{:,.0f}".format(part.total_value) }}</td>
-                </tr>
-                {% endfor %}
-              {% else %}
-                <tr>
-                  <td colspan="5" class="text-center py-3">No se han registrado repuestos para este servicio.</td>
-                </tr>
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resumen de costos -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-light">
-        <h5 class="mb-0"><i class="fas fa-calculator me-2 text-primary"></i>Resumen de Costos</h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-8">
-            <p class="mb-2">
-              <strong>Observaciones:</strong><br>
-              {{ ticket.observations|default('Sin observaciones adicionales.') }}
-            </p>
-          </div>
-          <div class="col-md-4">
+        <div class="card-body">
+            {% if ticket.spare_parts %}
             <div class="table-responsive">
-              <table class="table table-sm">
-                <tr>
-                  <td class="fw-bold">Valor del Servicio:</td>
-                  <td class="text-end">${{ "{:,.0f}".format(ticket.service_value) }}</td>
-                </tr>
-                <tr>
-                  <td class="fw-bold">Valor de Repuestos:</td>
-                  <td class="text-end">${{ "{:,.0f}".format(ticket.spare_value) }}</td>
-                </tr>
-                <tr class="table-light">
-                  <td class="fw-bold h5">TOTAL:</td>
-                  <td class="text-end h5">${{ "{:,.0f}".format(ticket.total) }}</td>
-                </tr>
-              </table>
+                <table class="table table-striped table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                            <th>Valor Unitario</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for part in ticket.spare_parts %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ part.description }}</td>
+                            <td>{{ part.quantity }}</td>
+                            <td>${{ "{:,.0f}".format(part.unit_value) }}</td>
+                            <td>${{ "{:,.0f}".format(part.total_value) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-          </div>
+            {% else %}
+            <p class="mb-0">No se han agregado repuestos para este servicio.</p>
+            {% endif %}
         </div>
-      </div>
     </div>
 
-    <!-- Firmas -->
-    <div class="row mt-5 pt-5">
-      <div class="col-md-4 text-center">
-        <div class="border-top border-dark mx-auto" style="width: 80%;"></div>
-        <p class="mb-0">Técnico Responsable</p>
-        <p class="small">{{ ticket.technical_name.replace('.', ' ')|title|default('Sin asignar') }}</p>
-      </div>
-      <div class="col-md-4 text-center">
-        <div class="border-top border-dark mx-auto" style="width: 80%;"></div>
-        <p class="mb-0">Cliente</p>
-        <p class="small">{{ ticket.client_names }}</p>
-      </div>
-      <div class="col-md-4 text-center">
-        <div class="border-top border-dark mx-auto" style="width: 80%;"></div>
-        <p class="mb-0">Supervisor</p>
-        <p class="small">____________________</p>
-      </div>
+    <!-- Problemas del Dispositivo y Valores -->
+    <div class="row">
+        <!-- Problemas del Dispositivo -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                        Problemas del Dispositivo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if ticket.problems %}
+                    <ul class="list-group">
+                        {% for prob in ticket.problems %}
+                        <li class="list-group-item">{{ prob.name }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="mb-0">No se han registrado problemas.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Valores -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Valores</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Referencia:</strong> {{ ticket.reference }}</p>
+                    <p><strong>Código Producto:</strong> {{ ticket.product_code }}</p>
+                    <p><strong>IMEI/Serial:</strong> {{ ticket.IMEI }}</p>
+                    <hr>
+                    <p><strong>Valor del Servicio:</strong> ${{ "{:,.0f}".format(ticket.service_value) }}</p>
+                    <p><strong>Valor de Repuestos:</strong> ${{ "{:,.0f}".format(ticket.spare_value) }}</p>
+                    <p class="fw-bold"><strong>TOTAL:</strong> ${{ "{:,.0f}".format(ticket.total) }}</p>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Pie de página -->
-    <footer class="mt-5 pt-3 border-top text-center text-muted small">
-      <p>Este documento es un comprobante del servicio técnico realizado. Conserve este documento para futuros reclamos o garantías.</p>
-      <p>La garantía del servicio es de 30 días a partir de la fecha de entrega.</p>
-    </footer>
-  </div>
-</body>
-</html>
+</div>
+{% endblock %}

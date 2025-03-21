@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_login import UserMixin
 from . import db
 from models.problemsTickets import Problems_tickets
+from models.sparesTickets import Spares_tickets
 
 
 class Tickets(db.Model, UserMixin):
@@ -10,17 +11,21 @@ class Tickets(db.Model, UserMixin):
     __table_args__ = {"schema": "plan_beneficios"}
 
     id_ticket = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    state = db.Column(db.String(50), nullable=False, default="received")
+    state = db.Column(db.String(50), nullable=False)
     priority = db.Column(db.String(50), nullable=False)
     technical_name = db.Column(db.String(33), nullable=False)
     technical_document = db.Column(db.String(11), nullable=False)
     product_code = db.Column(db.String(50), nullable=False)
     IMEI = db.Column(db.String(20), nullable=False)
     reference = db.Column(db.String(100), nullable=False)
-    assigned = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    type_of_service = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String(15), nullable=False)
+    creation_date = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    assigned = db.Column(db.DateTime, nullable=True)
     received = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
     finished = db.Column(db.DateTime, nullable=True)
+    spare_name = db.Column(db.String(50), nullable=True)
     spare_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
@@ -32,3 +37,8 @@ class Tickets(db.Model, UserMixin):
                                secondary=Problems_tickets.__table__,
                                backref=db.backref("tickets", lazy="dynamic"),
                                lazy="dynamic")
+
+    spares = db.relationship("Spares",
+                             secondary=Spares_tickets.__table__,
+                             backref=db.backref("tickets", lazy="dynamic"),
+                             lazy="dynamic")

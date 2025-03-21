@@ -49,17 +49,17 @@ def get_product_code():
 
 
 
-def get_spare_value():
+def get_spare_name():
     query = '''
     SELECT DESCRIPCIO
     FROM MTMERCIA
     WHERE CODLINEA = 'ST'
     '''
     results = execute_query(query)
-    spare_values = []
+    spare_names = []
     for row in results:
-        spare_values.append(row[0])  
-    return spare_values
+        spare_names.append(row[0])  
+    return spare_names
 
 
 def get_sertec():
@@ -71,7 +71,7 @@ def get_sertec():
     results = execute_query(query)
     sertec_values = []
     for row in results:
-        sertec_values.append(row[0])  # Extraer solo el valor de CODIGO
+        sertec_values.append(row[0]) 
     return sertec_values
 
 def get_technicians():

@@ -4,6 +4,8 @@ from models.tickets import Tickets
 from models.problemsTickets import Problems_tickets
 from models.problems import Problems
 from models.clients import Clients_tickets
+from models.spares import Spares
+from models.sparesTickets import Spares_tickets
 from models.employees import Empleados
 from extensions import db, bcrypt
 from config import Config
@@ -13,14 +15,28 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager
 
+
+
+"""
+flask_env = os.getenv('FLASK_ENV', 'production')
+if flask_env == 'development':
+    load_dotenv('.env.development')
+    print("Cargando configuración de desarrollo...")
+else:
+    load_dotenv('.env')
+    print("Cargando configuración de producción...")
+    
+"""
+
 load_dotenv()
-
-
+    
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Inicializa extensiones
 db.init_app(app)
+
+
+# Inicializa extensiones
 bcrypt.init_app(app)
 migrate = Migrate(app, db)
 
@@ -39,9 +55,9 @@ def load_user(user_id):
 
 # Registra los blueprints
 register_blueprints(app)
-'''
+
 with app.app_context():
     db.create_all()
-'''
+
 if __name__ == "__main__":
     app.run(debug=True)

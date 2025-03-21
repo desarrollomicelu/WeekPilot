@@ -5,7 +5,7 @@ from flask_login import login_required
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_value, get_technicians
+from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_name, get_technicians
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -26,8 +26,8 @@ def create_ticket():
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     reference = get_product_reference()
     product_code = get_product_code()
-    spare_value = get_spare_value()
-    sertec = get_sertec()
+    spare_name = get_spare_name()
+    service_value = get_sertec()
 
     problems_list = Problems.query.order_by(Problems.name).all()
 
@@ -38,21 +38,23 @@ def create_ticket():
         document = request.form.get("document")
         mail = request.form.get("mail")
         phone = request.form.get("phone")
-
         # Datos del ticket
         technical_name = request.form.get("technical_name")
-        state = request.form.get("state", "received")
+        technical_document = request.form.get("technical_document")
+        state = request.form.get("state")
         priority = request.form.get("priority")
-        spare_value = request.form.get("spare_parts")
-        sertec = request.form.get("sertec")
+        city  = request.form.get("city")
+        type_of_service = request.form.get("type_of_service") or "Servicio Técnico"
         IMEI = request.form.get("IMEI")
-        reference_selected = request.form.get("reference")
-        product_code_selected = request.form.get("product_code")
+        reference = request.form.get("reference")
+        product_code = request.form.get("product_code")
         service_value = request.form.get("service_value")
+        spare_name = request.form.get("spare_name")
         spare_value = request.form.get("spare_value")
         assigned = request.form.get("assigned")
-        if assigned:
-            assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
+        creation_date = request.form.get("creation_date")
+        if creation_date:
+            creation_date = datetime.strptime(creation_date, "%Y-%m-%d %H:%M:%S")
         received = request.form.get("received")
         in_progress = request.form.get("in_progress")
         finished = request.form.get("finished")
@@ -93,21 +95,25 @@ def create_ticket():
         # Crear el nuevo ticket, asignando la lista de problemas seleccionados
         new_ticket = Tickets(
             technical_name=technical_name,
+            technical_document=technical_document,
             state=state,
             priority=priority,
-            sertec=sertec,
             IMEI=IMEI,
-            reference=reference_selected,
-            product_code=product_code_selected,
+            city=city,
+            type_of_service=type_of_service,
+            reference=reference,
+            product_code=product_code,
             service_value=service_value,
+            spare_name=spare_name,
             spare_value=spare_value,
             total=total,
             client=client.id_client,
+            creation_date=creation_date,
             assigned=assigned,
             received=received,
             in_progress=in_progress,
             finished=finished,
-            problems=selected_problems  
+            problems=selected_problems,
         )
         db.session.add(new_ticket)
         db.session.commit()
@@ -122,61 +128,125 @@ def create_ticket():
         reference=reference,
         product_code=product_code,
         problems=problems_list,
-        sertec=sertec,
-        spare_value  = spare_value
+        service_value=service_value,
+        spare_name = spare_name
     )
-
 
 # Listar Tickets
 @technical_service_bp.route("/technical_service")
 @login_required
 def list_tickets():
     clients = Clients_tickets.query.all()
-    tickets = Tickets.query.all()
+    tickets = Tickets.query.filter_by(type_of_service="Servicio Técnico").all()
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
     return render_template("technical_service.html", tickets=tickets, technicians=technicians, clients=clients)
 
-# Editar Ticket
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):
-    ticket = Tickets.query.get(ticket_id)
-    technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
+    # Consultamos el ticket a editar o devolvemos 404 si no existe
+    ticket = Tickets.query.get_or_404(ticket_id)
+    # Obtenemos el cliente relacionado al ticket
+    client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
+
+    # Datos auxiliares para el formulario (igual que en create_ticket)
+    technicians = get_technicians()
+    reference = get_product_reference()
+    product_code = get_product_code()
+    spare_name = get_spare_name()
+    service_value_default = get_sertec()
+    problems_list = Problems.query.order_by(Problems.name).all()
+
     if request.method == "POST":
+        # Actualizamos los datos del cliente
+        client.name = request.form.get("client_names")
+        client.lastname = request.form.get("client_lastnames")
+        client.document = request.form.get("document")
+        client.mail = request.form.get("mail")
+        client.phone = request.form.get("phone")
+        # Es posible hacer un commit parcial, o esperar para actualizar todo junto
+
+        # Actualizamos los datos del ticket
         ticket.technical_name = request.form.get("technical_name")
+        ticket.technical_document = request.form.get("technical_document")
         ticket.state = request.form.get("state")
         ticket.priority = request.form.get("priority")
-        ticket.spare_parts = request.form.get("spare_parts")
+        ticket.spare_name = request.form.get("spare_name")
+        ticket.city = request.form.get("city")
+        ticket.type_of_service = request.form.get("type_of_service") or "Servicio Técnico"
         ticket.IMEI = request.form.get("IMEI")
         ticket.reference = request.form.get("reference")
+        ticket.product_code = request.form.get("product_code")
         try:
-            ticket.service_value = float(request.form.get("service_value", 0))
-            ticket.spare_value = float(request.form.get("spare_value", 0))
+            ticket.service_value = float(request.form.get("service_value") or 0)
+            ticket.spare_value = float(request.form.get("spare_value") or 0)
             ticket.total = ticket.service_value + ticket.spare_value
         except ValueError:
-            flash("Error: Los valores deben ser numéricos.", "danger")
+            flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket_id))
+        
+        ticket.assigned = request.form.get("assigned")
+        creation_date = request.form.get("creation_date")
+        if creation_date:
+            ticket.creation_date = datetime.strptime(creation_date, "%Y-%m-%d %H:%M:%S")
+        ticket.received = request.form.get("received")
+        ticket.in_progress = request.form.get("in_progress")
+        ticket.finished = request.form.get("finished")
+        
+        # Actualizamos los problemas asociados
+        selected_problem_ids = request.form.getlist("device_problems[]")
+        try:
+            selected_problem_ids = [int(pid) for pid in selected_problem_ids]
+        except ValueError:
+            selected_problem_ids = []
+        selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
+        ticket.problems = selected_problems
+
         db.session.commit()
         flash("Ticket actualizado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets"))
 
-    return render_template("edit_ticket.html", ticket=ticket, technicians=technicians)
+    # GET: pasamos los datos existentes para que se pre-carguen en el formulario.
+    # Se debe crear un template (por ejemplo, edit_ticket.html) similar al de creación,
+    # pero con los atributos value establecidos según ticket y client.
+    return render_template(
+        "edit_ticket.html",
+        ticket=ticket,
+        client=client,
+        technicians=technicians,
+        reference=reference,
+        product_code=product_code,
+        spare_name=spare_name,
+        service_value=service_value_default,
+        problems=problems_list
+    )
 
-# Ver detalle del Ticket
-@technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET", "POST"])
+@technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])
 @login_required
 def view_detail_ticket(ticket_id):
-    ticket = Tickets.query.filter_by(id_ticket=ticket_id).first()
-    problems = Problems.query.join(Problems_tickets).filter(
-        Problems_tickets.id_ticket == ticket_id
-    ).all()
-    if not ticket:
-        flash("Ticket no encontrado", "danger")
-        return redirect(url_for("technical_service.list_tickets"))
-    return render_template("view_detail_ticket.html", ticket=ticket, problems=problems, now=datetime.utcnow())
+    # Obtenemos el ticket o devolvemos 404 si no existe
+    ticket = Tickets.query.get_or_404(ticket_id)
     
-@technical_service_bp.route("/view_technical.html")
-@login_required
-def view_technical():
-    return render_template("view_technical.html")
-
+    # Obtenemos el cliente asociado al ticket (suponiendo que 'ticket.client' guarda el id del cliente)
+    client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
+    
+    # Datos auxiliares para mostrar información adicional (si los necesitas en el template)
+    technicians = get_technicians()
+    reference = get_product_reference()
+    product_code = get_product_code()
+    spare_name = get_spare_name()
+    service_value = get_sertec()
+    problems_list = Problems.query.order_by(Problems.name).all()
+    
+    # Renderizamos el template de detalle, pasándole toda la información necesaria
+    return render_template(
+        "view_detail_ticket.html",
+        ticket=ticket,
+        client=client,
+        technicians=technicians,
+        reference=reference,
+        product_code=product_code,
+        spare_name=spare_name,
+        service_value=service_value,
+        problems=problems_list
+    )

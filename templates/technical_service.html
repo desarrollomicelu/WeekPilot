@@ -89,7 +89,6 @@
             <th>Documento</th>
             <th>Técnico</th>
             <th>Estado</th>
-            <th>Fecha</th>
             <th>Prioridad</th>
             <th>Valor Serv.</th>
             <th>Valor Rep.</th>
@@ -113,7 +112,6 @@
               {% if ticket.technical_name %}
               {{ ticket.technical_name.replace('.', ' ') | title }}
               {% else %}
-              Sin asignar
               <span class="badge bg-secondary">Sin asignar</span>
               {% endif %}
             </td>
@@ -124,26 +122,17 @@
                 <option value="{{ status }}" {% if ticket.status==status %}selected{% endif %}>{{ status }}</option>
                 {% endfor %}
               </select>
-            </td>
-            <td>
-              {% if ticket.assigned %}
-              <div>{{ ticket.assigned.strftime("%d/%m/%Y") if ticket.assigned else "Fecha no disponible" }}</div>
-              <small class="text-muted">{{ ticket.assigned.strftime("%H:%M:%S") if ticket.assigned else "" }}</small>
-              {% else %}
-              <span class="badge bg-secondary">No registrada</span>
-              {% endif %}
-            </td>
+            </td> 
 
             <td>
-              {{ ticket.priority }}
               <span
                 class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
                 {{ ticket.priority }}
               </span>
             </td>
 
-            <td><i class="fas fa-tools text-muted me-1"></i>${{ "{:,.0f}".format(ticket.service_value) }}</td>
-            <td><i class="fas fa-cogs text-muted me-1"></i>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
+            <td>${{ "{:,.0f}".format(ticket.service_value) }}</td>
+            <td>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
             <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
             <td class="text-center">
               <div class="btn-group">
