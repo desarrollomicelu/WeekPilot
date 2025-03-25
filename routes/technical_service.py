@@ -60,7 +60,7 @@ def create_ticket():
         in_progress = request.form.get("in_progress")
         finished = request.form.get("finished")
         total = request.form.get("total")
-
+ 
         try:
             service_value = float(service_value or 0)
             spare_value = float(spare_value or 0)
@@ -68,7 +68,7 @@ def create_ticket():
         except ValueError:
             flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
-
+ 
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -81,7 +81,7 @@ def create_ticket():
             )
             db.session.add(client)
             db.session.commit()
-
+ 
         # Aquí obtenemos los problemas seleccionados en el formulario.
         # Se usa el campo "device_problems[]" que ahora debe contener los IDs de los problemas.
         selected_problem_ids = request.form.getlist("device_problems[]")
@@ -89,10 +89,10 @@ def create_ticket():
             selected_problem_ids = [int(pid) for pid in selected_problem_ids]
         except ValueError:
             selected_problem_ids = []
-
+ 
         # Consultar los objetos Problems que correspondan a los IDs seleccionados
         selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
-
+ 
         # Crear el nuevo ticket, asignando la lista de problemas seleccionados
         new_ticket = Tickets(
             technical_name=technical_name,
@@ -148,7 +148,7 @@ def create_ticket():
         flash("Ticket creado correctamente", "success")
 
         return redirect(url_for("technical_service.list_tickets"))
-
+ 
     # Método GET: se pasan los datos auxiliares y la lista de problemas reales al template
     return render_template(
         "create_ticket.html",
@@ -241,7 +241,6 @@ def edit_ticket(ticket_id):
         selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
         ticket.problems = selected_problems
 
-        # Get all spare part data from the form
         spare_codes = request.form.getlist("spare_part_code[]")
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")

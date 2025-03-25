@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Ticket de Reparación Interna{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/internal_repair.css') }}">
+{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Editar Ticket de Reparación Interna</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}">
+                <!-- Información del Ticket -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="sede"><strong>Sede:</strong></label>
+                            <select name="sede" id="sede" class="form-control" required>
+                                <option value="">Seleccionar Sede</option>
+                                {% for s in sertec %}
+                                    <option value="{{ s.name_city }}">{{ s.name_city }} ({{ ticket.city }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="technical_name"><strong>Técnico:</strong></label>
+                            <select name="technical_name" id="technical_name" class="form-control" required>
+                                <option value="">Seleccionar Técnico</option>
+                                {% for tech in technicians %}
+                                    <option value="{{ tech.name }}" 
+                                        {% if ticket.technical_name == tech.name %}selected{% endif %}>
+                                        {{ tech.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="documento"><strong>Documento:</strong></label>
+                            <input type="text" name="documento" id="documento" class="form-control" readonly 
+                                value="{{ ticket.technical_document }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                      <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                          <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+                          <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
+                            <i class="fas fa-plus me-1"></i> Agregar repuesto
+                          </button>
+                        </div>
+                        <div class="card-body p-0">
+                          <div class="table-responsive">
+                            <table class="table" id="partsTable">
+                              <thead class="table-light">
+                                <tr>
+                                  <th style="width:5%;">#</th>
+                                  <th style="width:35%;">Descripción</th>
+                                  <th style="width:15%;">Cantidad</th>
+                                  <th style="width:20%;">Valor Unitario</th>
+                                  <th style="width:10%;">Acciones</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% if ticket_spares %}
+                                  {% for spare, spare_ticket in ticket_spares %}
+                                    <tr>
+                                      <td>{{ loop.index }}</td>
+                                      <td>
+                                        <input type="text" name="part_description[]" class="form-control" value="{{ spare.name }}" required>
+                                      </td>
+                                      <td>
+                                        <input type="number" name="part_quantity[]" class="form-control" value="{{ spare_ticket.quantity|default(1) }}" min="1" required>
+                                      </td>
+                                      <td>
+                                        <input type="number" name="part_unit_value[]" class="form-control" value="{{ spare_ticket.unit_value|default(0) }}" min="0" step="0.01" required>
+                                      </td>
+                                      <td>
+                                        <button type="button" class="btn btn-sm btn-danger removePartBtn">
+                                          <i class="fas fa-trash"></i>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  {% endfor %}
+                                {% else %}
+                                  <tr id="noPartsRow">
+                                    <td colspan="5" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
+                                  </tr>
+                                {% endif %}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="status"><strong>Estado:</strong></label>
+                            <select name="status" id="status" class="form-control" required>
+                                <option value="Pendiente" {% if ticket.state == "Pendiente" %}selected{% endif %}>Pendiente</option>
+                                <option value="Asignado" {% if ticket.state == "Asignado" %}selected{% endif %}>Asignado</option>
+                                <option value="Recibido" {% if ticket.state == "Recibido" %}selected{% endif %}>Recibido</option>
+                                <option value="En proceso" {% if ticket.state == "En proceso" %}selected{% endif %}>En proceso</option>
+                                <option value="Finalizado" {% if ticket.state == "Finalizado" %}selected{% endif %}>Finalizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="priority"><strong>Prioridad:</strong></label>
+                            <select name="priority" id="priority" class="form-control" required>
+                                <option value="Alta" {% if ticket.priority == "Alta" %}selected{% endif %}>Alta</option>
+                                <option value="Media" {% if ticket.priority == "Media" %}selected{% endif %}>Media</option>
+                                <option value="Baja" {% if ticket.priority == "Baja" %}selected{% endif %}>Baja</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="creation_date"><strong>Fecha de Creación:</strong></label>
+                            <input type="text" class="form-control" readonly value="{{ ticket.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="reference"><strong>Referencia:</strong></label>
+                            <select name="reference" id="reference" class="form-control" required>
+                                <option value="">Seleccionar Referencia</option>
+                                {% for ref in reference %}
+                                    <option value="{{ ref.product_reference }}" {% if ticket.reference == ref.product_reference %}selected{% endif %}>
+                                        {{ ref.product_reference }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="product_code"><strong>Código de Producto:</strong></label>
+                            <select name="product_code" id="product_code" class="form-control" required>
+                                <option value="">Seleccionar Código</option>
+                                {% for code in product_code %}
+                                    <option value="{{ code.product_code }}" {% if ticket.product_code == code.product_code %}selected{% endif %}>
+                                        {{ code.product_code }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="IMEI"><strong>IMEI:</strong></label>
+                            <input type="text" name="IMEI" id="IMEI" class="form-control" 
+                                value="{{ ticket.IMEI }}" maxlength="15">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Valores monetarios -->
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="spare_value"><strong>Valor de Repuesto:</strong></label>
+                            <input type="number" name="spare_value" id="spare_value" class="form-control" step="0.01" 
+                                value="{{ ticket.spare_value }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="service_value"><strong>Valor del Servicio:</strong></label>
+                            <input type="number" name="service_value" id="service_value" class="form-control" step="0.01" 
+                                value="{{ ticket.service_value }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="total"><strong>Total:</strong></label>
+                            <input type="number" name="total" id="total" class="form-control" step="0.01" 
+                                value="{{ ticket.total }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selección de problemas -->
+                <div class="form-group mt-4">
+                    <label><strong>Problemas del Dispositivo:</strong></label>
+                    <div class="row checkbox-container">
+                        {% for problem in problems %}
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input type="checkbox" name="device_problems[]" id="problem_{{ problem.id }}" 
+                                        value="{{ problem.id }}" class="form-check-input"
+                                        {% if problem.id in selected_problem_ids %}checked{% endif %}>
+                                    <label for="problem_{{ problem.id }}" class="form-check-label">{{ problem.name }}</label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Fechas de seguimiento -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h5>Fechas de Seguimiento</h5>
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Asignado</th>
+                                    <th>Recibido</th>
+                                    <th>En Proceso</th>
+                                    <th>Finalizado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ ticket.assigned.strftime('%Y-%m-%d %H:%M:%S') if ticket.assigned else 'No asignado' }}</td>
+                                    <td>{{ ticket.received.strftime('%Y-%m-%d %H:%M:%S') if ticket.received else 'No recibido' }}</td>
+                                    <td>{{ ticket.in_progress.strftime('%Y-%m-%d %H:%M:%S') if ticket.in_progress else 'No iniciado' }}</td>
+                                    <td>{{ ticket.finished.strftime('%Y-%m-%d %H:%M:%S') if ticket.finished else 'No finalizado' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="form-group mt-4 text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <a href="{{ url_for('internal_repair.internal_repair') }}" class="btn btn-secondary ml-2">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script src="{{url_for('static', filename=('js/edit_ri.js'))}}"></script>
+
+<!-- Scripts -->
+<script>
+    // Script para actualizar automáticamente el documento del técnico al seleccionarlo
+    document.getElementById('technical_name').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        document.getElementById('documento').value = selectedOption.dataset.document || '';
+    });
+    
+    // Script para calcular el total automáticamente
+    function calculateTotal() {
+        const spareValue = parseFloat(document.getElementById('spare_value').value) || 0;
+        const serviceValue = parseFloat(document.getElementById('service_value').value) || 0;
+        document.getElementById('total').value = (spareValue + serviceValue).toFixed(2);
+    }
+    
+    document.getElementById('spare_value').addEventListener('input', calculateTotal);
+    document.getElementById('service_value').addEventListener('input', calculateTotal);
+</script>
+
+{% endblock %}

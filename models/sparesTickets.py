@@ -10,5 +10,5 @@ class Spares_tickets(db.Model, UserMixin):
     id_ticket = db.Column(db.Integer, db.ForeignKey('plan_beneficios.Tickets.id_ticket'), nullable=False)
     spare_code = db.Column(db.String(25), nullable=False)  
     quantity = db.Column(db.Integer, nullable=False, default=1) 
-    unit_price = db.Column(db.Numeric(10, 2), nullable=False) 
-    total_price = db.Column(db.Numeric(10, 2), nullable=False)
+    unit_price = db.Column(db.Numeric(7, 1), nullable=False) 
+    total_price = db.Column(db.Numeric(7, 1), nullable=False)

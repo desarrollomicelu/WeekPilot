@@ -1,0 +1,29 @@
+.titulo1{
+    text-align: center; 
+    font-family: 'Poppins', sans-serif;
+    
+}
+/* Estilo para el campo de referencia */
+#reference {
+    border: 2px solid #007bff; /* Borde azul */
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 16px;
+    background-color: #f8f9fa; /* Fondo gris claro */
+}
+
+/* Estilo para el campo de código de producto */
+#product_code {
+    border: 2px solid #28a745; /* Borde verde */
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 16px;
+    background-color: #f8f9fa;
+}
+
+/* Estilo para las etiquetas */
+.form-label {
+    font-weight: bold;
+    font-size: 14px;
+    color: #343a40; /* Color oscuro */
+}

@@ -4,12 +4,12 @@ import pyodbc
 
 
 def execute_query(query):
-    conn = pyodbc.connect('''DRIVER={ODBC Driver 17 for SQL Server};
-                         SERVER=localhost;
-                         DATABASE=MICELU;
-                         Trusted_Connection=yes;
-                         TrustServerCertificate=yes''')
-
+    conn = pyodbc.connect('''DRIVER={ODBC Driver 18 for SQL Server};
+                             SERVER=20.109.21.246;
+                             DATABASE=MICELU;
+                             UID=db_read;
+                             PWD=mHRL_<='(],#aZ)T"A3QeD;
+                             TrustServerCertificate=yes''')
     cursor = conn.cursor()
     cursor.execute(query)
     results = cursor.fetchall()
@@ -46,8 +46,8 @@ def get_product_reference():
             "description": row[0],
         })
     return reference
-
-
+ 
+ 
 def get_product_code():
     query = '''
     SELECT CODIGO
@@ -98,4 +98,11 @@ def get_technicians():
     OR COMENTARIO LIKE '%TECNICO MEDELLIN%' 
     OR COMENTARIO LIKE '%REPARACIÒN%'
     """
-    return execute_query(query)
+    results = execute_query(query)
+    technicians = []
+    for row in results:
+        technicians.append({
+            "NOMBRE": row[0],
+            "DOCUMENTO": row[1]
+        })
+    return technicians
