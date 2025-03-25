@@ -311,13 +311,10 @@
     <tr class="part-row">
         <td class="part-index"></td>
         <td>
-            <select class="form-select searchable-select" name="part_description[]" required>
+            <select class="form-select searchable-select" name="spare_part_code[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
-                {% for spare in spare_name %}
-                <option value="{{ spare }}">{{ spare }}</option>
-                {% endfor %}
-                {% for spare in sertec %}
-                <option value="{{ spare }}">{{ spare }}</option>
+                {% for spare in spare_parts %}
+                <option value="{{ spare.code }}">{{ spare.code }} - {{ spare.description }}</option>
                 {% endfor %}
             </select>
         </td>

@@ -2,6 +2,7 @@
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
+from decimal import Decimal
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
@@ -12,7 +13,8 @@ from models.clients import Clients_tickets
 from models.tickets import Tickets
 from extensions import  db 
 from models.problems import Problems 
-
+from models.sparesTickets import Spares_tickets
+from services.queries import get_spare_parts
 
 
 technical_service_bp = Blueprint("technical_service", __name__, template_folder="templates")
@@ -30,6 +32,7 @@ def create_ticket():
     service_value = get_sertec()
 
     problems_list = Problems.query.order_by(Problems.name).all()
+    spare_parts = get_spare_parts()
 
     if request.method == "POST":
         # Datos del cliente
@@ -118,6 +121,35 @@ def create_ticket():
         db.session.add(new_ticket)
         db.session.commit()
         flash("Ticket creado correctamente", "success")
+
+        spare_codes = request.form.getlist("spare_part_code[]")
+        print("DEBUG - SPARE CODES RECIBIDOS:", spare_codes)
+        quantities = request.form.getlist("part_quantity[]")
+        unit_prices = request.form.getlist("part_unit_value[]")
+        total_prices = request.form.getlist("part_total_value[]")
+
+        for i in range(len(spare_codes)):
+            if i < len(quantities) and i < len(unit_prices) and i < len(total_prices):
+                spare_code = spare_codes[i]
+                quantity = int(quantities[i])
+                unit_price = float(unit_prices[i])
+                total_price = float(total_prices[i])
+                
+                spare_ticket = Spares_tickets(
+                    id_ticket=new_ticket.id_ticket,
+                    spare_code=spare_code,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    total_price=total_price
+                )
+                db.session.add(spare_ticket)
+
+        new_ticket.spare_value = sum(float(price) for price in total_prices) if total_prices else 0
+        new_ticket.total = new_ticket.service_value + Decimal(str(new_ticket.spare_value))
+
+        db.session.commit()
+        flash("Ticket creado correctamente", "success")
+
         return redirect(url_for("technical_service.list_tickets"))
 
     # Método GET: se pasan los datos auxiliares y la lista de problemas reales al template
@@ -129,7 +161,7 @@ def create_ticket():
         product_code=product_code,
         problems=problems_list,
         service_value=service_value,
-        spare_name = spare_name
+        spare_parts=spare_parts
     )
 
 # Listar Tickets
@@ -156,6 +188,18 @@ def edit_ticket(ticket_id):
     spare_name = get_spare_name()
     service_value_default = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
+
+    spare_parts = get_spare_parts()
+    
+    current_spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
+    
+    for spare_ticket in current_spare_tickets:
+        for spare_part in spare_parts:
+            if spare_part['code'] == spare_ticket.spare_code:
+                spare_ticket.spare_description = spare_part['description']
+                break
+        else:
+            spare_ticket.spare_description = spare_ticket.spare_code
 
     if request.method == "POST":
         # Actualizamos los datos del cliente
@@ -202,6 +246,38 @@ def edit_ticket(ticket_id):
         selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
         ticket.problems = selected_problems
 
+        # Get all spare part data from the form
+        spare_codes = request.form.getlist("spare_part_code[]")
+        quantities = request.form.getlist("part_quantity[]")
+        unit_prices = request.form.getlist("part_unit_value[]")
+        total_prices = request.form.getlist("part_total_value[]")
+        
+        # First, delete all existing spare tickets for this ticket
+        Spares_tickets.query.filter_by(id_ticket=ticket_id).delete()
+        
+        # Then add the new spare parts configuration
+        total_spare_value = 0
+        for i in range(len(spare_codes)):
+            if i < len(quantities) and i < len(unit_prices) and i < len(total_prices):
+                spare_code = spare_codes[i]
+                quantity = int(quantities[i])
+                unit_price = float(unit_prices[i])
+                total_price = float(total_prices[i])
+                
+                spare_ticket = Spares_tickets(
+                    id_ticket=ticket_id,
+                    spare_code=spare_code,
+                    quantity=quantity,
+                    unit_price=unit_price,
+                    total_price=total_price
+                )
+                db.session.add(spare_ticket)
+                total_spare_value += total_price
+        
+        # Update the spare value and total on the ticket
+        ticket.spare_value = total_spare_value
+        ticket.total = ticket.service_value + ticket.spare_value
+        
         db.session.commit()
         flash("Ticket actualizado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets"))
@@ -216,9 +292,11 @@ def edit_ticket(ticket_id):
         technicians=technicians,
         reference=reference,
         product_code=product_code,
-        spare_name=spare_name,
+        spare_parts=spare_parts,  # Pass the complete spare_parts list
+        current_spare_tickets=current_spare_tickets,
         service_value=service_value_default,
-        problems=problems_list
+        problems=problems_list,
+        spare_name=spare_name
     )
 
 @technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])
@@ -237,6 +315,7 @@ def view_detail_ticket(ticket_id):
     spare_name = get_spare_name()
     service_value = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
+    spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
     
     # Renderizamos el template de detalle, pasándole toda la información necesaria
     return render_template(
@@ -248,5 +327,6 @@ def view_detail_ticket(ticket_id):
         product_code=product_code,
         spare_name=spare_name,
         service_value=service_value,
-        problems=problems_list
+        problems=problems_list,
+        spare_tickets=spare_tickets
     )

@@ -38,7 +38,6 @@ class Tickets(db.Model, UserMixin):
                                backref=db.backref("tickets", lazy="dynamic"),
                                lazy="dynamic")
 
-    spares = db.relationship("Spares",
-                             secondary=Spares_tickets.__table__,
-                             backref=db.backref("tickets", lazy="dynamic"),
-                             lazy="dynamic")
+    def get_spare_parts(self):
+        spare_tickets = Spares_tickets.query.filter_by(id_ticket=self.id_ticket).all()
+        return spare_tickets

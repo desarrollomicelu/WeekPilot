@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const quantity = parseFloat(row.querySelector('.part-quantity').value) || 0;
                 const unitValue = parseFloat(row.querySelector('.part-unit-value').value) || 0;
                 const totalValue = quantity * unitValue;
-                row.querySelector('.part-total-value').value = totalValue;
+                row.querySelector('.part-total-value').value = totalValue.toFixed(2);
                 
                 // Actualizar el total de repuestos y el total general
                 updateTotals();
@@ -239,11 +239,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 
                 // Actualizar el campo de valor de repuestos
-                spareValueInput.value = spareTotal;
+                spareValueInput.value = spareTotal.toFixed(2);
                 
                 // Actualizar el total general (servicio + repuestos)
                 const serviceValue = parseFloat(serviceValueInput.value) || 0;
-                totalInput.value = serviceValue + spareTotal;
+                totalInput.value = (serviceValue + spareTotal).toFixed(2);
             }
 
             function editRowIndices() {

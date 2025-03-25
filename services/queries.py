@@ -4,18 +4,33 @@ import pyodbc
 
 
 def execute_query(query):
-    conn = pyodbc.connect('''DRIVER={ODBC Driver 18 for SQL Server};
-                             SERVER=20.109.21.246;
-                             DATABASE=MICELU;
-                             UID=db_read;
-                             PWD=mHRL_<='(],#aZ)T"A3QeD;
-                             TrustServerCertificate=yes''')
+    conn = pyodbc.connect('''DRIVER={ODBC Driver 17 for SQL Server};
+                         SERVER=localhost;
+                         DATABASE=MICELU;
+                         Trusted_Connection=yes;
+                         TrustServerCertificate=yes''')
+
     cursor = conn.cursor()
     cursor.execute(query)
     results = cursor.fetchall()
     cursor.close()
     conn.close()
     return results
+
+def get_spare_parts():
+    query = '''
+    SELECT CODIGO, DESCRIPCIO
+    FROM MTMERCIA
+    WHERE CODLINEA = 'ST'
+    '''
+    results = execute_query(query)
+    spare_parts = []
+    for row in results:
+        spare_parts.append({
+            "code": row[0],
+            "description": row[1]
+        })
+    return spare_parts
 
 
 def get_product_reference():
@@ -60,6 +75,7 @@ def get_spare_name():
     for row in results:
         spare_names.append(row[0])  
     return spare_names
+
 
 
 def get_sertec():
