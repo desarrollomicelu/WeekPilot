@@ -174,7 +174,7 @@
                                     <td>
                                         <select class="form-select searchable-select" name="part_description[]" required>
                                             <option value="" disabled>Seleccione un repuesto</option>
-                                            {% for spare in spare_name %}
+                                            {% for spare in  %}
                                             <option value="{{ spare }}" {% if spare == part.description %}selected{% endif %}>{{ spare }}</option>
                                             {% endfor %}
                                             {% for spare in sertec %}
@@ -352,7 +352,7 @@
         <td>
             <select class="form-select searchable-select" name="part_description[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
-                {% for spare in spare_name %}
+                {% for spare in  %}
                 <option value="{{ spare }}">{{ spare }}</option>
                 {% endfor %}
                 {% for spare in sertec %}

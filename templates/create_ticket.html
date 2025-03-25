@@ -77,10 +77,10 @@
                         <div class="mb-3 row">
                             <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
                             <div class="col-sm-8">
-                                <select class="form-select searchable-select" id="technical_name" name="technical_name">
+                                <select class="form-select" id="technical_name" name="technical_name">
                                     <option value="">Sin asignar</option>
                                     {% for technician in technicians %}
-                                    <option value="{{ technician.NOMBRE }}">{{ technician.NOMBRE }}</option>
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.CODVEN }}">{{ technician.NOMBRE }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -89,30 +89,28 @@
                         <div class="mb-3 row">
                             <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <select class="form-select searchable-select" id="technical_document" name="technical_document">
-                                    <option value="">Sin asignar</option>
-                                    {% for technician in technicians %}
-                                    <option value="{{ technician.CODVEN }}">{{ technician.CODVEN }}</option>
-                                    {% endfor %}
-                                </select>
+                                <input type="text" class="form-control" id="technical_document" name="technical_document" readonly>
                             </div>
                         </div>
-
                         <div class="mb-3 row">
                             <label for="state" class="col-sm-4 col-form-label">Estado</label>
                             <div class="col-sm-8">
-                                <select class="form-select searchable-select" id="state" name="state">
-                                    {% for state in ['Sin asignar', 'Asignado'] %}
-                                    <option value="{{ state }}">{{ state }}</option>
-                                    {% endfor %}
-                                </select>
+                                <form method="POST" action="{{ url_for('technical_service.update_ticket_status') }}" class="status-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="ticket_id" value="{{ ticket.id_ticket }}">
+                                    <select class="form-select form-select-sm status-select" name="status">
+                                        {% for status in ['Sin Asignar','Asignado', 'En proceso', 'Terminado'] %}
+                                        <option value="{{ status }}" {% if ticket.status==status %}selected{% endif %}>{{ status }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
                             <div class="col-sm-8">
-                                <select class="form-select searchable-select" id="city" name="city">
+                                <select class="form-select " id="city" name="city">
                                     {% for city in ['Medellín', 'Bogotá'] %}
                                     <option value="{{ city }}">{{ city }}</option>
                                     {% endfor %}
@@ -123,7 +121,7 @@
                         <div class="mb-3 row">
                             <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
                             <div class="col-sm-8">
-                                <select class="form-select searchable-select" id="priority" name="priority">
+                                <select class="form-select " id="priority" name="priority">
                                     {% for priority in ['Alta', 'Media', 'Baja'] %}
                                     <option value="{{ priority }}">{{ priority }}</option>
                                     {% endfor %}
@@ -313,7 +311,7 @@
         <td>
             <select class="form-select searchable-select" name="part_description[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
-                {% for spare in spare_name %}
+                {% for spare in  %}
                 <option value="{{ spare }}">{{ spare }}</option>
                 {% endfor %}
                 {% for spare in sertec %}
