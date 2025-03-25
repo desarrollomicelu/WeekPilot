@@ -4,7 +4,6 @@ from models.tickets import Tickets
 from models.problemsTickets import Problems_tickets
 from models.problems import Problems
 from models.clients import Clients_tickets
-from models.spares import Spares
 from models.sparesTickets import Spares_tickets
 from models.employees import Empleados
 from extensions import db, bcrypt

@@ -6,7 +6,7 @@ from decimal import Decimal
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_code, get_product_reference, get_sertec, get_spare_name, get_technicians
+from services.queries import get_product_code, get_product_reference, get_sertec, get_technicians
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -28,7 +28,6 @@ def create_ticket():
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     reference = get_product_reference()
     product_code = get_product_code()
-    spare_name = get_spare_name()
     service_value = get_sertec()
 
     problems_list = Problems.query.order_by(Problems.name).all()
@@ -52,7 +51,6 @@ def create_ticket():
         reference = request.form.get("reference")
         product_code = request.form.get("product_code")
         service_value = request.form.get("service_value")
-        spare_name = request.form.get("spare_name")
         spare_value = request.form.get("spare_value")
         assigned = request.form.get("assigned")
         creation_date = request.form.get("creation_date")
@@ -107,7 +105,6 @@ def create_ticket():
             reference=reference,
             product_code=product_code,
             service_value=service_value,
-            spare_name=spare_name,
             spare_value=spare_value,
             total=total,
             client=client.id_client,
@@ -185,7 +182,6 @@ def edit_ticket(ticket_id):
     technicians = get_technicians()
     reference = get_product_reference()
     product_code = get_product_code()
-    spare_name = get_spare_name()
     service_value_default = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
 
@@ -215,7 +211,6 @@ def edit_ticket(ticket_id):
         ticket.technical_document = request.form.get("technical_document")
         ticket.state = request.form.get("state")
         ticket.priority = request.form.get("priority")
-        ticket.spare_name = request.form.get("spare_name")
         ticket.city = request.form.get("city")
         ticket.type_of_service = request.form.get("type_of_service") or "Servicio Técnico"
         ticket.IMEI = request.form.get("IMEI")
@@ -296,7 +291,6 @@ def edit_ticket(ticket_id):
         current_spare_tickets=current_spare_tickets,
         service_value=service_value_default,
         problems=problems_list,
-        spare_name=spare_name
     )
 
 @technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])
@@ -312,7 +306,6 @@ def view_detail_ticket(ticket_id):
     technicians = get_technicians()
     reference = get_product_reference()
     product_code = get_product_code()
-    spare_name = get_spare_name()
     service_value = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
     spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
@@ -325,8 +318,36 @@ def view_detail_ticket(ticket_id):
         technicians=technicians,
         reference=reference,
         product_code=product_code,
-        spare_name=spare_name,
         service_value=service_value,
         problems=problems_list,
         spare_tickets=spare_tickets
     )
+
+
+@technical_service_bp.route('/update_ticket_status', methods=['POST'])
+@login_required
+def update_ticket_status():
+    ticket_id = request.form.get('ticket_id')
+    new_status = request.form.get('status')
+    
+    if not ticket_id or not new_status:
+        flash('No se pudo actualizar el estado: datos incompletos', 'danger')
+        return redirect(url_for('technical_service.list_tickets'))
+    
+    try:
+        # Buscar el ticket
+        ticket = Tickets.query.get(ticket_id)
+        if not ticket:
+            flash('No se encontró el ticket', 'danger')
+            return redirect(url_for('technical_service.list_tickets'))
+        
+        # Actualizar el estado
+        ticket.status = new_status
+        db.session.commit()
+        
+        flash('Estado actualizado correctamente', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al actualizar el estado: {str(e)}', 'danger')
+    
+    return redirect(url_for('technical_service.list_tickets'))

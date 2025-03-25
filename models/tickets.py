@@ -25,7 +25,6 @@ class Tickets(db.Model, UserMixin):
     received = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
     finished = db.Column(db.DateTime, nullable=True)
-    spare_name = db.Column(db.String(50), nullable=True)
     spare_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)

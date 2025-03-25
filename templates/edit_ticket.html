@@ -174,10 +174,11 @@
                                     <td>
                                         <select class="form-select searchable-select" name="spare_part_code[]" required>
                                             <option value="" disabled>Seleccione un repuesto</option>
-                                            {% for spare_option in spare_parts %}
-                                            <option value="{{ spare_option.code }}" {% if spare_option.code == spare.spare_code %}selected{% endif %}>
-                                                {{ spare_option.description }}
-                                            </option>
+                                            {% for spare in spare_name %}
+                                            <option value="{{ spare }}" {% if spare == part.description %}selected{% endif %}>{{ spare }}</option>
+                                            {% endfor %}
+                                            {% for spare in sertec %}
+                                            <option value="{{ spare }}" {% if spare == part.description %}selected{% endif %}>{{ spare }}</option>
                                             {% endfor %}
                                         </select>
                                     </td>
@@ -351,8 +352,11 @@
         <td>
             <select class="form-select searchable-select" name="spare_part_code[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
-                {% for spare in spare_parts %}
-                <option value="{{ spare.code }}">{{ spare.code }} - {{ spare.description }}</option>
+                {% for spare in spare_name %}
+                <option value="{{ spare }}">{{ spare }}</option>
+                {% endfor %}
+                {% for spare in sertec %}
+                <option value="{{ spare }}">{{ spare }}</option>
                 {% endfor %}
             </select>
         </td>
