@@ -6,7 +6,7 @@
   <!-- Fila del título -->
   <div class="row mb-2">
     <div class="col">
-      <h2 class="mb-0">
+      <h2 class="titulo1">
         <i class="fas fa-tools text-primary me-2"></i>Gestión de Reparaciones Internas
       </h2>
     </div>
@@ -23,7 +23,7 @@
           aria-label="Buscar reparaciones">
       </div>
       <!-- Botón de nueva reparación -->
-      <a href="" class="btn btn-success d-flex align-items-center">
+      <a href="{{ url_for('internal_repair.create_ticketsRI') }}" class="btn btn-success d-flex align-items-center">
         <i class="fas fa-plus me-2"></i>Nueva Reparación
       </a>
       <!-- Botón de inventario de repuestos -->
@@ -53,12 +53,10 @@
       </div>
       <div class="col-md-4">
         <div class="d-flex justify-content-end">
-          <select class="form-select" style="max-width: 200px;" id="departmentFilter">
-            <option value="all">Todos los departamentos</option>
-            <option value="it">Informática</option>
-            <option value="operations">Operaciones</option>
-            <option value="admin">Administración</option>
-            <option value="sales">Ventas</option>
+          <select class="form-select" style="max-width: 200px;" id="cityfilter">
+            <option value="all">Ciudad</option>
+            <option value="it">Medellin</option>
+            <option value="operations">Bogota</option>
           </select>
         </div>
       </div>
@@ -91,92 +89,73 @@
         <thead class="table-light text-nowrap">
           <tr>
             <th class="ps-3">#</th>
-            <th>Equipo</th>
-            <th>Número de Serie</th>
-            <th>Departamento</th>
+            <th>Referencia</th>
+            <th>Imei</th>
+            <th>Ciudad</th>
             <th>Técnico</th>
             <th>Estado</th>
             <th>Fecha de Ingreso</th>
             <th>Prioridad</th>
-            <th>Diagnóstico</th>
-            <th>Costo Estimado</th>
+            <th>Valor Servicio</th>
+            <th>Valor Repuestos</th>
+            <th>Total</th>
             <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {% for repair in repairs %}
-          <tr class="align-middle" data-status="{{ repair.status }}">
-            <td class="ps-3 fw-bold">#{{ repair.id_repair }}</td>
+          {% for ticket in tickets %}
+          <tr class="align-middle" data-status="{{ ticket.state }}">
+            <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
+            <td>{{ ticket.reference }}</td>
+            <td>{{ ticket.IMEI }}</td>
+            <td>{{ ticket.city }}</td>
             <td>
-              <div class="d-flex align-items-center">
-                <div class="me-2">
-                  <i class="fas fa-{% if repair.equipment_type == 'computer' %}laptop{% elif repair.equipment_type == 'printer' %}print{% elif repair.equipment_type == 'phone' %}mobile-alt{% else %}hdd{% endif %} text-secondary"></i>
-                </div>
-                <div>{{ repair.equipment_name }}</div>
-              </div>
-            </td>
-            <td>{{ repair.serial_number }}</td>
-            <td>
-              <span class="badge rounded-pill bg-{% if repair.department == 'it' %}info{% elif repair.department == 'operations' %}warning{% elif repair.department == 'admin' %}success{% elif repair.department == 'sales' %}danger{% else %}secondary{% endif %} text-white px-3">
-                {{ repair.department | title }}
-              </span>
-            </td>
-            <td>
-              {% if repair.technician_name %}
-              {{ repair.technician_name.replace('.', ' ') | title }}
+              {% if ticket.technical_name %}
+              {{ ticket.technical_name.replace('.', ' ') | title }}
               {% else %}
               Sin asignar
               {% endif %}
             </td>
             <td>
-              <select class="form-select form-select-sm" data-repair-id="{{ repair.id }}" name="status">
-                {% for status in ['Pendiente', 'En Reparación', 'Completado', 'Cancelado'] %}
-                <option value="{{ status }}" {% if repair.status==status %}selected{% endif %}>{{ status }}</option>
+              <select class="form-select form-select-sm" data-ticket-id="{{ ticket.id_ticket }}" name="status">
+                {% for status in ['Asignado', 'En proceso', 'Terminado'] %}
+                <option value="{{ status }}" {% if ticket.state==status %}selected{% endif %}>{{ status }}</option>
                 {% endfor %}
               </select>
             </td>
             <td>
-              {% if repair.entry_date %}
-              <div>{{ repair.entry_date.strftime("%d/%m/%Y") if repair.entry_date else "Fecha no disponible" }}</div>
-              <small class="text-muted">{{ repair.entry_date.strftime("%H:%M:%S") if repair.entry_date else "" }}</small>
+              {% if ticket.creation_date %}
+              <div>{{ ticket.creation_date.strftime("%d/%m/%Y") if ticket.creation_date else "Fecha no disponible" }}</div>
+              <small class="text-muted">{{ ticket.creation_date.strftime("%H:%M:%S") if ticket.creation_date else "" }}</small>
               {% else %}
               <span class="badge bg-secondary">No registrada</span>
               {% endif %}
             </td>
-            <td>
-              <select class="form-select form-select-sm" data-repair-id="{{ repair.id }}" name="priority">
-                {% for priority in ['Baja', 'Media', 'Alta', 'Urgente'] %}
-                <option value="{{ priority }}" {% if repair.priority==priority %}selected{% endif %}>{{ priority }}</option>
-                {% endfor %}
-              </select>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="{{ repair.diagnosis }}">
-                <i class="fas fa-clipboard-list me-1"></i> Ver
-              </button>
-            </td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(repair.estimated_cost) }}</span></td>
+            <td>{{ ticket.priority }}</td>
+            <td><i class="fas fa-tools text-muted me-1"></i>${{ "{:,.0f}".format(ticket.service_value) }}</td>
+            <td><i class="fas fa-cogs text-muted me-1"></i>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
+            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
             <td class="text-center">
               <div class="btn-group">
-                <a href="{{ url_for('edit_repair', repair_id=repair.id_repair) }}" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-edit"></i>
+                  <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{{ url_for('internal_repair.detail_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye"></i>
                 </a>
-                <a href="{{ url_for('view_detail_repair', repair_id=repair.id_repair) }}" class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal" data-repair-id="{{ repair.id_repair }}">
-                  <i class="fas fa-trash"></i>
-                </button>
+                  <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
+                      <i class="fas fa-envelope"></i>
+                  </a>
               </div>
-            </td>
+          </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="11" class="text-center py-5">
-              <i class="fas fa-tools fa-3x mb-3 text-muted"></i>
-              <p class="text-muted">No hay reparaciones registradas actualmente.</p>
-              <a href="}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Crear nueva reparación
+            <td colspan="12" class="text-center py-5">
+              <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
+              <p class="text-muted">No hay tickets de reparación interna registrados actualmente.</p>
+              <a href="{{ url_for('internal_repair.create_ticketsRI') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Crear nuevo ticket
               </a>
             </td>
           </tr>

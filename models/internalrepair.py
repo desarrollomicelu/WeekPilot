@@ -1,7 +1,7 @@
-from datetime import datetime
 from flask_login import UserMixin
-from . import db
+from datetime import datetime
 from models.problemsTickets import Problems_tickets
+from . import db
 
 
 class Tickets(db.Model, UserMixin):
@@ -29,9 +29,12 @@ class Tickets(db.Model, UserMixin):
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     client = db.Column(db.Integer, db.ForeignKey(
         "plan_beneficios.Clients_tickets.id_client"), nullable=False)
+    client_info = db.relationship("Clients_tickets", foreign_keys=[client], backref="tickets")
  
     # Usar la tabla directamente
     problems = db.relationship("Problems",
                                secondary=Problems_tickets.__table__,
                                backref=db.backref("tickets", lazy="dynamic"),
                                lazy="dynamic")
+ 
+    

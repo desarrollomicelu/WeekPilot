@@ -27,10 +27,10 @@ def create_ticket():
     reference = get_product_reference()
     product_code = get_product_code()
     spare_name = get_spare_name()
-    sertec = get_sertec()
-
+    service_value = get_sertec()
+ 
     problems_list = Problems.query.order_by(Problems.name).all()
-
+ 
     if request.method == "POST":
         # Datos del cliente
         client_names = request.form.get("client_names")
@@ -38,34 +38,36 @@ def create_ticket():
         document = request.form.get("document")
         mail = request.form.get("mail")
         phone = request.form.get("phone")
-
         # Datos del ticket
         technical_name = request.form.get("technical_name")
-        state = request.form.get("state", "received")
+        technical_document = request.form.get("technical_document")
+        state = request.form.get("state")
         priority = request.form.get("priority")
-        spare_name = request.form.get("spare_parts")
-        sertec = request.form.get("sertec")
-        IMEI = request.form.get("IMEI")
-        reference_selected = request.form.get("reference")
-        product_code_selected = request.form.get("product_code")
-        service_value = request.form.get("service_value")
         spare_name = request.form.get("spare_name")
+        city  = request.form.get("city")
+        type_of_service = request.form.get("type_of_service")
+        IMEI = request.form.get("IMEI")
+        reference = request.form.get("reference")
+        product_code = request.form.get("product_code")
+        service_value = request.form.get("service_value")
+        spare_value = request.form.get("spare_value")
         assigned = request.form.get("assigned")
-        if assigned:
-            assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
+        creation_date = request.form.get("creation_date")
+        if creation_date:
+            creation_date = datetime.strptime(creation_date, "%Y-%m-%d %H:%M:%S")
         received = request.form.get("received")
         in_progress = request.form.get("in_progress")
         finished = request.form.get("finished")
         total = request.form.get("total")
-
+ 
         try:
             service_value = float(service_value or 0)
-            spare_name = float(spare_name or 0)
-            total = service_value + spare_name
+            spare_value = float(spare_value or 0)
+            total = service_value + spare_value
         except ValueError:
             flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
-
+ 
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -78,7 +80,7 @@ def create_ticket():
             )
             db.session.add(client)
             db.session.commit()
-
+ 
         # Aquí obtenemos los problemas seleccionados en el formulario.
         # Se usa el campo "device_problems[]" que ahora debe contener los IDs de los problemas.
         selected_problem_ids = request.form.getlist("device_problems[]")
@@ -86,23 +88,27 @@ def create_ticket():
             selected_problem_ids = [int(pid) for pid in selected_problem_ids]
         except ValueError:
             selected_problem_ids = []
-
+ 
         # Consultar los objetos Problems que correspondan a los IDs seleccionados
         selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
-
+ 
         # Crear el nuevo ticket, asignando la lista de problemas seleccionados
         new_ticket = Tickets(
             technical_name=technical_name,
+            technical_document=technical_document,
             state=state,
             priority=priority,
-            sertec=sertec,
             IMEI=IMEI,
-            reference=reference_selected,
-            product_code=product_code_selected,
+            city=city,
+            type_of_service=type_of_service,
+            reference=reference,
+            product_code=product_code,
             service_value=service_value,
             spare_name=spare_name,
+            spare_value=spare_value,
             total=total,
             client=client.id_client,
+            creation_date=creation_date,
             assigned=assigned,
             received=received,
             in_progress=in_progress,
@@ -113,7 +119,7 @@ def create_ticket():
         db.session.commit()
         flash("Ticket creado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets"))
-
+ 
     # Método GET: se pasan los datos auxiliares y la lista de problemas reales al template
     return render_template(
         "create_ticket.html",
@@ -122,8 +128,8 @@ def create_ticket():
         reference=reference,
         product_code=product_code,
         problems=problems_list,
-        sertec=sertec,
-        spare_name  = spare_name
+        service_value=service_value,
+        spare_name = spare_name
     )
 
 
