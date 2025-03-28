@@ -93,6 +93,8 @@ def create_ticket():
         if state == "Asignado":
             assigned = datetime.now()
 
+        #HACER VALIDACIONES DESDE ACA.
+        
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -106,14 +108,9 @@ def create_ticket():
             db.session.add(client)
             db.session.commit()
 
-        # Obtener problemas seleccionados
         selected_problem_ids = request.form.getlist("device_problems[]")
-        try:
-            selected_problem_ids = [int(pid) for pid in selected_problem_ids]
-        except ValueError:
-            selected_problem_ids = []
-        selected_problems = Problems.query.filter(
-            Problems.id.in_(selected_problem_ids)).all()
+        # Obtener problemas seleccionados
+        selected_problems = Problems.query.filter(Problems.id_problem.in_(selected_problem_ids)).all()
 
         # Crear el nuevo ticket
         new_ticket = Tickets(
@@ -123,7 +120,7 @@ def create_ticket():
             priority=priority,
             IMEI=IMEI,
             city=city,
-            type_of_service=type_of_service,
+            type_of_service=type_of_service, #CAMBIAR EL TIPO DE SERVICIO A 0
             reference=reference,
             product_code=product_code,
             service_value=service_value,
@@ -135,8 +132,12 @@ def create_ticket():
             received=received,
             in_progress=in_progress,
             finished=finished,
-            problems=selected_problems,
         )
+        
+        # Asociar problemas al ticket
+        for problem in selected_problems:
+            new_ticket.problems.append(problem)
+        
         db.session.add(new_ticket)
         db.session.commit()
 
@@ -319,8 +320,6 @@ def edit_ticket(ticket_id):
     )
 
 # Ver Detalle de Ticket
-
-
 @technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])
 @login_required
 def view_detail_ticket(ticket_id):
