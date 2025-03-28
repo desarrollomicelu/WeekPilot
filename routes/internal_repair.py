@@ -211,15 +211,17 @@ def create_ticketsRI():
 @internal_repair_bp.route("/edit_tickets_RI/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_tickets_RI(ticket_id):
+    spare_parts = get_spare_parts() 
     """
     Ruta para editar tickets de reparación interna existentes.
     """
     # Obtener el ticket a editar
     ticket = Tickets.query.get_or_404(ticket_id)
     selected_problem_ids = [problem.id for problem in ticket.problems]
+    ticket_spares = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
     
     # Verificar que sea un ticket de reparación interna
-    if ticket.type_of_service != "Reparación Interna":
+    if ticket.type_of_service != "1":
         flash("Este ticket no es de reparación interna", "danger")
         return redirect(url_for("internal_repair.internal_repair"))
     
@@ -237,14 +239,14 @@ def edit_tickets_RI(ticket_id):
     if request.method == "POST":
         try:
             # Obtener datos del formulario
-            sede = request.form.get("sede")
-            technical_name = request.form.get("technical_name")
-            technical_document = request.form.get("documento")
-            status = request.form.get("status")
-            priority = request.form.get("priority")
-            reference_selected = request.form.get("reference")
-            product_code_selected = request.form.get("product_code")
-            IMEI = request.form.get("IMEI") or ""
+            city = request.form.get("city", ticket.city)
+            technical_name = request.form.get("technical_name", ticket.technical_name)
+            technical_document = request.form.get("documento", ticket.technical_document)
+            status = request.form.get("status", ticket.state)
+            priority = request.form.get("priority", ticket.priority)
+            reference_selected = request.form.get("reference", ticket.reference)
+            product_code_selected = request.form.get("product_code", ticket.product_code)
+            IMEI = request.form.get("IMEI", ticket.IMEI) or ""
             
             # Validar IMEI
             if IMEI and not IMEI.isdigit():
@@ -255,17 +257,11 @@ def edit_tickets_RI(ticket_id):
                 flash("Error: El IMEI no puede tener más de 15 caracteres.", "danger")
                 return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
             
-            # Validar campos obligatorios
-            if not all([sede, technical_name, technical_document, status, priority, 
-                        reference_selected, product_code_selected]):
-                flash("Error: Todos los campos obligatorios deben ser completados.", "danger")
-                return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
-            
             # Convertir valores numéricos
             try:
-                service_value = float(request.form.get("service_value", 0))
-                spare_value = float(request.form.get("spare_value", 0))
-                total = float(request.form.get("total", 0))
+                service_value = float(request.form.get("service_value", ticket.service_value))
+                spare_value = float(request.form.get("spare_value", ticket.spare_value))
+                total = float(request.form.get("total", ticket.total))
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
                 return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
@@ -273,8 +269,8 @@ def edit_tickets_RI(ticket_id):
             # Obtener problemas seleccionados
             selected_problem_ids = request.form.getlist("device_problems[]")
             if not selected_problem_ids:
-                flash("Error: Debe seleccionar al menos un problema.", "danger")
-                return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
+                # Si no se selecciona ningún problema, mantener los existentes
+                selected_problem_ids = [problem.id for problem in ticket.problems]
                 
             try:
                 selected_problem_ids = [int(pid) for pid in selected_problem_ids]
@@ -285,8 +281,8 @@ def edit_tickets_RI(ticket_id):
             selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
             
             if not selected_problems:
-                flash("Error: No se encontraron los problemas seleccionados.", "danger")
-                return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
+                # Si no se encuentran problemas, usar los existentes
+                selected_problems = ticket.problems
             
             # Actualizar el ticket
             ticket.state = status
@@ -296,7 +292,7 @@ def edit_tickets_RI(ticket_id):
             ticket.product_code = product_code_selected
             ticket.IMEI = IMEI
             ticket.reference = reference_selected
-            ticket.city = sede
+            ticket.city = city
             ticket.spare_value = spare_value
             ticket.service_value = service_value
             ticket.total = total
@@ -312,9 +308,7 @@ def edit_tickets_RI(ticket_id):
                 ticket.finished = datetime.now()
             
             # Actualizar problemas asociados
-            ticket.problems = []  # Eliminar asociaciones existentes
-            for problem in selected_problems:
-                ticket.problems.append(problem)
+            ticket.problems = selected_problems
 
             spare_parts = get_spare_parts()
             current_spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
@@ -332,6 +326,13 @@ def edit_tickets_RI(ticket_id):
             unit_prices = request.form.getlist("part_unit_value[]")
             total_prices = request.form.getlist("part_total_value[]")
 
+            # Si no se proporcionan repuestos, mantener los existentes
+            if not spare_codes:
+                db.session.commit()
+                flash("Ticket de reparación interna actualizado correctamente", "success")
+                return redirect(url_for("internal_repair.internal_repair"))
+
+            # Eliminar repuestos existentes
             Spares_tickets.query.filter_by(id_ticket=ticket_id).delete()
 
             total_spare_value = 0
@@ -378,7 +379,8 @@ def edit_tickets_RI(ticket_id):
         sertec=sertec,
         selected_problem_ids=selected_problem_ids,
         spare_parts=spare_parts,
-        )
+        ticket_spares=ticket_spares
+    )
     
 @internal_repair_bp.route("/detail_RI/<int:ticket_id>", methods=["GET"], endpoint="detail_RI")
 @login_required
@@ -397,12 +399,8 @@ def detalle_RI(ticket_id):
     # Obtener problemas asociados
     problemas_ticket = ticket.problems
     
-    # Obtener repuestos asociados
-    repuestos_ticket = db.session.query(Spares, Spares_tickets).join(
-        Spares_tickets, Spares.id == Spares_tickets.id_spares
-    ).filter(
-        Spares_tickets.id_ticket == ticket_id
-    ).all()
+    # Obtener repuestos asociados directamente de Spares_tickets
+    repuestos_ticket = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
     
     return render_template(
         "detail_RI.html", 

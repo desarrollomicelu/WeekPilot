@@ -5,6 +5,15 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/internal_repair.css') }}">
 {% endblock %}
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -16,11 +25,10 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="sede"><strong>Sede:</strong></label>
-                            <select name="sede" id="sede" class="form-control" required>
-                                <option value="">Seleccionar Sede</option>
-                                {% for s in sertec %}
-                                    <option value="{{ s.name_city }}">{{ s.name_city }} ({{ ticket.city }})</option>
+                            <label for="sede"><strong>Ciudad:</strong></label>
+                            <select class="form-select" id="city" name="city">
+                                {% for city in ['Medellín', 'Bogotá'] %}
+                                <option value="{{ city }}" {% if city == ticket.city %}selected{% endif %}>{{ city }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -28,13 +36,13 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="technical_name"><strong>Técnico:</strong></label>
-                            <select name="technical_name" id="technical_name" class="form-control" required>
-                                <option value="">Seleccionar Técnico</option>
+                            <select id="technical_name" name="technical_name" class="form-control">
                                 {% for tech in technicians %}
-                                    <option value="{{ tech.name }}" 
-                                        {% if ticket.technical_name == tech.name %}selected{% endif %}>
-                                        {{ tech.name }}
-                                    </option>
+                                <option value="{{ tech.NOMBRE }}" 
+                                        data-document="{{ tech.DOCUMENTO }}"
+                                        {% if tech.NOMBRE == ticket.technical_name %}selected{% endif %}>
+                                    {{ tech.NOMBRE }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -65,22 +73,43 @@
                                   <th style="width:35%;">Descripción</th>
                                   <th style="width:15%;">Cantidad</th>
                                   <th style="width:20%;">Valor Unitario</th>
+                                  <th>Valor Total</th>
                                   <th style="width:10%;">Acciones</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {% if ticket_spares %}
-                                  {% for spare, spare_ticket in ticket_spares %}
+                                  {% for spare_ticket in ticket_spares %}
                                     <tr>
                                       <td>{{ loop.index }}</td>
                                       <td>
-                                        <input type="text" name="part_description[]" class="form-control" value="{{ spare.name }}" required>
+                                        <select name="spare_part_code[]" class="form-select searchable-select" required>
+                                            <option value="" disabled>Seleccione un repuesto</option>
+                                            {% for spare in spare_parts %}
+                                              <option value="{{ spare.code }}"
+                                                {% if spare.code == spare_ticket.spare_code %}selected{% endif %}>
+                                                {{ spare.description }}
+                                              </option>
+                                            {% endfor %}
+                                            {% for spare in sertec %}
+                                              <option value="{{ spare }}"
+                                                {% if spare == spare_ticket.spare_code %}selected{% endif %}>
+                                                {{ spare }}
+                                              </option>
+                                            {% endfor %}
+                                          </select>
                                       </td>
                                       <td>
-                                        <input type="number" name="part_quantity[]" class="form-control" value="{{ spare_ticket.quantity|default(1) }}" min="1" required>
+                                        <input type="text" name="spare_part_code_display[]" class="form-control" 
+                                               value="{{ spare_ticket.quantity }}" readonly>
                                       </td>
                                       <td>
-                                        <input type="number" name="part_unit_value[]" class="form-control" value="{{ spare_ticket.unit_value|default(0) }}" min="0" step="0.01" required>
+                                        <input type="number" name="part_quantity[]" class="form-control" 
+                                               value="{{ spare_ticket.unit_price }}" min="1" required>
+                                      </td>
+                                      <td>
+                                        <input type="number" name="part_total_value[]" class="form-control" 
+                                               value="{{ spare_ticket.total_price }}" min="0"  readonly>
                                       </td>
                                       <td>
                                         <button type="button" class="btn btn-sm btn-danger removePartBtn">
@@ -91,7 +120,7 @@
                                   {% endfor %}
                                 {% else %}
                                   <tr id="noPartsRow">
-                                    <td colspan="5" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
+                                    <td colspan="7" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
                                   </tr>
                                 {% endif %}
                               </tbody>
@@ -105,7 +134,7 @@
                 <div class="row mt-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="status"><strong>Estado:</strong></label>
+                            <label for="status" class="form-label"><strong>Estado:</strong></label>
                             <select name="status" id="status" class="form-control" required>
                                 <option value="Pendiente" {% if ticket.state == "Pendiente" %}selected{% endif %}>Pendiente</option>
                                 <option value="Asignado" {% if ticket.state == "Asignado" %}selected{% endif %}>Asignado</option>
@@ -117,7 +146,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="priority"><strong>Prioridad:</strong></label>
+                            <label for="priority" class="form-label"><strong>Prioridad:</strong></label>
                             <select name="priority" id="priority" class="form-control" required>
                                 <option value="Alta" {% if ticket.priority == "Alta" %}selected{% endif %}>Alta</option>
                                 <option value="Media" {% if ticket.priority == "Media" %}selected{% endif %}>Media</option>
@@ -127,7 +156,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="creation_date"><strong>Fecha de Creación:</strong></label>
+                            <label for="creation_date" class="form-label"><strong>Fecha de Creación:</strong></label>
                             <input type="text" class="form-control" readonly value="{{ ticket.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}">
                         </div>
                     </div>
@@ -136,26 +165,26 @@
                 <div class="row mt-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="reference"><strong>Referencia:</strong></label>
-                            <select name="reference" id="reference" class="form-control" required>
-                                <option value="">Seleccionar Referencia</option>
+                            <label for="reference" class="form-label"><strong>Referencia:</strong></label>
+                            <select class="form-select" id="reference" name="reference">
+                                <option value="">Seleccione una referencia</option>
                                 {% for ref in reference %}
-                                    <option value="{{ ref.product_reference }}" {% if ticket.reference == ref.product_reference %}selected{% endif %}>
-                                        {{ ref.product_reference }}
-                                    </option>
+                                <option value="{{ ref.description }}" {% if ref.description == ticket.reference %}selected{% endif %}>
+                                    {{ ref.description }} ({{ ref.CODLINEA }})
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="product_code"><strong>Código de Producto:</strong></label>
-                            <select name="product_code" id="product_code" class="form-control" required>
-                                <option value="">Seleccionar Código</option>
+                            <label for="product_code" class="form-label"><strong>Código de Producto:</strong></label>
+                            <select class="form-select" id="product_code" name="product_code">
+                                <option value="">Seleccione un código</option>
                                 {% for code in product_code %}
-                                    <option value="{{ code.product_code }}" {% if ticket.product_code == code.product_code %}selected{% endif %}>
-                                        {{ code.product_code }}
-                                    </option>
+                                <option value="{{ code.id }}" {% if code.id == ticket.product_code %}selected{% endif %}>
+                                    {{ code.id }} ({{ code.CODLINEA }})
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -173,21 +202,21 @@
                 <div class="row mt-3">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="spare_value"><strong>Valor de Repuesto:</strong></label>
+                            <label for="spare_value" class="form-label"><strong>Valor de Repuesto:</strong></label>
                             <input type="number" name="spare_value" id="spare_value" class="form-control" step="0.01" 
                                 value="{{ ticket.spare_value }}">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="service_value"><strong>Valor del Servicio:</strong></label>
+                            <label for="service_value" class="form-label"><strong>Valor del Servicio:</strong></label>
                             <input type="number" name="service_value" id="service_value" class="form-control" step="0.01" 
                                 value="{{ ticket.service_value }}">
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label for="total"><strong>Total:</strong></label>
+                            <label for="total" class="form-label"><strong>Total:</strong></label>
                             <input type="number" name="total" id="total" class="form-control" step="0.01" 
                                 value="{{ ticket.total }}">
                         </div>
@@ -249,8 +278,40 @@
         </div>
     </div>
 </div>
+<!-- Template para nueva fila de repuesto -->
+<template id="partRowTemplate">
+    <tr class="part-row">
+        <td class="part-index"></td>
+        <td>
+            <select name="spare_part_code[]" class="form-select searchable-select" required>
+                <option value="" disabled selected>Seleccione un repuesto</option>
+                {% for spare in spare_parts %}
+                <option value="{{ spare.code }}">{{ spare.description }}</option>
+                {% endfor %}
+                {% for spare in sertec %}
+                <option value="{{ spare }}">{{ spare }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="part_quantity[]" class="form-control part-quantity" min="1" value="1" required>
+        </td>
+        <td>
+            <input type="number" name="part_unit_value[]" class="form-control part-unit-value" min="0" step="0.01" required>
+        </td>
+        <td>
+            <input type="number" name="part_total_value[]" class="form-control part-total-value" min="0" step="0.01" readonly>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-danger remove-part">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </td>
+    </tr>
+</template>
 
-
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>
 <script src="{{url_for('static', filename=('js/edit_ri.js'))}}"></script>
 
 <!-- Scripts -->
@@ -271,5 +332,6 @@
     document.getElementById('spare_value').addEventListener('input', calculateTotal);
     document.getElementById('service_value').addEventListener('input', calculateTotal);
 </script>
+
 
 {% endblock %}

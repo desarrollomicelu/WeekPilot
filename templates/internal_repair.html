@@ -90,7 +90,7 @@
           <tr>
             <th class="ps-3">#</th>
             <th>Referencia</th>
-            <th>Imei</th>
+            <!--<th>Imei</th>-->
             <th>Ciudad</th>
             <th>Técnico</th>
             <th>Estado</th>
@@ -107,7 +107,7 @@
           <tr class="align-middle" data-status="{{ ticket.state }}">
             <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
             <td>{{ ticket.reference }}</td>
-            <td>{{ ticket.IMEI }}</td>
+            <!--<td>{{ ticket.IMEI }}</td>-->
             <td>{{ ticket.city }}</td>
             <td>
               {% if ticket.technical_name %}
