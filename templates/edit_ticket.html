@@ -244,14 +244,13 @@
 
                         <div class="mt-3">
                             <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
-                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly>{% for problem in problems %}{% if problem.id in selected_problem_ids %}{{ problem.name }}
+                          {% endif %}{% endfor %}</textarea>
                             <div class="d-flex justify-content-between mt-2">
-                                <button type="button" id="selectAllProblems"
-                                    class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
-                                <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar
-                                    Selección</button>
+                              <button type="button" id="selectAllProblems" class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+                              <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar Selección</button>
                             </div>
-                        </div>
+                          </div>
                     </div>
                 </div>
             </div>
@@ -407,22 +406,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script>
-    // Ajustar altura de los campos Select2 para que coincidan con los campos normales
-    $(document).ready(function() {
-        // Función para ajustar la altura de los contenedores Select2
-        function adjustSelect2Height() {
-            $('.select2-container--bootstrap-5 .select2-selection').css('height', 'calc(1.5em + 0.75rem + 2px)');
-        }
-        
-        // Aplicar ajuste inicial
-        setTimeout(adjustSelect2Height, 100);
-        
-        // Aplicar ajuste cuando se abra cualquier Select2
-        $(document).on('select2:open', function() {
-            setTimeout(adjustSelect2Height, 0);
-        });
-    });
-</script>
+
 
 {% endblock %}

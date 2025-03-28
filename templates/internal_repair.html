@@ -2,6 +2,17 @@
 {% block title %}Reparación Interna{% endblock %}
 {% block content %}
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
 <div class="container-fluid py-4">
   <!-- Fila del título -->
   <div class="row mb-2">
@@ -68,15 +79,7 @@
 <div class="card shadow-sm border-0">
   <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
-        <label class="form-check-label fw-bold ms-2" for="selectAllCheckbox">Seleccionar todos</label>
-      </div>
-      <div class="ms-3">
-        <button class="btn btn-sm btn-outline-secondary" disabled id="bulkActionBtn">
-          <i class="fas fa-cogs me-1"></i> Acciones
-        </button>
-      </div>
+      <h2> Lista Tickets Reparación Interna</h2>
     </div>
     <span class="badge bg-primary rounded-pill py-2 px-3">
       <i class="fas fa-tools me-2"></i>
@@ -94,7 +97,7 @@
             <th>Ciudad</th>
             <th>Técnico</th>
             <th>Estado</th>
-            <th>Fecha de Ingreso</th>
+            <!--<th>Fecha de Ingreso</th>-->
             <th>Prioridad</th>
             <th>Valor Servicio</th>
             <th>Valor Repuestos</th>
@@ -123,31 +126,33 @@
                 {% endfor %}
               </select>
             </td>
-            <td>
+            <!--<td>
               {% if ticket.creation_date %}
               <div>{{ ticket.creation_date.strftime("%d/%m/%Y") if ticket.creation_date else "Fecha no disponible" }}</div>
               <small class="text-muted">{{ ticket.creation_date.strftime("%H:%M:%S") if ticket.creation_date else "" }}</small>
               {% else %}
               <span class="badge bg-secondary">No registrada</span>
               {% endif %}
-            </td>
+            </td>-->
             <td>{{ ticket.priority }}</td>
             <td><i class="fas fa-tools text-muted me-1"></i>${{ "{:,.0f}".format(ticket.service_value) }}</td>
             <td><i class="fas fa-cogs text-muted me-1"></i>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
             <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
             <td class="text-center">
               <div class="btn-group">
-                  <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-edit"></i>
-                  </a>
-                  <a href="{{ url_for('internal_repair.detail_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-eye"></i>
+                <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-edit"></i>
                 </a>
-                  <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
-                      <i class="fas fa-envelope"></i>
-                  </a>
+                <a href="{{ url_for('internal_repair.detail_RI', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
+                  <i class="fas fa-envelope"></i>
+                </a>
               </div>
-          </td>
+            </td>
           </tr>
           {% else %}
           <tr>
