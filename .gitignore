@@ -4,7 +4,7 @@ env/
 venv/
 .env
 
-# Ignorar el caché 
+# Ignorar el caché de python
 
 __pycache__/
 models/__pycache__
