@@ -4,6 +4,9 @@
 
 <!-- Incluir CSS de Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Incluir nuestro CSS personalizado para Select2 -->
+<link href="{{ url_for('static', filename='css/select2-bootstrap.css') }}" rel="stylesheet" />
+
 
 <div id="edit-ticket-page" class="container-fluid py-4">
     <!-- Cabecera -->
@@ -403,4 +406,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script>
+    // Ajustar altura de los campos Select2 para que coincidan con los campos normales
+    $(document).ready(function() {
+        // Función para ajustar la altura de los contenedores Select2
+        function adjustSelect2Height() {
+            $('.select2-container--bootstrap-5 .select2-selection').css('height', 'calc(1.5em + 0.75rem + 2px)');
+        }
+        
+        // Aplicar ajuste inicial
+        setTimeout(adjustSelect2Height, 100);
+        
+        // Aplicar ajuste cuando se abra cualquier Select2
+        $(document).on('select2:open', function() {
+            setTimeout(adjustSelect2Height, 0);
+        });
+    });
+</script>
+
 {% endblock %}

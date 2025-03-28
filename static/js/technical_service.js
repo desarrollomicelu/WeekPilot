@@ -208,21 +208,27 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Inicializar Select2 para selectores específicos
-    $(document).ready(function () {
-        // Inicializar Select2 solo para los campos que lo necesitan (excluir product_code)
-        $('#reference').select2({
-            width: '100%',
-            placeholder: "Seleccione una opción",
-            allowClear: true
-        });
+$(document).ready(function () {
+    // Opciones comunes para todos los Select2
+    const select2Options = {
+        width: '100%',
+        placeholder: "Seleccione una opción",
+        allowClear: true,
+        theme: 'bootstrap-5', // Usar tema compatible con Bootstrap 5
+        selectionCssClass: 'form-select', // Aplicar clase form-select de Bootstrap
+        dropdownCssClass: 'select2-dropdown-bootstrap', // Clase personalizada para el dropdown
+    };
 
-        // Para los selects dentro de la tabla de repuestos
-        $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2({
-            width: '100%',
-            placeholder: "Seleccione una opción",
-            allowClear: true
-        });
-    });
+    // Inicializar Select2 para referencia
+    $('#reference').select2(select2Options);
+
+    // Para los selects dentro de la tabla de repuestos
+    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2(select2Options);
+});
+
+// También actualizar en la función setupExistingRows() y en el evento para agregar un nuevo repuesto
+// Buscar todas las instancias donde se inicializa Select2 y actualizar con las mismas opciones
+
 
     // Funcionalidad común para páginas de creación y edición de tickets
     if (document.getElementById('create-ticket-page') || document.getElementById('edit-ticket-page')) {
@@ -710,7 +716,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const newReferenceText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
             
             // Si la referencia es diferente a la original, pedir confirmación
-            if (newReference !== originalReference) {
+            if (newReference !== originalReference && originalReference !== '') {
                 Swal.fire({
                     title: 'Cambiar referencia',
                     text: `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
