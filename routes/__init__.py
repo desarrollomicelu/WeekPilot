@@ -6,6 +6,7 @@ from .internal_repair import internal_repair_bp
 from .technical_service import technical_service_bp
 from .upload_images import upload_images_bp
 from .warranty import warranty_bp
+from .view_technical import view_technical_bp
 
 def register_blueprints(app):
     """
@@ -17,3 +18,4 @@ def register_blueprints(app):
     app.register_blueprint(technical_service_bp)
     app.register_blueprint(upload_images_bp)
     app.register_blueprint(warranty_bp)
+    app.register_blueprint(view_technical_bp)

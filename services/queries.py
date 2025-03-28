@@ -17,6 +17,7 @@ def execute_query(query):
     conn.close()
     return results
 
+
 def get_spare_parts():
     query = '''
     SELECT CODIGO, DESCRIPCIO
@@ -33,35 +34,20 @@ def get_spare_parts():
     return spare_parts
 
 
-def get_product_reference():
+def get_product_information():
     query = '''
-    SELECT DESCRIPCIO
+    SELECT DESCRIPCIO, CODIGO
     FROM MTMERCIA
     WHERE (CODLINEA = 'CEL' AND CODGRUPO = 'SEMI') OR (CODLINEA = 'CYT' AND CODGRUPO = 'NUE')
     '''
     results = execute_query(query)
-    reference = []
+    information = []
     for row in results:
-        reference.append({
-            "description": row[0],
+        information.append({
+            "DESCRIPCIO": row[0],
+            "CODIGO": row[1],
         })
-    return reference
- 
- 
-def get_product_code():
-    query = '''
-    SELECT CODIGO
-    FROM MTMERCIA
-    WHERE (CODLINEA = 'CEL' AND CODGRUPO = 'SEMI') OR (CODLINEA = 'CYT' AND CODGRUPO = 'NUE')
-    '''
-    results = execute_query(query)
-    product_code = []
-    for row in results:
-        product_code.append({
-            "id": row[0],
-        })
-    return product_code
-
+    return information
 
 
 def get_spare_name():
@@ -73,9 +59,8 @@ def get_spare_name():
     results = execute_query(query)
     spare_names = []
     for row in results:
-        spare_names.append(row[0])  
+        spare_names.append(row[0])
     return spare_names
-
 
 
 def get_sertec():
@@ -83,12 +68,13 @@ def get_sertec():
     SELECT CODIGO
     FROM MTMERCIA
     WHERE CODIGO = 'SERTEC'
-    '''   
+    '''
     results = execute_query(query)
     sertec_values = []
     for row in results:
-        sertec_values.append(row[0]) 
+        sertec_values.append(row[0])
     return sertec_values
+
 
 def get_technicians():
     query = """
@@ -103,6 +89,6 @@ def get_technicians():
     for row in results:
         technicians.append({
             "NOMBRE": row[0],
-            "DOCUMENTO": row[1]
+            "DOCUMENT": row[1]
         })
     return technicians
