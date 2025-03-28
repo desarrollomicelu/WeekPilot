@@ -9,12 +9,12 @@
         <div class="col-md-6">
             <h2 class="mb-0">
                 <i class="fas fa-ticket-alt text-primary me-2"></i>
-                Detalle de Ticket de Servicio Técnico
+                Detalle de Ticket de Reparacion Interna
                 <small class="text-muted">#{{ ticket.id_ticket }}</small>
             </h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('internal_repair.internal_repair') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Volver
             </a>
             <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-primary ms-2">
@@ -24,34 +24,13 @@
     </div>
  
     <!-- Información del Cliente -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-user me-2 text-primary"></i>
-                Información del Cliente
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Nombres:</strong> {{ ticket.client_names }}</p>
-                    <p><strong>Documento:</strong> {{ ticket.document }}</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Apellidos:</strong> {{ ticket.client_lastnames }}</p>
-                    <p><strong>Teléfono:</strong> {{ ticket.phone }}</p>
-                </div>
-            </div>
-            <p><strong>Correo electrónico:</strong> {{ ticket.mail }}</p>
-        </div>
-    </div>
  
     <!-- Detalles del Ticket -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light">
             <h5 class="mb-0">
                 <i class="fas fa-info-circle me-2 text-primary"></i>
-                Detalles del Ticket
+                Detalles del Ticket Reparacion Interna
             </h5>
         </div>
         <div class="card-body">
