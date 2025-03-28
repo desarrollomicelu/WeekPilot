@@ -170,7 +170,7 @@
                                 <!-- Aseguramos que la referencia actual esté disponible como opción -->
                                 <option value="{{ ticket.reference }}" selected>{{ ticket.reference }} </option>
                                 
-                                <!-- Listamos todas las referencias disponibles -->
+                                <!-- Listamos gittodas las referencias disponibles -->
                                 {% for ref in reference %}
                                     <!-- Evitamos duplicar la referencia actual -->
                                     {% if ref.description != ticket.reference %}
