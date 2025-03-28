@@ -84,32 +84,32 @@
                                       <td>{{ loop.index }}</td>
                                       <td>
                                         <select name="spare_part_code[]" class="form-select searchable-select" required>
-                                            <option value="" disabled>Seleccione un repuesto</option>
-                                            {% for spare in spare_parts %}
-                                              <option value="{{ spare.code }}"
-                                                {% if spare.code == spare_ticket.spare_code %}selected{% endif %}>
-                                                {{ spare.description }}
-                                              </option>
-                                            {% endfor %}
-                                            {% for spare in sertec %}
-                                              <option value="{{ spare }}"
-                                                {% if spare == spare_ticket.spare_code %}selected{% endif %}>
-                                                {{ spare }}
-                                              </option>
-                                            {% endfor %}
-                                          </select>
+                                          <option value="" disabled>Seleccione un repuesto</option>
+                                          {% for spare in spare_parts %}
+                                            <option value="{{ spare.code }}"
+                                              {% if spare.code == spare_ticket.spare_code %}selected{% endif %}>
+                                              {{ spare.description }}
+                                            </option>
+                                          {% endfor %}
+                                          {% for spare in sertec %}
+                                            <option value="{{ spare }}"
+                                              {% if spare == spare_ticket.spare_code %}selected{% endif %}>
+                                              {{ spare }}
+                                            </option>
+                                          {% endfor %}
+                                        </select>
                                       </td>
                                       <td>
-                                        <input type="text" name="spare_part_code_display[]" class="form-control" 
-                                               value="{{ spare_ticket.quantity }}" readonly>
+                                        <input type="number" name="part_quantity[]" class="form-control part-quantity" 
+                                               value="{{ spare_ticket.quantity }}" min="1" required>
                                       </td>
                                       <td>
-                                        <input type="number" name="part_quantity[]" class="form-control" 
-                                               value="{{ spare_ticket.unit_price }}" min="1" required>
+                                        <input type="number" name="part_unit_value[]" class="form-control part-unit-value" 
+                                               value="{{ spare_ticket.unit_price }}" min="0" step="0.01" required>
                                       </td>
                                       <td>
-                                        <input type="number" name="part_total_value[]" class="form-control" 
-                                               value="{{ spare_ticket.total_price }}" min="0"  readonly>
+                                        <input type="number" name="part_total_value[]" class="form-control part-total-value" 
+                                               value="{{ spare_ticket.total_price }}" min="0" step="0.01" readonly>
                                       </td>
                                       <td>
                                         <button type="button" class="btn btn-sm btn-danger removePartBtn">
@@ -123,7 +123,7 @@
                                     <td colspan="7" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
                                   </tr>
                                 {% endif %}
-                              </tbody>
+                              </tbody>  
                             </table>
                           </div>
                         </div>
@@ -167,11 +167,17 @@
                         <div class="form-group">
                             <label for="reference" class="form-label"><strong>Referencia:</strong></label>
                             <select class="form-select" id="reference" name="reference">
-                                <option value="">Seleccione una referencia</option>
+                                <!-- Aseguramos que la referencia actual esté disponible como opción -->
+                                <option value="{{ ticket.reference }}" selected>{{ ticket.reference }} </option>
+                                
+                                <!-- Listamos todas las referencias disponibles -->
                                 {% for ref in reference %}
-                                <option value="{{ ref.description }}" {% if ref.description == ticket.reference %}selected{% endif %}>
-                                    {{ ref.description }} ({{ ref.CODLINEA }})
-                                </option>
+                                    <!-- Evitamos duplicar la referencia actual -->
+                                    {% if ref.description != ticket.reference %}
+                                        <option value="{{ ref.description }}">
+                                            {{ ref.description }} ({{ ref.CODLINEA }})
+                                        </option>
+                                    {% endif %}
                                 {% endfor %}
                             </select>
                         </div>
@@ -332,6 +338,7 @@
     document.getElementById('spare_value').addEventListener('input', calculateTotal);
     document.getElementById('service_value').addEventListener('input', calculateTotal);
 </script>
+
 
 
 {% endblock %}
