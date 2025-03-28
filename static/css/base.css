@@ -172,3 +172,43 @@ body {
     border-radius: 8px;
     box-shadow: var(--sombra);
 }
+
+/* Estilos para el botón de cerrar sesión */
+.logout-btn {
+    background-color: var(--color-secundario);
+    color: var(--color-blanco);
+    text-decoration: none;
+    padding: 12px 15px;
+    border-radius: 8px;
+    transition: all 0.3s;
+    white-space: nowrap;
+    border: 1px solid var(--color-secundario);
+    width: 100%;
+}
+
+.logout-btn:hover {
+    background-color: #3a7ac5; /* Un tono más oscuro para el hover */
+}
+
+.logout-btn i {
+    font-size: 1.1rem;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Ocultar el texto cuando el sidebar está colapsado */
+.sidebar.collapsed .logout-text {
+    display: none;
+}
+
+/* Centrar el icono cuando el sidebar está colapsado */
+.sidebar.collapsed .logout-btn {
+    justify-content: center;
+    padding: 10px;
+}
+
+/* Ajustar el menú de usuario para que se mantenga visible */
+.sidebar.collapsed .sidebar-user-menu {
+    width: 80%;
+    left: 10%;
+}

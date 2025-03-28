@@ -40,3 +40,20 @@ class Tickets(db.Model, UserMixin):
     def get_spare_parts(self):
         spare_tickets = Spares_tickets.query.filter_by(id_ticket=self.id_ticket).all()
         return spare_tickets
+
+    def update_state(self, new_state):
+        """Actualiza el estado del ticket y registra la hora del cambio"""
+        self.state = new_state
+        
+        # Registrar la hora según el estado
+        now = datetime.utcnow()
+        if new_state == "Asignado":
+            self.assigned = now
+        elif new_state == "En proceso":
+            self.in_progress = now
+        elif new_state == "Terminado":
+            self.finished = now
+        elif new_state == "Recibido":
+            self.received = now
+        
+        return now  # Devolver la hora para usarla en la respuesta
