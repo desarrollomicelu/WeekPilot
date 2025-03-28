@@ -22,8 +22,8 @@ def login():
                     # Suponiendo que en routes/dashboard.py el endpoint se define como "dashboard"
                     return redirect(url_for("dashboard.dashboard"))
                 elif empleado.cargo == "servicioTecnico":
-                    # Suponiendo que en routes/technical_service.py el endpoint de la vista técnica se define como "view_technical"
-                    return redirect(url_for("technical_service.view_technical"))
+
+                    return redirect(url_for("view_technical.view_technical"))
                 else:
                     flash("Acceso denegado. No tienes permisos para acceder a esta página.", "error")
                     return redirect(url_for("auth.login"))

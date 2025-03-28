@@ -4,9 +4,9 @@ env/
 venv/
 .env
 
-# ignorar el cache de python    
+# Ignorar el caché de python
 
 __pycache__/
-models/__pycache__/
-routes/__pycache__/
-services/__pycache__/
+models/__pycache__
+routes/__pycache__
+services/__pycache__

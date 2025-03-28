@@ -4,13 +4,16 @@
 
 <!-- Incluir CSS de Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Incluir nuestro CSS personalizado para Select2 -->
+<link href="{{ url_for('static', filename='css/select2-bootstrap.css') }}" rel="stylesheet" />
+
 
 <div id="edit-ticket-page" class="container-fluid py-4">
     <!-- Cabecera -->
     <div class="row align-items-center mb-2">
         <div class="col-md-6">
             <h2 class="mb-0">
-                <i class="fas fa-edit text-primary me-2"></i>Editar Ticket de Servicio Técnico
+                <i class="fas fa-edit text-primary me-2"></i>Editar Ticket #{{ ticket.id_ticket }}
             </h2>
         </div>
         <div class="col-md-6 text-end">
@@ -20,7 +23,6 @@
         </div>
     </div>
 
-    <!-- La acción apunta al endpoint de edición pasando el id del ticket -->
     <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}">
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
@@ -28,188 +30,189 @@
             <div class="col-md-6">
                 <div class="card shadow-sm mb-2">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0">
-                            <i class="fas fa-user me-2 text-primary"></i>Información del Cliente
-                        </h5>
+                        <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3 row">
                             <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_names" name="client_names" value="{{ client.name }}" required>
+                                <input type="text" class="form-control" id="client_names" name="client_names"
+                                    value="{{ client.name }}" required>
                             </div>
                         </div>
+
                         <div class="mb-3 row">
                             <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames" value="{{ client.lastname }}" required>
+                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames"
+                                    value="{{ client.lastname }}" required>
                             </div>
                         </div>
+
                         <div class="mb-3 row">
                             <label for="document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="document" name="document" value="{{ client.document }}" required>
+                                <input type="text" class="form-control" id="document" name="document"
+                                    value="{{ client.document }}" required>
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="phone" name="phone" value="{{ client.phone }}">
+                                <input type="text" class="form-control" id="phone" name="phone"
+                                    value="{{ client.phone }}">
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
                             <div class="col-sm-8">
-                                <input type="mail" class="form-control" id="mail" name="mail" value="{{ client.mail }}" required>
+                                <input type="mail" class="form-control" id="mail" name="mail" value="{{ client.mail }}"
+                                    required>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
- <!-- Detalles del Ticket -->
- <div class="col-md-6">
-    <div class="card shadow-sm mb-2">
-        <div class="card-header bg-light">
-            <h5 class="mb-0">
-                <i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket
-            </h5>
-        </div>
-        <div class="card-body">
-            <!-- Técnico: Nombre -->
-            <div class="mb-3 row">
-                <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
-                <div class="col-sm-8">
-                    <select class="form-select" id="technical_name" name="technical_name">
-                        <option value="">Sin asignar</option>
-                        {% for technician in technicians %}
-                        <option value="{{ technician.NOMBRE }}" {% if technician.NOMBRE == ticket.technical_name %}selected{% endif %}>
-                            {{ technician.NOMBRE }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <!-- Técnico: Documento -->
-            <div class="mb-3 row">
-                <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
-                <div class="col-sm-8">
-                    <select class="form-select" id="technical_document" name="technical_document">
-                        <option value="">Sin asignar</option>
-                        {% for technician in technicians %}
-                        <option value="{{ technician.CODVEN }}" {% if technician.CODVEN == ticket.technical_document %}selected{% endif %}>
-                            {{ technician.CODVEN }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <!-- Estado -->
-            <div class="mb-3 row">
-                <label for="state" class="col-sm-4 col-form-label">Estado</label>
-                <div class="col-sm-8">
-                    <select class="form-select" id="state" name="state">
-                        {% for state in ['Sin asignar', 'Asignado'] %}
-                        <option value="{{ state }}" {% if state == ticket.state %}selected{% endif %}>{{ state }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <!-- Ciudad -->
-            <div class="mb-3 row">
-                <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
-                <div class="col-sm-8">
-                    <select class="form-select" id="city" name="city">
-                        {% for city in ['Medellín', 'Bogotá'] %}
-                        <option value="{{ city }}" {% if city == ticket.city %}selected{% endif %}>{{ city }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <!-- Prioridad -->
-            <div class="mb-3 row">
-                <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
-                <div class="col-sm-8">
-                    <select class="form-select" id="priority" name="priority">
-                        {% for priority in ['Alta', 'Media', 'Baja'] %}
-                        <option value="{{ priority }}" {% if priority == ticket.priority %}selected{% endif %}>{{ priority }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
+            <!-- Detalles del Ticket -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-2">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3 row">
+                            <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="technical_name" name="technical_name">
+                                    <option value="">Sin asignar</option>
+                                    {% for technician in technicians %}
+                                    <option value="{{ technician.NOMBRE }}" 
+                                            data-document="{{ technician.CODVEN }}" 
+                                            {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
+                                        {{ technician.NOMBRE }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
 
- <!-- Fila 2: Repuestos Utilizados -->
- <div class="row mb-2">
-    <div class="col-md-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados
-                </h5>
-                <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
-                    <i class="fas fa-plus me-1"></i> Agregar repuesto
-                </button>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table" id="partsTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th style="width:40%;">Descripción</th>
-                                <th>Cantidad</th>
-                                <th>Valor Unitario</th>
-                                <th>Valor Total</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if current_spare_tickets %}
-                                {% for spare in current_spare_tickets %}
-                                <tr class="part-row">
-                                    <td class="part-index">{{ loop.index }}</td>
-                                    <td>
-                                        <select class="form-select searchable-select" name="spare_part_code[]" required>
-                                            <option value="" disabled>Seleccione un repuesto</option>
-                                            {% for spare in spare_name %}
-                                            <option value="{{ spare }}" {% if spare == part.description %}selected{% endif %}>{{ spare }}</option>
-                                            {% endfor %}
-                                            {% for spare in sertec %}
-                                            <option value="{{ spare }}" {% if spare == part.description %}selected{% endif %}>{{ spare }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="{{ spare.quantity }}" required>
-                                    </td>
-                                    <td>
-                                        <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="{{ spare.unit_price }}" required>
-                                    </td>
-                                    <td>
-                                        <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" value="{{ spare.total_price }}" readonly>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-danger remove-part">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr id="noPartsRow">
-                                    <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>                
+                        <div class="mb-3 row">
+                            <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="technical_document" name="technical_document" 
+                                    value="{{ ticket.technical_document }}" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="state" class="col-sm-4 col-form-label">Estado</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="state" name="state">
+                                    {% for status in ['Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
+                                    <option value="{{ status }}" {% if ticket.state==status %}selected{% endif %}>{{
+                                        status }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="city" name="city">
+                                    {% for city in ['Medellín', 'Bogotá'] %}
+                                    <option value="{{ city }}" {% if ticket.city==city %}selected{% endif %}>{{ city }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="priority" name="priority">
+                                    {% for priority in ['Alta', 'Media', 'Baja'] %}
+                                    <option value="{{ priority }}" {% if ticket.priority==priority %}selected{% endif
+                                        %}>{{ priority }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+
+        <!-- Fila 2: Repuestos Utilizados -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+                        <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
+                            <i class="fas fa-plus me-1"></i> Agregar repuesto
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table" id="partsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th style="width:40%;">Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>Valor Unitario</th>
+                                        <th>Valor Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if current_spare_tickets %}
+                                    {% for spare in current_spare_tickets %}
+                                    <tr class="part-row">
+                                        <td class="part-index">{{ loop.index }}</td>
+                                        <td>
+                                            <select class="form-select searchable-select" name="spare_part_code[]"
+                                                required>
+                                                <option value="">Seleccione un repuesto</option>
+                                                {% for part in spare_parts %}
+                                                <option value="{{ part.code }}" {% if spare.spare_code==part.code
+                                                    %}selected{% endif %}>{{ part.description }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control part-quantity" min="1"
+                                                name="part_quantity[]" value="{{ spare.quantity }}" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control part-unit-value" min="0"
+                                                name="part_unit_value[]" value="{{ spare.unit_price }}" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control part-total-value" min="0"
+                                                name="part_total_value[]" value="{{ spare.total_price }}" readonly>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-danger remove-part">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr id="noPartsRow">
+                                        <td colspan="6" class="text-center py-3">No se han agregado repuestos para este
+                                            servicio.</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Fila 3: Problemas del Dispositivo y Valores -->
         <div class="row mb-2">
@@ -222,15 +225,16 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <input type="text" id="searchProblems" class="form-control mb-2" placeholder="Buscar problema...">
+                        <input type="text" id="searchProblems" class="form-control mb-2"
+                            placeholder="Buscar problema...">
 
                         <div class="form-check-container mb-3"
                             style="max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 10px;">
                             {% for problem in problems %}
                             <div class="form-check problem-option">
-                                <input class="form-check-input problem-checkbox" type="checkbox" value="{{ problem.id }}"
-                                    id="problem_{{ problem.id }}" name="device_problems[]" 
-                                    {% if problem in ticket.problems %}checked{% endif %}>
+                                <input class="form-check-input problem-checkbox" type="checkbox"
+                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]" {%
+                                    if problem in ticket.problems %}checked{% endif %}>
                                 <label class="form-check-label" for="problem_{{ problem.id }}">
                                     {{ problem.name }}
                                 </label>
@@ -240,7 +244,7 @@
 
                         <div class="mt-3">
                             <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
-                            <textarea id="selected_problems" class="form-control" rows="3" readonly>{% for problem in ticket.problems %}{{ problem.name }}{% if not loop.last %}, {% endif %}{% endfor %}</textarea>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
                             <div class="d-flex justify-content-between mt-2">
                                 <button type="button" id="selectAllProblems"
                                     class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
@@ -251,8 +255,9 @@
                     </div>
                 </div>
             </div>
-             <!-- Valores -->
-             <div class="col-md-6">
+
+            <!-- Valores -->
+            <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">Valores</h5>
@@ -265,64 +270,71 @@
                                 <!-- Campo de referencia -->
                                 <div class="col-sm-6 mb-3">
                                     <label for="reference" class="form-label">Referencia</label>
-                                    <select class="form-select" id="reference" name="reference">
+                                    <select class="form-select searchable-select" id="reference" name="reference">
                                         <option value="">Seleccione una referencia</option>
-                                        {% for ref in reference %}
-                                        <option value="{{ ref.description }}" {% if ref.description == ticket.reference %}selected{% endif %}>
-                                            {{ ref.description }} ({{ ref.CODLINEA }})
+                                        {% for item in product_info %}
+                                        <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}" 
+                                                {% if ticket.reference and item.DESCRIPCIO and ticket.reference.strip() == item.DESCRIPCIO.strip() %}selected{% endif %}>
+                                            {{ item.DESCRIPCIO }} {% if item.CODLINEA %}({{ item.CODLINEA }}){% endif %}
                                         </option>
                                         {% endfor %}
                                     </select>
                                 </div>
+
                                 <!-- Campo de código de producto -->
                                 <div class="col-sm-6 mb-3">
                                     <label for="product_code" class="form-label">Código Producto</label>
-                                    <select class="form-select" id="product_code" name="product_code">
-                                        <option value="">Seleccione un código</option>
-                                        {% for code in product_code %}
-                                        <option value="{{ code.id }}" {% if code.id == ticket.product_code %}selected{% endif %}>
-                                            {{ code.id }} ({{ code.CODLINEA }})
-                                        </option>
-                                        {% endfor %}
-                                    </select>
+                                    <input type="text" class="form-control" id="product_code" name="product_code"
+                                        value="{{ ticket.product_code }}" readonly>
                                 </div>
+
                                 <!-- Campo IMEI o Serial -->
                                 <div class="col-sm-6 mb-3">
                                     <label for="IMEI" class="form-label">IMEI o Serial</label>
-                                    <input type="text" class="form-control" id="IMEI" name="IMEI" value="{{ ticket.IMEI }}">
+                                    <input type="text" class="form-control" id="IMEI" name="IMEI"
+                                        value="{{ ticket.IMEI }}">
                                 </div>
+
                                 <div class="col-sm-6 mb-3">
                                     <label for="type_of_service" class="form-label">Tipo de Servicio</label>
-                                    <input type="text" class="form-control" id="type_of_service" name="type_of_service" value="{{ ticket.type_of_service }}" required>
+                                    <input type="text" class="form-control" id="type_of_service" name="type_of_service"
+                                        value="{{ ticket.type_of_service }}" required>
                                 </div>
                             </div>
                         </div>
+
                         <hr class="my-4">
+
                         <!-- Valores Financieros -->
                         <div class="mb-3 row">
                             <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="service_value" name="service_value" value="{{ ticket.service_value }}" min="0" required>
+                                    <input type="number" class="form-control" id="service_value" name="service_value"
+                                        min="0" value="{{ ticket.service_value }}" required>
                                 </div>
                             </div>
                         </div>
+
                         <div class="mb-3 row">
                             <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="spare_value" name="spare_value" value="{{ ticket.spare_value }}" min="0" readonly>
+                                    <input type="number" class="form-control" id="spare_value" name="spare_value"
+                                        min="0" value="{{ ticket.spare_value }}" readonly>
                                 </div>
                             </div>
                         </div>
+
                         <div class="row">
                             <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control fw-bold" id="total" name="total" value="{{ ticket.total }}" readonly>
+                                    <input type="number" class="form-control fw-bold" id="total" name="total"
+                                        value="{{ ticket.total }}" readonly>
                                 </div>
                             </div>
                         </div>
@@ -338,7 +350,7 @@
             </a>
             <div>
                 <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save me-2"></i>Actualizar Ticket
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
                 </button>
             </div>
         </div>
@@ -352,11 +364,8 @@
         <td>
             <select class="form-select searchable-select" name="spare_part_code[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
-                {% for spare in spare_name %}
-                <option value="{{ spare }}">{{ spare }}</option>
-                {% endfor %}
-                {% for spare in sertec %}
-                <option value="{{ spare }}">{{ spare }}</option>
+                {% for part in spare_parts %}
+                <option value="{{ part.code }}">{{ part.description }}</option>
                 {% endfor %}
             </select>
         </td>
@@ -383,5 +392,37 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el documento del técnico al cargar la página
+    const techSelect = document.getElementById('technical_name');
+    const techDocInput = document.getElementById('technical_document');
+    
+    if (techSelect && techDocInput && techSelect.value) {
+        const selectedOption = techSelect.options[techSelect.selectedIndex];
+        if (selectedOption && selectedOption.getAttribute('data-document')) {
+            techDocInput.value = selectedOption.getAttribute('data-document');
+        }
+    }
+});
+</script>
+
+<script>
+    // Ajustar altura de los campos Select2 para que coincidan con los campos normales
+    $(document).ready(function() {
+        // Función para ajustar la altura de los contenedores Select2
+        function adjustSelect2Height() {
+            $('.select2-container--bootstrap-5 .select2-selection').css('height', 'calc(1.5em + 0.75rem + 2px)');
+        }
+        
+        // Aplicar ajuste inicial
+        setTimeout(adjustSelect2Height, 100);
+        
+        // Aplicar ajuste cuando se abra cualquier Select2
+        $(document).on('select2:open', function() {
+            setTimeout(adjustSelect2Height, 0);
+        });
+    });
+</script>
 
 {% endblock %}

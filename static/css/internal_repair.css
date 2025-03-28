@@ -14,10 +14,7 @@
 
 /* Estilo para el campo de código de producto */
 #product_code {
-    border: 2px solid #28a745; /* Borde verde */
-    border-radius: 5px;
     padding: 8px;
-    font-size: 16px;
     background-color: #f8f9fa;
 }
 

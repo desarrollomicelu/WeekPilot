@@ -2,6 +2,7 @@
 {% extends "base.html" %}
 {% block title %}Reparacion interna{% endblock %}
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/internal_repair.css') }}">
 {% endblock %}
 
@@ -56,12 +57,13 @@
             <label for="technical_name" class="col-sm-3 col-form-label">Técnico:</label>
             <div class="col-sm-8">
               <select class="form-select" id="technical_name" name="technical_name">
-                <option value="">Seleccione un técnico</option>
-                {% for technician in technicians %}
-                <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENTO }}">{{ technician.NOMBRE }}</option>
-                {% endfor %}
+                  <option value="">Sin asignar</option>
+                  {% for technician in technicians %}
+                  <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}">{{
+                      technician.NOMBRE }}</option>
+                  {% endfor %}
               </select>
-            </div>
+          </div>
           </div>
           <div class="mb-3 row">
             <label for="documento" class="col-sm-3 col-form-label">Documento:</label>
@@ -71,9 +73,9 @@
           </div>
 
           <div class="mb-3 row">
-            <label for="status" class="col-sm-3 col-form-label">Estado:</label>
+            <label for="state" class="col-sm-3 col-form-label">Estado:</label>
             <div class="col-sm-8">
-              <select id="status" name="status" class="form-control">
+              <select id="state" name="state" class="form-control">
                 <option value="Sin asignar" selected>Sin asignar</option>
                 <option value="Asignado">Asignado</option>
               </select>
@@ -182,25 +184,22 @@
                 <div class="mb-2">
                     <h6 class="mb-3">Información del Equipo</h6>
                     <div class="row">
-                        <div class="col-sm-6 mb-3">
-                            <label for="reference" class="form-label">Referencia</label>
-                            <select name="reference" id="reference" class="form-control select2">
-                                <option value="" selected disabled>Seleccione una referencia</option>
-                                {% for ref in reference %}
-                                <option value="{{ ref.description }}">{{ ref.description }} ({{ ref.CODLINEA }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                      <div class="col-sm-6 mb-3">
+                        <label for="reference" class="form-label">Referencia</label>
+                        <select class="form-select searchable-select" id="reference" name="reference">
+                            <option value="">Seleccione una referencia</option>
+                            {% for item in product_info %}
+                            <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}">
+                                {{ item.DESCRIPCIO }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
                         <div class="col-sm-6 mb-3">
-                            <label for="product_code" class="form-label">Código Producto</label>
-                            <select name="product_code" id="product_code" class="form-control select2">
-                                <option value="" selected disabled>Seleccione un código de producto</option>
-                                {% for code in product_code %}
-                                <option value="{{ code.id }}">{{ code.id }} ({{ code.CODLINEA }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                          <label for="product_code" class="form-label">Código Producto</label>
+                          <input type="text" class="form-control" id="product_code" name="product_code" readonly>
+                      </div>
 
                         <div class="col-sm-6 mb-3">
                             <label for="IMEI" class="form-label">IMEI o Serial</label>
