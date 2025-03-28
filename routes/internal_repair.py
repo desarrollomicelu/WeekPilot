@@ -7,7 +7,7 @@ from datetime import datetime
 
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_code, get_product_reference, get_sertec, get_technicians
+from services.queries import get_spare_name, get_product_information, get_sertec, get_technicians
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -19,6 +19,27 @@ from decimal import Decimal
 from services.queries import get_spare_parts
 
 internal_repair_bp = Blueprint("internal_repair", __name__, template_folder="templates")
+
+def get_common_data():
+    """Obtiene todos los datos comunes necesarios para las vistas de tickets"""
+    product_info = get_product_information()
+    
+    reference = []
+    product_code = []
+    
+    for item in product_info:
+        reference.append(item["DESCRIPCIO"])
+        product_code.append(item["CODIGO"])
+    return {
+        'technicians': get_technicians(),
+        'reference': reference,
+        'product_code': product_code,
+        'product_info': product_info,
+        'spare_name': get_spare_name(),
+        'sertec': get_sertec(),
+        'problems': Problems.query.order_by(Problems.name).all(),
+        'spare_parts': get_spare_parts()
+    }
 
 @internal_repair_bp.route("/internal_repair", endpoint="internal_repair")
 def internal_repair():
@@ -51,10 +72,13 @@ def create_ticketsRI():
     Ruta para la creación de tickets de reparación interna.
     """
     # Datos auxiliares para el formulario
-    technicians = get_technicians()
+
+    common_data = get_common_data()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    reference = get_product_reference()
-    product_code = get_product_code()
+
+    technicians = get_technicians()
+    reference = get_product_information()
+    product_code = get_product_information()
     sertec = get_sertec()
     
     problems_list = Problems.query.order_by(Problems.name).all()
@@ -66,7 +90,7 @@ def create_ticketsRI():
             sede = request.form.get("sede")
             technical_name = request.form.get("technical_name")
             technical_document = request.form.get("documento")
-            status = request.form.get("status")
+            state = request.form.get("state")
             priority = request.form.get("priority")
             assigned = request.form.get("assigned")
             reference_selected = request.form.get("reference")
@@ -84,9 +108,18 @@ def create_ticketsRI():
                 flash("Error: El IMEI no puede tener más de 15 caracteres.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
             
+            print("==== DIAGNÓSTICO COMPLETO ====")
+            print("Método de solicitud:", request.method)
+            print("Tipo de content-type:", request.content_type)
+            print("Todos los datos del formulario:", request.form.to_dict())
+            print("==== FIN DEL DIAGNÓSTICO ====")
+
+            print("Datos recibidos del formulario:", sede, technical_name, technical_document, state, priority, assigned, reference_selected, product_code_selected, IMEI, service_value, total, spare_value)
             # Validar campos obligatorios
-            if not all([sede, technical_name, technical_document, status, priority, 
+            if not all([sede, technical_name, technical_document, state, priority, 
                         reference_selected, product_code_selected]):
+                
+            
                 flash("Error: Todos los campos obligatorios deben ser completados.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
             
@@ -100,7 +133,7 @@ def create_ticketsRI():
                 return redirect(url_for("internal_repair.create_ticketsRI"))
             
             # Convertir fecha si está presente
-            if assigned and status == "Asignado":
+            if assigned and state == "Asignado":
                 try:
                     assigned = datetime.strptime(assigned, "%Y-%m-%d %H:%M:%S")
                 except ValueError:
@@ -126,9 +159,19 @@ def create_ticketsRI():
                 flash("Error: No se encontraron los problemas seleccionados.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
             
+
+            creation_date = datetime.now()
+            assigned = None
+            received = None
+            in_progress = None
+            finished = None
+
+            if state == "Asignado":
+                    assigned = datetime.now()
+
             # Crear nuevo ticket
             new_ticket = Tickets(
-                state=status,
+                state=state,
                 priority=priority,
                 technical_name=technical_name,
                 technical_document=technical_document,
@@ -137,15 +180,15 @@ def create_ticketsRI():
                 reference=reference_selected,
                 type_of_service="1",
                 city=sede,
-                creation_date=datetime.now(),
-                assigned=assigned if status == "Asignado" else None,
-                received=None,
-                in_progress=None,
-                finished=None,
+                creation_date=creation_date,
+                assigned=assigned,
+                received=received,
+                in_progress=in_progress,
+                finished=finished,
                 spare_value=spare_value,
                 service_value=service_value,
                 total=total,
-                client=None  # Ajusta según tu lógica de negocio
+                client=None
             )
             
             # Agregar problemas al ticket
@@ -197,13 +240,9 @@ def create_ticketsRI():
     # Para el método GET, renderizamos el formulario de creación
     return render_template(
         "create_ticketsRI.html",
-        technicians=technicians,
         current_date=current_date,
-        reference=reference,
-        product_code=product_code,
-        problems=problems_list,
-        sertec=sertec,
-        spare_parts=spare_parts
+            **common_data
+
     )
     
     
@@ -228,8 +267,8 @@ def edit_tickets_RI(ticket_id):
     # Obtener datos auxiliares para el formulario
     technicians = get_technicians()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    reference = get_product_reference()
-    product_code = get_product_code()
+    reference = get_product_information()
+    product_code = get_product_information()
     sertec = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
     
@@ -242,7 +281,7 @@ def edit_tickets_RI(ticket_id):
             city = request.form.get("city", ticket.city)
             technical_name = request.form.get("technical_name", ticket.technical_name)
             technical_document = request.form.get("documento", ticket.technical_document)
-            status = request.form.get("status", ticket.state)
+            state = request.form.get("state", ticket.state)
             priority = request.form.get("priority", ticket.priority)
             reference_selected = request.form.get("reference", ticket.reference)
             product_code_selected = request.form.get("product_code", ticket.product_code)
@@ -285,7 +324,7 @@ def edit_tickets_RI(ticket_id):
                 selected_problems = ticket.problems
             
             # Actualizar el ticket
-            ticket.state = status
+            ticket.state = state
             ticket.priority = priority
             ticket.technical_name = technical_name
             ticket.technical_document = technical_document
@@ -298,13 +337,13 @@ def edit_tickets_RI(ticket_id):
             ticket.total = total
             
             # Actualizar fechas según el estado
-            if status == "Asignado" and not ticket.assigned:
+            if state == "Asignado" and not ticket.assigned:
                 ticket.assigned = datetime.now()
-            elif status == "Recibido" and not ticket.received:
+            elif state == "Recibido" and not ticket.received:
                 ticket.received = datetime.now()
-            elif status == "En proceso" and not ticket.in_progress:
+            elif state == "En proceso" and not ticket.in_progress:
                 ticket.in_progress = datetime.now()
-            elif status == "Finalizado" and not ticket.finished:
+            elif state == "Finalizado" and not ticket.finished:
                 ticket.finished = datetime.now()
             
             # Actualizar problemas asociados
