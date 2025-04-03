@@ -1,4 +1,5 @@
 // Función global para mostrar toast con SweetAlert
+
 function showToast(icon, title, position = 'top-end', timer = 3000) {
     const Toast = Swal.mixin({
         toast: true,
@@ -411,109 +412,116 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== VALIDACIÓN DE FORMULARIO =====
-    const ticketForm = document.getElementById('ticketForm');
+    // ===== VALIDACIÓN DE FORMULARIO =====
+const ticketForm = document.getElementById('ticketForm');
     
-    if (ticketForm) {
-        ticketForm.addEventListener('submit', function(e) {
-            // Evitar que el formulario se envíe automáticamente
-            e.preventDefault();
-            
-            // Validar campos requeridos
-            let isValid = true;
-            let errorMessage = '';
-            
-            // Validar sede
-            const sede = document.getElementById('sede');
-            if (sede && !sede.value.trim()) {
-                isValid = false;
-                errorMessage += 'La sede es requerida.<br>';
-                sede.classList.add('is-invalid');
-            } else if (sede) {
-                sede.classList.remove('is-invalid');
-            }
-            
-            // Validar referencia del producto
-            if (referenceSelect && !referenceSelect.value.trim()) {
-                isValid = false;
-                errorMessage += 'La referencia del producto es requerida.<br>';
-                referenceSelect.classList.add('is-invalid');
-            } else if (referenceSelect) {
-                referenceSelect.classList.remove('is-invalid');
-            }
-            
-            // Validar código del producto
-            if (productCodeInput && !productCodeInput.value.trim()) {
-                isValid = false;
-                errorMessage += 'El código del producto es requerido.<br>';
-                productCodeInput.classList.add('is-invalid');
-            } else if (productCodeInput) {
-                productCodeInput.classList.remove('is-invalid');
-            }
-            
-            // Validar IMEI o Serial
-            const imeiInput = document.getElementById('IMEI');
-            if (imeiInput && !imeiInput.value.trim()) {
-                isValid = false;
-                errorMessage += 'El IMEI o Serial es requerido.<br>';
-                imeiInput.classList.add('is-invalid');
-            } else if (imeiInput) {
-                imeiInput.classList.remove('is-invalid');
-            }
-            
-            // Validar valor del servicio
-            const serviceValue = document.getElementById('service_value');
-            if (serviceValue && (!serviceValue.value || isNaN(serviceValue.value) || parseFloat(serviceValue.value) < 0)) {
-                isValid = false;
-                errorMessage += 'El valor del servicio debe ser un número positivo.<br>';
-                serviceValue.classList.add('is-invalid');
-            } else if (serviceValue) {
-                serviceValue.classList.remove('is-invalid');
-            }
-            
-            // Si hay errores, mostrar mensaje
-            if (!isValid) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de validación',
-                    html: errorMessage,
-                    confirmButtonText: 'Corregir'
-                });
-                return; // Detener el envío del formulario
-            }
-            
-            // Si todo está bien, mostrar confirmación
-            Swal.fire({
-                title: '¿Guardar cambios?',
-                text: '¿Estás seguro de guardar los cambios en este ticket?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, guardar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Mostrar indicador de carga
-                    Swal.fire({
-                        title: 'Guardando...',
-                        html: 'Por favor espera mientras se guardan los cambios.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
-                    // Enviar el formulario
-                    ticketForm.removeEventListener('submit', arguments.callee);
-                    ticketForm.submit();
-                }
-            });
+if (ticketForm) {
+    ticketForm.addEventListener('submit', function(e) {
+        // Evitar que el formulario se envíe automáticamente
+        e.preventDefault();
+        
+        // Quitar formato de moneda antes de enviar
+        document.querySelectorAll('.part-unit-value, .part-total-value, #service_value, #spare_value, #total').forEach(input => {
+            input.value = unformatCurrency(input.value);
         });
-    }
+        
+        // Validar campos requeridos
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Validar sede
+        const sede = document.getElementById('sede');
+        if (sede && !sede.value.trim()) {
+            isValid = false;
+            errorMessage += 'La sede es requerida.<br>';
+            sede.classList.add('is-invalid');
+        } else if (sede) {
+            sede.classList.remove('is-invalid');
+        }
+        
+        // Validar referencia del producto
+        if (referenceSelect && !referenceSelect.value.trim()) {
+            isValid = false;
+            errorMessage += 'La referencia del producto es requerida.<br>';
+            referenceSelect.classList.add('is-invalid');
+        } else if (referenceSelect) {
+            referenceSelect.classList.remove('is-invalid');
+        }
+        
+        // Validar código del producto
+        if (productCodeInput && !productCodeInput.value.trim()) {
+            isValid = false;
+            errorMessage += 'El código del producto es requerido.<br>';
+            productCodeInput.classList.add('is-invalid');
+        } else if (productCodeInput) {
+            productCodeInput.classList.remove('is-invalid');
+        }
+        
+        // Validar IMEI o Serial
+        const imeiInput = document.getElementById('IMEI');
+        if (imeiInput && !imeiInput.value.trim()) {
+            isValid = false;
+            errorMessage += 'El IMEI o Serial es requerido.<br>';
+            imeiInput.classList.add('is-invalid');
+        } else if (imeiInput) {
+            imeiInput.classList.remove('is-invalid');
+        }
+        
+        // Validar valor del servicio
+        const serviceValue = document.getElementById('service_value');
+        if (serviceValue && (!serviceValue.value || isNaN(serviceValue.value) || parseFloat(serviceValue.value) < 0)) {
+            isValid = false;
+            errorMessage += 'El valor del servicio debe ser un número positivo.<br>';
+            serviceValue.classList.add('is-invalid');
+        } else if (serviceValue) {
+            serviceValue.classList.remove('is-invalid');
+        }
+        
+        // Si hay errores, mostrar mensaje
+        if (!isValid) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de validación',
+                html: errorMessage,
+                confirmButtonText: 'Corregir'
+            });
+            return; // Detener el envío del formulario
+        }
+        
+        // Si todo está bien, mostrar confirmación
+        Swal.fire({
+            title: '¿Guardar cambios?',
+            text: '¿Estás seguro de guardar los cambios en este ticket?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostrar indicador de carga
+                Swal.fire({
+                    title: 'Guardando...',
+                    html: 'Por favor espera mientras se guardan los cambios.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Enviar el formulario
+                ticketForm.removeEventListener('submit', arguments.callee);
+                ticketForm.submit();
+            }
+        });
+    });
+}
 
     // ===== FUNCIONALIDAD DE FILTRADO Y PAGINACIÓN PARA TABLA DE TICKETS =====
     if (ticketsTable) {
         // Funcionalidad para filtrar tickets por estado
+        // Modificar la función filterTickets para corregir la lógica de filtrado
         function filterTickets(state) {
             // Si el estado es "Todos", mostrar todos los tickets
             if (state === 'Todos') {
@@ -521,17 +529,33 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 // Filtrar por el estado seleccionado
                 $('tbody tr').each(function () {
-                    // Obtener el estado del ticket de la celda correspondiente
+                    // Obtener el estado del ticket de la celda correspondiente (5ta columna)
                     var ticketStatus = $(this).find('td:nth-child(5) select').val();
-
-                    if (ticketStatus === state) {
+                    
+                    // Mapear los estados del filtro a los estados reales del ticket
+                    let matchStatus = false;
+                    if (state === 'Pendientes' && (ticketStatus === 'Sin asignar')) {
+                        matchStatus = true;
+                    } else if (state === 'Asignados' && (ticketStatus === 'Asignado')) {
+                        matchStatus = true;
+                    } else if (state === 'En Proceso' && (ticketStatus === 'En proceso')) {
+                        // Cambiado de "En Reparación" a "En Proceso"
+                        matchStatus = true;
+                    } else if (state === 'Terminado' && ticketStatus === 'Terminado') {
+                       
+                        matchStatus = true;
+                    } else if (state === 'Cancelados' && ticketStatus === 'Cancelado') {
+                        matchStatus = true;
+                    }
+                    
+                    if (matchStatus) {
                         $(this).show();
                     } else {
                         $(this).hide();
                     }
                 });
             }
-
+        
             // Actualizar el contador de tickets mostrados
             updateTicketCounter();
             
@@ -541,6 +565,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        
+        // Añadir el evento que conecta los botones con la función
+        $(document).ready(function() {
+            // Manejar los clics en los botones de filtro
+            $('input[name="filterStatus"]').on('change', function() {
+                var selectedState = $(this).attr('id').replace('btn', '');
+                filterTickets(selectedState);
+            });
+        });
         // Función para actualizar el contador de tickets
         function updateTicketCounter() {
             const visibleTickets = $('tbody tr:visible').length;
@@ -869,4 +902,140 @@ document.addEventListener('DOMContentLoaded', function () {
                         this.dispatchEvent(new Event('change'));
                     });
                 });
+                // Función para formatear números como moneda (separador de miles)
+// Función para formatear números como moneda (separador de miles sin decimales)
+function formatCurrency(value) {
+    // Convertir a número entero y luego a string con formato
+    const numValue = Math.round(parseFloat(value) || 0);
+    return numValue.toLocaleString('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  }
+  
+  // Función para quitar el formato y obtener solo el número
+  function unformatCurrency(value) {
+    if (!value) return 0;
+    // Quitar todos los puntos que son separadores de miles
+    return parseInt(value.replace(/\./g, '')) || 0;
+  }
+  
+  // Formatear todos los campos de moneda
+  function formatAllCurrencyFields() {
+    // Formatear campos de valor de servicio, repuestos y total
+    const serviceValue = document.getElementById('service_value');
+    const spareValue = document.getElementById('spare_value');
+    const totalValue = document.getElementById('total');
+    
+    if (serviceValue) serviceValue.value = formatCurrency(serviceValue.value);
+    if (spareValue) spareValue.value = formatCurrency(spareValue.value);
+    if (totalValue) totalValue.value = formatCurrency(totalValue.value);
+    
+    // Formatear valores en la tabla de repuestos
+    document.querySelectorAll('.part-unit-value, .part-total-value').forEach(input => {
+      input.value = formatCurrency(input.value);
+    });
+  }
+  
+  // Función para actualizar los totales cuando cambia un valor
+  function updateTotalsWithFormat() {
+    // Primero actualizar los totales de cada fila
+    document.querySelectorAll('.part-row').forEach(row => {
+      const quantity = parseInt(row.querySelector('.part-quantity').value) || 0;
+      const unitValue = unformatCurrency(row.querySelector('.part-unit-value').value);
+      const totalValue = quantity * unitValue;
+      
+      row.querySelector('.part-total-value').value = formatCurrency(totalValue);
+    });
+    
+    // Luego calcular el total de repuestos
+    let totalPartsValue = 0;
+    document.querySelectorAll('.part-total-value').forEach(input => {
+      totalPartsValue += unformatCurrency(input.value);
+    });
+    
+    // Actualizar el campo de valor de repuestos
+    const spareValue = document.getElementById('spare_value');
+    if (spareValue) {
+      spareValue.value = formatCurrency(totalPartsValue);
+    }
+    
+    // Calcular el total general
+    const serviceValue = document.getElementById('service_value');
+    const totalValue = document.getElementById('total');
+    
+    if (serviceValue && totalValue) {
+      const serviceAmount = unformatCurrency(serviceValue.value);
+      totalValue.value = formatCurrency(serviceAmount + totalPartsValue);
+    }
+  }
+  
+  // Inicializar eventos para campos de moneda
+  document.addEventListener('DOMContentLoaded', function() {
+    // Formatear valores iniciales
+    formatAllCurrencyFields();
+    
+    // Manejar el evento de cambio en el valor del servicio
+    const serviceValue = document.getElementById('service_value');
+    if (serviceValue) {
+      serviceValue.addEventListener('focus', function() {
+        this.value = unformatCurrency(this.value);
+      });
+      
+      serviceValue.addEventListener('blur', function() {
+        this.value = formatCurrency(this.value);
+        updateTotalsWithFormat();
+      });
+    }
+    
+    // Observar cambios en la tabla para formatear nuevas filas
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          // Buscar nuevos campos de moneda en las filas agregadas
+          mutation.addedNodes.forEach(node => {
+            if (node.nodeType === 1 && node.classList.contains('part-row')) {
+              const unitValueInput = node.querySelector('.part-unit-value');
+              
+              if (unitValueInput) {
+                // Formatear el valor inicial
+                unitValueInput.value = formatCurrency(unitValueInput.value);
+                
+                // Agregar eventos
+                unitValueInput.addEventListener('focus', function() {
+                  this.value = unformatCurrency(this.value);
+                });
+                
+                unitValueInput.addEventListener('blur', function() {
+                  this.value = formatCurrency(this.value);
+                  updateTotalsWithFormat();
+                });
+              }
+              
+              // Agregar evento a la cantidad
+              const quantityInput = node.querySelector('.part-quantity');
+              if (quantityInput) {
+                quantityInput.addEventListener('change', updateTotalsWithFormat);
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Observar cambios en la tabla de repuestos
+    const partsTable = document.querySelector('#partsTable tbody');
+    if (partsTable) {
+      observer.observe(partsTable, { childList: true });
+    }
+    
+    // Manejar eliminación de filas
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('remove-part') || e.target.closest('.remove-part')) {
+        // Esperar a que se elimine la fila antes de actualizar totales
+        setTimeout(updateTotalsWithFormat, 0);
+      }
+    });
+  });
+  
                 

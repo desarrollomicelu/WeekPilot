@@ -19,3 +19,4 @@ def register_blueprints(app):
     app.register_blueprint(upload_images_bp)
     app.register_blueprint(warranty_bp)
     app.register_blueprint(view_technical_bp)
+

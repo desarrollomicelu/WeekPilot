@@ -146,11 +146,11 @@
                                value="{{ spare_ticket.quantity }}" min="1" required>
                       </td>
                       <td>
-                        <input type="number" name="part_unit_value[]" class="form-control part-unit-value" 
+                        <input type="text" name="part_unit_value[]" class="form-control part-unit-value" 
                                value="{{ spare_ticket.unit_price }}" min="0" step="0.01" required>
                       </td>
                       <td>
-                        <input type="number" name="part_total_value[]" class="form-control part-total-value" 
+                        <input type="text" name="part_total_value[]" class="form-control part-total-value" 
                                value="{{ spare_ticket.total_price }}" min="0" step="0.01" readonly>
                       </td>
                       <td>
@@ -258,7 +258,7 @@
             <div class="col-sm-7">
               <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="number" class="form-control" id="service_value" name="service_value" 
+                <input type="text" class="form-control" id="service_value" name="service_value" 
                        value="{{ ticket.service_value }}" min="0" required>
               </div>
             </div>
@@ -269,7 +269,7 @@
             <div class="col-sm-7">
               <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="number" class="form-control" id="spare_value" name="spare_value" 
+                <input type="text" class="form-control" id="spare_value" name="spare_value" 
                        value="{{ ticket.spare_value }}" min="0" readonly>
 		</div>
             </div>
@@ -280,7 +280,7 @@
             <div class="col-sm-7">
               <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="number" class="form-control fw-bold" id="total" name="total" 
+                <input type="text" class="form-control fw-bold" id="total" name="total" 
                        value="{{ ticket.total }}" readonly>
               </div>
             </div>
@@ -353,10 +353,10 @@
       <input type="number" name="part_quantity[]" class="form-control part-quantity" min="1" value="1" required>
     </td>
     <td>
-      <input type="number" name="part_unit_value[]" class="form-control part-unit-value" min="0" step="0.01" required>
+      <input type="text" name="part_unit_value[]" class="form-control part-unit-value" min="0" step="0.01" required>
     </td>
     <td>
-      <input type="number" name="part_total_value[]" class="form-control part-total-value" min="0" step="0.01" readonly>
+      <input type="text" name="part_total_value[]" class="form-control part-total-value" min="0" step="0.01" readonly>
     </td>
     <td>
       <button type="button" class="btn btn-sm btn-danger remove-part">

@@ -24,3 +24,34 @@
     font-size: 14px;
     color: #343a40; /* Color oscuro */
 }
+/* Colores para los diferentes estados de tickets */
+tr[data-status="Sin asignar"] {
+    background-color: #f8f9fa;
+}
+
+tr[data-status="Asignado"] {
+    background-color: #fff3cd;
+}
+
+tr[data-status="En proceso"] {
+    background-color: #d1e7ff;
+}
+
+tr[data-status="Terminado"] {
+    background-color: #d1e7dd;
+}
+
+/* Animación al cambiar estado */
+@keyframes highlight {
+    0% { background-color: #fffacd; }
+    100% { background-color: inherit; }
+}
+
+.status-changed {
+    animation: highlight 2s;
+}
+
+/* Estilos para el toast container */
+.toast-container {
+    z-index: 1090;
+}

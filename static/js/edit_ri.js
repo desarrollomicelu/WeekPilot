@@ -4,6 +4,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const noPartsRow = document.getElementById('noPartsRow');
     const partRowTemplate = document.getElementById('partRowTemplate');
 
+    // Función para formatear números como moneda (separador de miles sin decimales)
+    function formatCurrency(value) {
+        // Convertir a número entero y luego a string con formato
+        const numValue = Math.round(parseFloat(value) || 0);
+        return numValue.toLocaleString('es-CO', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).replace(/,/g, '.');
+    }
+
+    // Función para quitar el formato y obtener solo el número
+    function unformatCurrency(value) {
+        if (!value) return 0;
+        // Quitar todos los puntos que son separadores de miles
+        return parseInt(value.toString().replace(/\./g, '')) || 0;
+    }
+
     // Script para actualizar automáticamente el documento del técnico al seleccionarlo
     document.getElementById('technical_name').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -12,13 +29,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Script para calcular el total automáticamente
     function calculateTotal() {
-        const spareValue = parseFloat(document.getElementById('spare_value').value) || 0;
-        const serviceValue = parseFloat(document.getElementById('service_value').value) || 0;
-        document.getElementById('total').value = (spareValue + serviceValue).toFixed(2);
+        const spareValue = unformatCurrency(document.getElementById('spare_value').value);
+        const serviceValue = unformatCurrency(document.getElementById('service_value').value);
+        document.getElementById('total').value = formatCurrency(spareValue + serviceValue);
     }
     
-    document.getElementById('spare_value').addEventListener('input', calculateTotal);
-    document.getElementById('service_value').addEventListener('input', calculateTotal);
+    // Configurar eventos para los campos de valor del servicio
+    const serviceValue = document.getElementById('service_value');
+    if (serviceValue) {
+        serviceValue.value = formatCurrency(serviceValue.value);
+        
+        serviceValue.addEventListener('focus', function() {
+            this.value = unformatCurrency(this.value);
+        });
+        
+        serviceValue.addEventListener('blur', function() {
+            this.value = formatCurrency(this.value);
+            calculateTotal();
+        });
+        
+        serviceValue.addEventListener('input', calculateTotal);
+    }
+    
+    const spareValue = document.getElementById('spare_value');
+    if (spareValue) {
+        spareValue.value = formatCurrency(spareValue.value);
+        spareValue.addEventListener('input', calculateTotal);
+    }
+    
+    const totalValue = document.getElementById('total');
+    if (totalValue) {
+        totalValue.value = formatCurrency(totalValue.value);
+    }
 
     // Función para eliminar fila de repuestos
     function removePartRow(row) {
@@ -54,10 +96,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalSpares = 0;
         const totalInputs = partsTable.querySelectorAll('input[name="part_total_value[]"]');
         totalInputs.forEach(input => {
-            totalSpares += parseFloat(input.value) || 0;
+            totalSpares += unformatCurrency(input.value);
         });
         
-        document.getElementById('spare_value').value = totalSpares.toFixed(2);
+        document.getElementById('spare_value').value = formatCurrency(totalSpares);
         calculateTotal();
     }
 
@@ -67,12 +109,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const unitPriceInput = row.querySelector('input[name="part_unit_value[]"]');
         const totalPriceInput = row.querySelector('input[name="part_total_value[]"]');
 
+        // Formatear valores iniciales
+        unitPriceInput.value = formatCurrency(unitPriceInput.value);
+        totalPriceInput.value = formatCurrency(totalPriceInput.value);
+
         function calculateRowTotal() {
-            const quantity = parseFloat(quantityInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-            totalPriceInput.value = (quantity * unitPrice).toFixed(2);
+            const quantity = parseInt(quantityInput.value) || 0;
+            const unitPrice = unformatCurrency(unitPriceInput.value);
+            totalPriceInput.value = formatCurrency(quantity * unitPrice);
             calculateSparesTotalValue();
         }
+
+        // Configurar eventos para quitar/poner formato al editar
+        unitPriceInput.addEventListener('focus', function() {
+            this.value = unformatCurrency(this.value);
+        });
+        
+        unitPriceInput.addEventListener('blur', function() {
+            this.value = formatCurrency(this.value);
+            calculateRowTotal();
+        });
 
         quantityInput.addEventListener('input', calculateRowTotal);
         unitPriceInput.addEventListener('input', calculateRowTotal);
@@ -122,6 +178,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Calcular el valor total inicial de repuestos
     calculateSparesTotalValue();
+    
+    // Quitar formato de moneda antes de enviar el formulario
+    const ticketForm = document.getElementById('ticketForm');
+    if (ticketForm) {
+        ticketForm.addEventListener('submit', function(e) {
+            // Quitar formato de moneda antes de enviar
+            document.querySelectorAll('input[name="part_unit_value[]"], input[name="part_total_value[]"], #service_value, #spare_value, #total').forEach(input => {
+                input.value = unformatCurrency(input.value);
+            });
+        });
+    }
 });
 
 // funciones de las alertas 
@@ -267,3 +334,166 @@ document.addEventListener('DOMContentLoaded', manejarMensajesFlash);
       updateProductCode();
     }
   });
+  // actualizar estados 
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar toasts
+  var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+  var toastList = toastElList.map(function(toastEl) {
+      return new bootstrap.Toast(toastEl, {
+          autohide: true,
+          delay: 3000
+      });
+  });
+  
+  // Escuchar los cambios en el select de estado
+  document.querySelectorAll('.status-select').forEach(function(select) {
+      select.addEventListener('change', function() {
+          const ticketId = this.getAttribute('data-ticket-id');
+          const newStatus = this.value;
+          const previousStatus = this.getAttribute('data-previous-status');
+          
+          // Si el estado no ha cambiado, no hacer nada
+          if (newStatus === previousStatus) {
+              return;
+          }
+          
+          // Confirmar con SweetAlert2
+          Swal.fire({
+              title: '¿Cambiar estado?',
+              text: `¿Está seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
+              icon: 'question',
+              showCancelButton: true,
+              confirmButtonColor: '#3085d6',
+              cancelButtonColor: '#d33',
+              confirmButtonText: 'Sí, cambiar',
+              cancelButtonText: 'Cancelar'
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  // Hacer la petición AJAX
+                  updateTicketStatus(ticketId, newStatus, select);
+              } else {
+                  // Restaurar el valor anterior si se cancela
+                  select.value = previousStatus;
+              }
+          });
+      });
+  });
+  
+  // Función para hacer la petición AJAX
+  function updateTicketStatus(ticketId, newStatus, selectElement) {
+      // Mostrar un indicador de carga
+      const loadingToast = showToast('Actualizando...', 'info');
+      
+      fetch('/update_ticket_status', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+              ticket_id: ticketId,
+              status: newStatus
+          })
+      })
+      .then(response => response.json())
+      .then(data => {
+          // Ocultar el toast de carga
+          if (loadingToast) {
+              loadingToast.hide();
+          }
+          
+          if (data.success) {
+              // Actualizar el atributo de estado anterior
+              selectElement.setAttribute('data-previous-status', newStatus);
+              
+              // Cambiar el color de la fila según el nuevo estado
+              const row = selectElement.closest('tr');
+              row.setAttribute('data-status', newStatus);
+              
+              // Mostrar SweetAlert de éxito
+              Swal.fire({
+                  title: '¡Estado actualizado!',
+                  text: data.message,
+                  icon: 'success',
+                  timer: 2000,
+                  showConfirmButton: false
+              });
+              
+              // Mostrar toast de éxito
+              showToast(data.message, 'success');
+          } else {
+              // Si hay error, mostrar alerta y restaurar valor anterior
+              Swal.fire({
+                  title: 'Error',
+                  text: data.message,
+                  icon: 'error'
+              });
+              
+              // Restaurar el valor anterior
+              selectElement.value = selectElement.getAttribute('data-previous-status');
+              
+              // Mostrar toast de error
+              showToast(data.message, 'danger');
+          }
+      })
+      .catch(error => {
+          // Ocultar el toast de carga
+          if (loadingToast) {
+              loadingToast.hide();
+          }
+          
+          console.error('Error:', error);
+          
+          // Mostrar alerta de error
+          Swal.fire({
+              title: 'Error',
+              text: 'Ocurrió un error al actualizar el estado',
+              icon: 'error'
+          });
+          
+          // Restaurar el valor anterior
+          selectElement.value = selectElement.getAttribute('data-previous-status');
+          
+          // Mostrar toast de error
+          showToast('Error al actualizar el estado', 'danger');
+      });
+  }
+  
+  // Función para mostrar un toast
+  function showToast(message, type) {
+      const toastContainer = document.getElementById('toast-container');
+      if (!toastContainer) {
+          console.error('Contenedor de toast no encontrado');
+          return null;
+      }
+      
+      const toastId = 'toast-' + Date.now();
+      const toastHTML = `
+          <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                  <div class="toast-body">
+                      ${message}
+                  </div>
+                  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+              </div>
+          </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+      const toastElement = document.getElementById(toastId);
+      const toast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 3000
+      });
+      
+      toast.show();
+      
+      // Eliminar el toast del DOM después de ocultarse
+      toastElement.addEventListener('hidden.bs.toast', function() {
+          toastElement.remove();
+      });
+      
+      return toast;
+  }
+});
