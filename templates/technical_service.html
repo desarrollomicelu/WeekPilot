@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Technical Service{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/technical_service.css') }}">
+{% endblock %}
+
 {% block content %}
 
 <div class="container-fluid py-4">
@@ -26,10 +32,6 @@
       <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-success d-flex align-items-center">
         <i class="fas fa-plus me-2"></i>Nuevo Ticket
       </a>
-      <!-- Botón de subir imágenes -->
-      <a href="{{ url_for('upload_images.upload') }}" class="btn btn-secondary d-flex align-items-center">
-        <i class="fas fa-upload me-2"></i>Subir Imágenes
-      </a>
     </div>
   </div>
 </div>
@@ -41,23 +43,35 @@
     <div class="row">
       <div class="col-md-8">
         <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
+          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
           <label class="btn btn-outline-primary" for="btn{{ status }}">
             <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
         </div>
       </div>
       <div class="col-md-4">
-
+        <!-- Agregar esto cerca de los filtros -->
+        <div class="d-flex justify-content-end w-100">
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle ms-auto" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-sort me-1"></i>Ordenar por
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item sort-option" data-sort="id-desc" href="#">ID (más reciente primero)</a></li>
+            <li><a class="dropdown-item sort-option" data-sort="id-asc" href="#">ID (más antiguo primero)</a></li>
+            <li><a class="dropdown-item sort-option" data-sort="status" href="#">Estado</a></li>
+            <li><a class="dropdown-item sort-option" data-sort="priority" href="#">Prioridad</a></li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
 
 <!-- Tabla de tickets -->
 <div class="card shadow-sm border-0">
@@ -67,7 +81,7 @@
         <h3>Listado de todos los tickets </h3>
       </div>
       <div class="ms-3">
-        
+
       </div>
     </div>
     <span class="badge bg-primary rounded-pill py-2 px-3">
@@ -112,31 +126,37 @@
 
             <td>
               <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}">
-                <option value="Sin asignar" {% if ticket.state == 'Sin asignar' %}selected{% endif %}>Sin asignar</option>
-                <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
-                <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
-                <option value="Terminado" {% if ticket.state == 'Terminado' %}selected{% endif %}>Terminado</option>
+                <option value="Sin asignar" {% if ticket.state=='Sin asignar' %}selected{% endif %}>Sin asignar</option>
+                <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
+                <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
+                <option value="En revision" {% if ticket.state=='En revision' %}selected{% endif %}>En revision</option>
+                <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>
               </select>
             </td>
 
             <td>
-              <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+              <span
+                class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
                 {{ ticket.priority }}
               </span>
             </td>
 
-            <td>${{ "{:,.0f}".format(ticket.service_value) }}</td>
-            <td>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
+            <!-- Cambiar estas líneas -->
+            <td>${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</td>
+            <td>${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
+            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</span></td>
+
             <td class="text-center">
               <div class="btn-group">
-                <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-primary">
                   <i class="fas fa-edit"></i>
                 </a>
-                <a href="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
+                <a href="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-info">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="mailto:{{ ticket.client_info.mail }}" class="btn btn-sm btn-danger">
+                <a href="mailto:{{ ticket.client_info.mail }}" class="btn btn-sm btn-success">
                   <i class="fas fa-envelope"></i>
                 </a>
               </div>
@@ -165,7 +185,8 @@
         <option value="50">50 filas</option>
         <option value="100">100 filas</option>
       </select>
-      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ tickets|length }}</strong> tickets</small>
+      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ tickets|length }}</strong>
+        tickets</small>
     </div>
     <nav aria-label="Paginación de tickets">
       <ul class="pagination pagination-sm mb-0" id="pagination">
@@ -183,9 +204,5 @@
 </div>
 </div>
 
-<!-- Incluir jQuery, Bootstrap, SweetAlert y el script personalizado -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
 {% endblock %}

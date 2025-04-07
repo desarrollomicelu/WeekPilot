@@ -5,16 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>{% block title %}WEEKPILOT{% endblock %}</title>
-    <!-- font family popins -->
+    <!-- Font Family: Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Tu archivo CSS personalizado -->
+    <!-- Archivo CSS personalizado -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    {% block extra_css %}{% endblock %}
+
 </head>
 
 <body>
@@ -28,28 +28,50 @@
             <button id="close-btn" class="close-btn btn btn-light"><i class="fas fa-chevron-left"></i></button>
         </div>
         <ul class="sidebar-menu list-unstyled">
-            <li><a href="{{ url_for('dashboard.dashboard') }}" class="d-flex align-items-center">
+            {% if current_user.cargo == "Admin" %}
+            <!-- Menú para administradores -->
+            <li>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="d-flex align-items-center">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
-                </a></li>
-            <li><a href="{{ url_for('technical_service.list_tickets') }}" class="d-flex align-items-center">
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('technical_service.list_tickets') }}" class="d-flex align-items-center">
                     <i class="fas fa-tools"></i>
                     <span>Servicio Técnico</span>
-                </a></li>
-            <li><a href="{{ url_for('warranty.warranty') }}" class="d-flex align-items-center">
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('warranty.warranty') }}" class="d-flex align-items-center">
                     <i class="fas fa-gift"></i>
                     <span>Garantía</span>
-                </a></li>
-            <li><a href="{{ url_for('internal_repair.internal_repair') }}" class="d-flex align-items-center">
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('internal_repair.internal_repair') }}" class="d-flex align-items-center">
                     <i class="fas fa-wrench"></i>
                     <span>Reparación interna</span>
-                </a></li>
-            <li><a href="{{ url_for('view_technical.view_technical') }}" class="d-flex align-items-center">
+                </a>
+            </li>
+            {% elif current_user.cargo == "servicioTecnico" %}
+            <!-- Menú para técnicos -->
+            <li>
+                <a href="{{ url_for('view_technical.view_technical') }}" class="d-flex align-items-center">
                     <i class="fas fa-headset"></i>
-                    <span>Servicio Técnico</span>
-                </a></li>
+                    <span>Tickets Asignados</span>
+                </a>
+            </li>
+            {% else %}
+            <!-- Menú para otros roles -->
+            <li>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="d-flex align-items-center">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
-
         <!-- Botón de cerrar sesión simplificado -->
         <div class="sidebar-user-menu">
             <a href="{{ url_for('auth.logout') }}" class="logout-btn d-flex align-items-center justify-content-center">
@@ -63,17 +85,22 @@
     <div id="content" class="content">
         <button id="open-btn" class="open-btn btn btn-light ms-n2"><i class="fas fa-chevron-right"></i></button>
         <div class="container-fluid px-3 px-md-4">
-            {% block content %}
-            {% endblock %}
+            {% block content %}{% endblock %}
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    <!-- Librerías de terceros -->
+    <!-- jQuery: debe cargarse primero -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    {% block extra_js %}{% endblock %}
+    <!-- Select2 (versión estable 4.1.0 para que coincida con el CSS) -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Bootstrap Bundle (incluye Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Archivo base.js (si es necesario) -->
+    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+
 </body>
 
 </html>

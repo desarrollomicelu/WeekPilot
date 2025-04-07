@@ -24,6 +24,7 @@ class Tickets(db.Model, UserMixin):
     assigned = db.Column(db.DateTime, nullable=True)
     received = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
+    under_review = db.Column(db.DateTime, nullable=True)
     finished = db.Column(db.DateTime, nullable=True)
     spare_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
@@ -55,5 +56,7 @@ class Tickets(db.Model, UserMixin):
             self.finished = now
         elif new_state == "Recibido":
             self.received = now
+        elif new_state == "En revisión":
+            self.under_review = now
         
         return now  # Devolver la hora para usarla en la respuesta

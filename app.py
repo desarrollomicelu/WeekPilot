@@ -10,9 +10,9 @@ from extensions import db, bcrypt
 from config import Config
 import os
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, request, redirect, url_for, flash
 from flask_migrate import Migrate
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 
 
 
@@ -50,6 +50,28 @@ login_manager.login_view = "auth.login"
 def load_user(user_id):
     # Si el ID es una cadena (UUID), no lo conviertas a entero
     return Empleados.query.get(user_id)
+'''
+@app.before_request
+def restrict_routes():
+    # Si el usuario es un técnico, restringir a rutas específicas
+    if current_user.is_authenticated and current_user.cargo == "servicioTecnico":
+        allowed_routes = [
+            'auth.logout', 
+            'view_technical.view_technical',
+            'view_technical.view_detail_ticket',
+            'view_technical.update_ticket_status_ajax',
+            # Agrega aquí más rutas permitidas para técnicos
+            'static'
+        ]
+        if request.endpoint and request.endpoint not in allowed_routes and not request.endpoint.startswith('static'):
+            flash("No tienes permiso para acceder a esta página", "warning")
+            return redirect(url_for('view_technical.view_technical'))
+    # Si el usuario no está autenticado, permitir solo rutas públicas
+    if not current_user.is_authenticated:
+        allowed_routes = ['auth.login', 'auth.logout', 'static']
+        if request.endpoint and request.endpoint not in allowed_routes and not request.endpoint.startswith('static'):
+            flash("Debes iniciar sesión para acceder a esta página", "warning")
+            return redirect(url_for('auth.login'))'''
 
 
 # Registra los blueprints

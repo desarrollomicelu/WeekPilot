@@ -22,7 +22,7 @@ def login():
                     # Suponiendo que en routes/dashboard.py el endpoint se define como "dashboard"
                     return redirect(url_for("dashboard.dashboard"))
                 elif empleado.cargo == "servicioTecnico":
-
+                    # Redirigir al técnico a su vista de tickets
                     return redirect(url_for("view_technical.view_technical"))
                 else:
                     flash("Acceso denegado. No tienes permisos para acceder a esta página.", "error")
@@ -32,7 +32,6 @@ def login():
         except Exception as e:
             flash(f"Error al intentar iniciar sesión: {str(e)}", "error")
     return render_template("login.html")
-
 @auth_bp.route("/logout")
 def logout():
     logout_user()

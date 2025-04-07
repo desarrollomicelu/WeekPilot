@@ -4,9 +4,6 @@
 
 <!-- Incluir CSS de Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<!-- Incluir nuestro CSS personalizado para Select2 -->
-<link href="{{ url_for('static', filename='css/select2-bootstrap.css') }}" rel="stylesheet" />
-
 
 <div id="edit-ticket-page" class="container-fluid py-4">
     <!-- Cabecera -->
@@ -23,7 +20,9 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}">
+    <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
+        enctype="multipart/form-data">
+
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
             <!-- Información del Cliente -->
@@ -86,9 +85,9 @@
                                 <select class="form-select" id="technical_name" name="technical_name">
                                     <option value="">Sin asignar</option>
                                     {% for technician in technicians %}
-                                    <option value="{{ technician.NOMBRE }}" 
-                                            data-document="{{ technician.CODVEN }}" 
-                                            {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}" {%
+                                        if ticket.technical_name and technician.NOMBRE and
+                                        ticket.technical_name.strip()==technician.NOMBRE.strip() %}selected{% endif %}>
                                         {{ technician.NOMBRE }}
                                     </option>
                                     {% endfor %}
@@ -99,8 +98,8 @@
                         <div class="mb-3 row">
                             <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="technical_document" name="technical_document" 
-                                    value="{{ ticket.technical_document }}" readonly>
+                                <input type="text" class="form-control" id="technical_document"
+                                    name="technical_document" value="{{ ticket.technical_document }}" readonly>
                             </div>
                         </div>
                         <div class="mb-3 row">
@@ -177,20 +176,22 @@
                                                 <option value="">Seleccione un repuesto</option>
                                                 {% for part in spare_parts %}
                                                 <option value="{{ part.code }}" {% if spare.spare_code==part.code
-                                                    %}selected{% endif %}>{{ part.description }}</option>
+                                                    %}selected{% endif %}>
+                                                    {{ part.code }} - {{ part.description }}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-control part-quantity" min="1"
+                                            <input type="text" class="form-control part-quantity" min="1"
                                                 name="part_quantity[]" value="{{ spare.quantity }}" required>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-control part-unit-value" min="0"
+                                            <input type="text" class="form-control part-unit-value" min="0"
                                                 name="part_unit_value[]" value="{{ spare.unit_price }}" required>
                                         </td>
                                         <td>
-                                            <input type="number" class="form-control part-total-value" min="0"
+                                            <input type="text" class="form-control part-total-value" min="0"
                                                 name="part_total_value[]" value="{{ spare.total_price }}" readonly>
                                         </td>
                                         <td>
@@ -273,8 +274,9 @@
                                     <select class="form-select searchable-select" id="reference" name="reference">
                                         <option value="">Seleccione una referencia</option>
                                         {% for item in product_info %}
-                                        <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}" 
-                                                {% if ticket.reference and item.DESCRIPCIO and ticket.reference.strip() == item.DESCRIPCIO.strip() %}selected{% endif %}>
+                                        <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}" {% if
+                                            ticket.reference and item.DESCRIPCIO and
+                                            ticket.reference.strip()==item.DESCRIPCIO.strip() %}selected{% endif %}>
                                             {{ item.DESCRIPCIO }} {% if item.CODLINEA %}({{ item.CODLINEA }}){% endif %}
                                         </option>
                                         {% endfor %}
@@ -295,10 +297,9 @@
                                         value="{{ ticket.IMEI }}">
                                 </div>
 
+                                <!-- Campo de tipo de servicio -->
                                 <div class="col-sm-6 mb-3">
-                                    <label for="type_of_service" class="form-label">Tipo de Servicio</label>
-                                    <input type="text" class="form-control" id="type_of_service" name="type_of_service"
-                                        value="{{ ticket.type_of_service }}" required>
+                                    <input type="hidden" id="type_of_service" name="type_of_service" value="0">
                                 </div>
                             </div>
                         </div>
@@ -311,7 +312,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="service_value" name="service_value"
+                                    <input type="text" class="form-control" id="service_value" name="service_value"
                                         min="0" value="{{ ticket.service_value }}" required>
                                 </div>
                             </div>
@@ -322,8 +323,8 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="spare_value" name="spare_value"
-                                        min="0" value="{{ ticket.spare_value }}" readonly>
+                                    <input type="text" class="form-control" id="spare_value" name="spare_value" min="0"
+                                        value="{{ ticket.spare_value }}" readonly>
                                 </div>
                             </div>
                         </div>
@@ -333,11 +334,66 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control fw-bold" id="total" name="total"
+                                    <input type="text" class="form-control fw-bold" id="total" name="total"
                                         value="{{ ticket.total }}" readonly>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de subida de imágenes -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm image-upload-section">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-images me-2 text-primary"></i>Imágenes del Dispositivo</h5>
+                        <button type="button" class="btn btn-sm btn-primary" id="clearImagesBtn">
+                            <i class="fas fa-trash-alt me-1"></i> Limpiar imágenes
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Campo para subir fotos desde galería -->
+                            <div class="col-md-6 mb-3">
+                                <label for="uploadImages" class="form-label">Subir Fotos</label>
+                                <input type="file" id="uploadImages" name="images" class="form-control" multiple
+                                    accept="image/*">
+                            </div>
+                            <!-- Campo para tomar foto con la cámara -->
+                            <div class="col-md-6 mb-3">
+                                <label for="takePhoto" class="form-label">Tomar Foto</label>
+                                <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*"
+                                    capture="environment">
+                            </div>
+                        </div>
+
+                        <!-- Área de previsualización de imágenes -->
+                        <div id="previewContainer" class="row mt-4">
+                            <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
+                            {% if ticket_images %}
+                            {% for image in ticket_images %}
+                            <div class="col-6 col-md-3 mb-3 preview-image-container">
+                                <div class="position-relative">
+                                    <img src="{{ image.url }}" class="img-fluid rounded" alt="Imagen del ticket">
+                                    <button type="button"
+                                        class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image"
+                                        data-image-id="{{ image.id }}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo oculto para almacenar referencias a las imágenes -->
+                        <input type="hidden" id="imageReferences" name="image_references"
+                            value="{{ ticket_images_json|default('[]') }}">
+                        <!-- Campo oculto para almacenar IDs de imágenes a eliminar -->
+                        <input type="hidden" id="imagesToDelete" name="images_to_delete" value="[]">
                     </div>
                 </div>
             </div>
@@ -348,6 +404,10 @@
             <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-times me-2"></i>Cancelar
             </a>
+            <!-- Botón de subir imágenes -->
+            <a href="{{ url_for('upload_images.upload') }}" class="btn btn-secondary d-flex align-items-center">
+                <i class="fas fa-upload me-2"></i>Subir Imágenes
+            </a>
             <div>
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save me-2"></i>Guardar Cambios
@@ -356,7 +416,6 @@
         </div>
     </form>
 </div>
-
 <!-- Template para nueva fila de repuesto -->
 <template id="partRowTemplate">
     <tr class="part-row">
@@ -365,7 +424,7 @@
             <select class="form-select searchable-select" name="spare_part_code[]" required>
                 <option value="" disabled selected>Seleccione un repuesto</option>
                 {% for part in spare_parts %}
-                <option value="{{ part.code }}">{{ part.description }}</option>
+                <option value="{{ part.code }}">{{ part.code }} - {{ part.description }}</option>
                 {% endfor %}
             </select>
         </td>
@@ -373,10 +432,10 @@
             <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
         </td>
         <td>
-            <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" required>
+            <input type="text" class="form-control part-unit-value" name="part_unit_value[]" required>
         </td>
         <td>
-            <input type="number" class="form-control part-total-value" min="0" name="part_total_value[]" readonly>
+            <input type="text" class="form-control part-total-value" name="part_total_value[]" readonly>
         </td>
         <td>
             <button type="button" class="btn btn-sm btn-danger remove-part">
@@ -386,43 +445,24 @@
     </tr>
 </template>
 
+
+{% if current_spare_tickets %}{% for spare in current_spare_tickets %}
+<tr class="part-row">
+    <!-- Contenido de la fila -->
+</tr>
+{% endfor %}
+{% else %}
+<tr id="noPartsRow">
+    <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
+</tr>
+{% endif %}
+
 <!-- Se incluye jQuery, Select2 y Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar el documento del técnico al cargar la página
-    const techSelect = document.getElementById('technical_name');
-    const techDocInput = document.getElementById('technical_document');
-    
-    if (techSelect && techDocInput && techSelect.value) {
-        const selectedOption = techSelect.options[techSelect.selectedIndex];
-        if (selectedOption && selectedOption.getAttribute('data-document')) {
-            techDocInput.value = selectedOption.getAttribute('data-document');
-        }
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='js/edit_ticket_ST.js') }}"></script>
+<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
 
-<script>
-    // Ajustar altura de los campos Select2 para que coincidan con los campos normales
-    $(document).ready(function() {
-        // Función para ajustar la altura de los contenedores Select2
-        function adjustSelect2Height() {
-            $('.select2-container--bootstrap-5 .select2-selection').css('height', 'calc(1.5em + 0.75rem + 2px)');
-        }
-        
-        // Aplicar ajuste inicial
-        setTimeout(adjustSelect2Height, 100);
-        
-        // Aplicar ajuste cuando se abra cualquier Select2
-        $(document).on('select2:open', function() {
-            setTimeout(adjustSelect2Height, 0);
-        });
-    });
-</script>
 
 {% endblock %}

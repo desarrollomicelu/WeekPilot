@@ -1,6 +1,6 @@
 /***************************************************
- * technical_service.js
- * Funciones para la vista de Technical Service (lista de tickets)
+ * view_technical.js
+ * Funciones para la vista de Técnicos (tickets asignados)
  ***************************************************/
 
 /***** Funciones de Notificación *****/
@@ -40,6 +40,36 @@ function showSuccessTicketAlert() {
     });
 }
 
+function filterTickets(status) {
+    if (status === 'Todos') {
+        $('tbody tr').show();
+    } else {
+        $('tbody tr').each(function () {
+            var ticketStatus = $(this).find('td:nth-child(5) select').val();
+            $(this).toggle(ticketStatus === status);
+        });
+    }
+    updateTicketCounter();
+    setTimeout(updatePaginationAfterFilter, 100);
+}
+
+// Definir updatePaginationAfterFilter como una función global
+window.updatePaginationAfterFilter = function () {
+    const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
+    const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+
+    // Actualizar contador de tickets visibles
+    $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
+
+    // Regenerar botones de paginación si es necesario
+    if ($('#pagination').length) {
+        $('#pagination li').not('#prevPage, #nextPage').remove();
+        for (let i = 1; i <= totalPages; i++) {
+            $('#nextPage').before(`<li class="page-item ${i === 1 ? 'active' : ''}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
+        }
+    }
+};
 
 /***** Funcionalidad de Búsqueda y Filtrado *****/
 document.addEventListener("DOMContentLoaded", function () {
@@ -65,15 +95,13 @@ document.addEventListener("DOMContentLoaded", function () {
     $(document).ready(function () {
         // Definir el orden de los estados (de menor a mayor progreso)
         const stateOrder = {
-            "Sin asignar": 1,
-            "Asignado": 2,
-            "En proceso": 3,
-            "En revision": 4,
-            "Terminado": 5
+            "Asignado": 1,
+            "En proceso": 2,
+            "Terminado": 3
         };
 
         // Al cargar la página, guardar el estado original como atributo data-*
-        $('.status-select').each(function() {
+        $('.status-select').each(function () {
             const $select = $(this);
             // Usar el atributo data-original-state si existe, o el valor actual
             if (!$select.attr('data-original-state')) {
@@ -87,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const newStatus = $select.val();
             // Usar el atributo data-original-state en lugar de data()
             const originalValue = $select.attr('data-original-state');
-            
+
             // Validar si es un retroceso de estado
             if (stateOrder[newStatus] < stateOrder[originalValue]) {
                 // Es un retroceso, mostrar error y revertir
@@ -98,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     confirmButtonColor: '#3085d6',
                     confirmButtonText: 'Entendido'
                 });
-                
+
                 // Restaurar el valor original
                 $select.val(originalValue);
                 return false;
@@ -128,7 +156,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             ticket_id: ticketId,
                             status: newStatus
                         },
-                        success: function (response) {
+                        beforeSend: function() {
+                            console.log("Enviando solicitud AJAX:", {
+                                url: '/update_ticket_status_ajax',
+                                ticket_id: ticketId,
+                                status: newStatus
+                            });
+                        },
+                        success: function(response) {
+                            console.log("Respuesta recibida:", response);
                             $select.removeClass('opacity-50').prop('disabled', false);
                             if (response.success) {
                                 showToast('success', 'Estado actualizado correctamente', 'top-end');
@@ -141,7 +177,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $select.val(originalValue);
                             }
                         },
-                        error: function (xhr) {
+                        error: function(xhr, status, error) {
+                            console.error("Error en la solicitud AJAX:", status, error);
+                            console.error("Respuesta del servidor:", xhr.responseText);
                             $select.removeClass('opacity-50').prop('disabled', false);
                             $select.val(originalValue);
                             let errorMsg = 'Error al actualizar el estado';
@@ -150,8 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                             showToast('error', errorMsg, 'top-end');
                         }
-                    });
-                } else {
+                    });                } else {
                     $select.val(originalValue);
                 }
             });
@@ -161,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
         function updateRowStyles($row, status) {
             // Quitar todas las clases de estado
             $row.removeClass('table-success table-light');
-            
+
             // Aplicar clase según el estado
             if (status === 'Terminado') {
                 $row.addClass('table-secondary');
@@ -172,19 +209,19 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // Asegúrate de que esta función se llame cuando se carga la página
-        $(document).ready(function() {
+        $(document).ready(function () {
             console.log("Inicializando estilos de filas"); // Log para depuración
-            
+
             // Aplicar estilos iniciales a todas las filas según su estado
-            $('.status-select').each(function() {
+            $('.status-select').each(function () {
                 const $select = $(this);
                 const status = $select.val();
                 console.log("Estado inicial:", status); // Log para depuración
                 updateRowStyles($select.closest('tr'), status);
             });
-            
+
             // También actualizar cuando cambia el estado
-            $('.status-select').on('change', function() {
+            $('.status-select').on('change', function () {
                 const $select = $(this);
                 const newStatus = $select.val();
                 console.log("Estado cambiado a:", newStatus); // Log para depuración
@@ -196,28 +233,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Filtros Rápidos por Estado ---
     $(document).ready(function () {
+        // Definir la función updateTicketCounter
+        function updateTicketCounter() {
+            const visibleTickets = $('tbody tr:visible').length;
+            $('.badge.bg-primary strong').text(visibleTickets);
+        }
+
         function filterTickets(status) {
+            console.log("Filtrando por estado:", status);
+
             if (status === 'Todos') {
+                console.log("Mostrando todos los tickets");
                 $('tbody tr').show();
-            } else if (status === 'Activos') {
-                // Mostrar todos los tickets que NO están en estado "Terminado"
-                $('tbody tr').each(function () {
-                    var ticketStatus = $(this).find('td:nth-child(5) select').val();
-                    $(this).toggle(ticketStatus !== 'Terminado');
-                });
             } else {
                 $('tbody tr').each(function () {
-                    var ticketStatus = $(this).find('td:nth-child(5) select').val();
+                    // Buscar el select de estado en cualquier columna
+                    var $select = $(this).find('select.status-select');
+                    var ticketStatus = $select.val();
+
+                    console.log("Ticket:", $(this).find('td:first').text(), "Estado:", ticketStatus);
+
                     $(this).toggle(ticketStatus === status);
                 });
             }
             updateTicketCounter();
-            // updatePaginationAfterFilter(); // Comentar o eliminar esta línea
-        }
-
-        function updateTicketCounter() {
-            const visibleTickets = $('tbody tr:visible').length;
-            $('.badge.bg-primary strong').text(visibleTickets);
+            setTimeout(updatePaginationAfterFilter, 100);
         }
 
         $('input[name="filterStatus"]').on('change', function () {
@@ -236,6 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
         filterTickets('Todos');
         $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
     });
+
 
 
     /***** Paginación de Tickets *****/
@@ -306,40 +347,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        // Función para actualizar la paginación después de filtrar
-        function updatePaginationAfterFilter() {
-            // Si estás dentro del contexto de jQuery, puedes acceder a las variables y funciones
-            // definidas en el ámbito de $(document).ready
-            if (typeof filteredRows !== 'undefined') {
-                filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-                totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-                if (currentPage > totalPages) {
-                    currentPage = Math.max(1, totalPages);
-                }
-                generatePaginationButtons();
-                showPage(currentPage);
-            } else {
-                console.log("Variables de paginación no disponibles en este contexto");
-                // Versión simplificada si las variables no están disponibles
-                const visibleRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-                const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
-                const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
-                
-                // Actualizar contador de tickets visibles
-                $('#currentRowsCount').text(Math.min(rowsPerPage, visibleRows.length));
-                
-                // Regenerar botones de paginación si es necesario
-                if ($('#pagination').length) {
-                    $('#pagination li').not('#prevPage, #nextPage').remove();
-                    for (let i = 1; i <= totalPages; i++) {
-                        $('#nextPage').before(`<li class="page-item" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-                    }
-                    // Activar primera página
-                    $('#pagination li[data-page="1"]').addClass('active');
-                }
-            }
-        }
-
         $('#rowsPerPage').on('change', function () {
             rowsPerPage = parseInt($(this).val());
             totalPages = Math.ceil(filteredRows.length / rowsPerPage);
@@ -374,13 +381,11 @@ document.addEventListener("DOMContentLoaded", function () {
         initPagination();
     });
 
-
-
     // Función para ordenar tickets
     function sortTickets(sortBy) {
         const rows = $('#ticketsTable tbody tr').get();
-        
-        rows.sort(function(a, b) {
+
+        rows.sort(function (a, b) {
             if (sortBy === 'id-desc') {
                 const idA = parseInt($(a).find('td:first').text().replace('#', ''));
                 const idB = parseInt($(b).find('td:first').text().replace('#', ''));
@@ -399,24 +404,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 return priorityA.localeCompare(priorityB);
             }
         });
-        
-        $.each(rows, function(index, row) {
+
+        $.each(rows, function (index, row) {
             $('#ticketsTable tbody').append(row);
         });
-        
+
         // Reinicializar la paginación después de ordenar
-        initPagination();
+        setTimeout(updatePaginationAfterFilter, 100);
     }
 
     // Manejar clics en opciones de ordenamiento
-    $(document).on('click', '.sort-option', function(e) {
+    $(document).on('click', '.sort-option', function (e) {
         e.preventDefault();
         const sortBy = $(this).data('sort');
         sortTickets(sortBy);
     });
 
     // Ordenar por ID descendente al cargar la página
-    $(document).ready(function() {
+    $(document).ready(function () {
         sortTickets('id-desc');
     });
 });
