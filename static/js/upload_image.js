@@ -45,6 +45,7 @@ class ImageUploadManager {
             uploadImagesSelector: '#uploadImages',
             takePhotoSelector: '#takePhoto',
             previewContainerSelector: '#previewContainer',
+            imageCommentSelector: '#imageComment',
             imageReferencesSelector: '#imageReferences',
             clearImagesBtnSelector: '#clearImagesBtn',
             maxImages: 10,
@@ -56,6 +57,7 @@ class ImageUploadManager {
         this.uploadImagesInput = document.querySelector(this.config.uploadImagesSelector);
         this.takePhotoInput = document.querySelector(this.config.takePhotoSelector);
         this.previewContainer = document.querySelector(this.config.previewContainerSelector);
+        this.commentTextarea = document.querySelector(this.config.imageCommentSelector);
         this.imageReferencesInput = document.querySelector(this.config.imageReferencesSelector);
         this.clearImagesBtn = document.querySelector(this.config.clearImagesBtnSelector);
         
@@ -75,6 +77,9 @@ class ImageUploadManager {
             console.error('No se encontró el contenedor de previsualización');
             return;
         }
+        
+        // Inicializar el manejo de comentarios
+        this.initCommentHandling();
         
         // Eventos para el input de "Subir Fotos"
         if (this.uploadImagesInput) {
@@ -98,6 +103,50 @@ class ImageUploadManager {
         if (this.clearImagesBtn) {
             this.clearImagesBtn.addEventListener('click', () => this.clearAllImages());
         }
+    }
+    
+    /**
+     * Inicializa el manejo de comentarios
+     */
+    initCommentHandling() {
+        if (this.commentTextarea) {
+            // Restaurar comentario guardado si existe
+            const savedComment = localStorage.getItem('imageUploadComment');
+            if (savedComment) {
+                this.commentTextarea.value = savedComment;
+            }
+            
+            // Guardar comentario cuando cambie
+            this.commentTextarea.addEventListener('input', () => {
+                localStorage.setItem('imageUploadComment', this.commentTextarea.value);
+            });
+        }
+    }
+    
+    /**
+     * Obtiene el comentario actual
+     * @returns {string} - El texto del comentario
+     */
+    getComment() {
+        return this.commentTextarea ? this.commentTextarea.value : '';
+    }
+    
+    /**
+     * Establece el comentario
+     * @param {string} text - Texto del comentario
+     */
+    setComment(text) {
+        if (this.commentTextarea) {
+            this.commentTextarea.value = text;
+            localStorage.setItem('imageUploadComment', text);
+        }
+    }
+    
+    /**
+     * Limpia el comentario
+     */
+    clearComment() {
+        this.setComment('');
     }
     
     /**

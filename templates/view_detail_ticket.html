@@ -193,7 +193,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th style="width:40%;">Descripción</th>
-                                    <th>Cantidad</th <th>Cantidad</th>
+                                    <th>Cantidad</th>
                                     <th>Valor Unitario</th>
                                     <th>Valor Total</th>
                                 </tr>
@@ -232,7 +232,7 @@
 
     <!-- Fila 4: Problemas del Dispositivo y Valores -->
     <div class="row mb-2">
-        <!-- Problemas del Dispositivo -->
+        <!-- Problemas del Dispositivo y Comentarios -->
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light">
@@ -241,18 +241,36 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if ticket.problems.count() > 0 %}
-                    <ul class="list-group">
-                        {% for problem in ticket.problems %}
-                        <li class="list-group-item d-flex align-items-center">
-                            <i class="fas fa-exclamation-circle text-danger me-2"></i>
-                            {{ problem.name }}
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <!-- Problemas -->
+                    <div class="mb-4">
+                        <h6 class="mb-3 border-bottom pb-2">Listado de Problemas</h6>
+                        {% if ticket.problems.count() > 0 %}
+                        <ul class="list-group">
+                            {% for problem in ticket.problems %}
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                                {{ problem.name }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No se han registrado problemas para este dispositivo.
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Comentarios -->
+                    <h6 class="mb-3 border-bottom pb-2">
+                        <i class="fas fa-comment text-primary me-1"></i>Comentarios
+                    </h6>
+                    {% if ticket.comment and ticket.comment != 'None' %}
+                    <div class="p-3 bg-light rounded">
+                        <p class="mb-0">{{ ticket.comment }}</p>
+                    </div>
                     {% else %}
-                    <div class="alert alert-info">
-                        No se han registrado problemas para este dispositivo.
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>No hay comentarios para este ticket.
                     </div>
                     {% endif %}
                 </div>
@@ -283,8 +301,6 @@
                                 <p>{{ ticket.IMEI }}</p>
                             </div>
                             <div class="col-sm-6 mb-3">
-                                <label class="form-label fw-bold">Tipo de Servicio:</label>
-                                <p>{{ ticket.type_of_service }}</p>
                             </div>
                         </div>
                     </div>
@@ -316,21 +332,20 @@
         </div>
     </div>
 
-    <!-- Botones de acción -->
-    <div class="d-flex justify-content-between my-2">
-        <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Volver
+<!-- Botones de acción -->
+<div class="d-flex justify-content-between my-2">
+    <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Volver
+    </a>
+    <div>
+        <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Editar Ticket
         </a>
-        <div>
-            <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
-                class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i>Editar Ticket
-            </a>
-            <button type="button" class="btn btn-success ms-2" onclick="window.print()">
-                <i class="fas fa-print me-2"></i>Imprimir
-            </button>
-        </div>
+        <button type="button" class="btn btn-success ms-2" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Imprimir
+        </button>
     </div>
+</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

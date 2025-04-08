@@ -71,3 +71,5 @@ def update_ticket_status_ajax():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
+

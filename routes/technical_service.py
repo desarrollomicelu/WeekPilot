@@ -69,7 +69,7 @@ def create_ticket():
         IMEI = request.form.get("IMEI")
         reference = request.form.get("reference")
         product_code = request.form.get("product_code")
-        
+        comment = request.form.get("comment")        
         selected_problem_ids = request.form.getlist("device_problems[]")
 
         # Valores financieros
@@ -148,6 +148,10 @@ def create_ticket():
             flash("Debe seleccionar al menos un problema", "danger")
             return redirect(url_for("technical_service.create_ticket"))
 
+        if comment and len(comment) > 250:
+            flash("El comentario no puede tener más de 250 caracteres", "danger")
+            return redirect(url_for("technical_service.create_ticket"))
+        
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -171,6 +175,7 @@ def create_ticket():
             state=state,
             priority=priority,
             IMEI=IMEI,
+            comment=comment,
             city=city,
             type_of_service=type_of_service,
             reference=reference,
@@ -285,6 +290,7 @@ def list_tickets():
     )
 
 # Editar Ticket
+# Editar Ticket
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):
@@ -300,9 +306,6 @@ def edit_ticket(ticket_id):
     product_info = get_product_information()
     spare_parts = get_spare_parts()
     problems_list = Problems.query.order_by(Problems.name).all()
-    
-    # Depuración para verificar los datos de técnicos
-    print("Datos de técnicos obtenidos:", technicians)
     
     # Procesamiento del formulario POST
     if request.method == "POST":
@@ -325,6 +328,9 @@ def edit_ticket(ticket_id):
         ticket.reference = request.form.get("reference")
         ticket.product_code = request.form.get("product_code")
         
+        # Actualizar el comentario
+        ticket.comment = request.form.get("comment")
+        
         try:
             ticket.service_value = float(request.form.get("service_value") or 0)
             ticket.spare_value = float(request.form.get("spare_value") or 0)
@@ -346,7 +352,7 @@ def edit_ticket(ticket_id):
         # Primero eliminamos los repuestos existentes
         Spares_tickets.query.filter_by(id_ticket=ticket.id_ticket).delete()
         
-            # Procesar repuestos
+        # Procesar repuestos
         spare_codes = request.form.getlist("spare_part_code[]")
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")
@@ -374,20 +380,21 @@ def edit_ticket(ticket_id):
                     return redirect(url_for("technical_service.create_ticket"))
         db.session.commit()
         # Una vez procesados todos los repuestos
-        flash("Ticket creado correctamente", "success")
-        return redirect(url_for("technical_service.list_tickets") + "?ticket_created=success")
+        flash("Ticket actualizado correctamente", "success")
+        return redirect(url_for("technical_service.list_tickets") + "?ticket_updated=success")
     
     # Renderizar la plantilla con los datos
     return render_template(
         "edit_ticket.html",
         ticket=ticket,
         client=client,
-        technicians=technicians,  # Pasar los datos sin reformatear
+        technicians=technicians,
         product_info=product_info,
         spare_parts=spare_parts,
         problems=problems_list,
         current_spare_tickets=current_spare_tickets
     )
+
 
 # Ver Detalle de Ticket
 @technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])

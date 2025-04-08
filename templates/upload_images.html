@@ -34,6 +34,25 @@
             <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*" capture="environment">
           </div>
         </div>
+        
+        <!-- Nuevo apartado para comentarios -->
+        <div class="mb-3">
+          <label for="imageComment" class="form-label">
+            <i class="fas fa-comment text-primary me-1"></i> Comentario
+          </label>
+          <textarea 
+            id="imageComment" 
+            name="comment" 
+            class="form-control" 
+            rows="3" 
+            placeholder="Agregue un comentario sobre las imágenes subidas..."
+            aria-describedby="commentHelp"
+          ></textarea>
+          <div id="commentHelp" class="form-text text-muted">
+            Puede incluir detalles sobre el contexto de las imágenes o información relevante para el ticket.
+          </div>
+        </div>
+        
         <div class="mb-3">
           <button type="submit" class="btn btn-primary d-flex align-items-center">
             <i class="fas fa-upload me-2"></i> Subir
@@ -49,36 +68,7 @@
   </div>
 </div>
 
-<script>
-  // Función para agregar imagen al contenedor de previsualización
-  function addPreview(src) {
-    const previewContainer = document.getElementById('previewContainer');
-    const col = document.createElement('div');
-    col.className = "col-6 col-md-3 mb-3";
-    col.innerHTML = `<img src="${src}" class="img-fluid rounded" alt="Preview">`;
-    previewContainer.appendChild(col);
-  }
-
-  // Función para procesar y previsualizar archivos
-  function handleFiles(files) {
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        addPreview(e.target.result);
-      }
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Eventos para el input de "Subir Fotos"
-  document.getElementById('uploadImages').addEventListener('change', function(event) {
-    handleFiles(event.target.files);
-  });
-
-  // Eventos para el input de "Tomar Foto"
-  document.getElementById('takePhoto').addEventListener('change', function(event) {
-    handleFiles(event.target.files);
-  });
-</script>
+<!-- Incluir el script de upload_image.js -->
+<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
 
 {% endblock %}

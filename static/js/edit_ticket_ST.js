@@ -1022,6 +1022,32 @@ function setupProductCodeUpdate() {
     }
 }
 
+/**
+ * Configura la funcionalidad del campo de comentario
+ */
+function setupCommentField() {
+    const commentTextarea = document.getElementById('comment');
+    if (!commentTextarea) return;
+    
+    // Limpiar el valor "None" si está presente
+    if (commentTextarea.value === "None") {
+        commentTextarea.value = "";
+    }
+    
+    // Limitar la longitud del comentario si es necesario
+    commentTextarea.addEventListener('input', function() {
+        const maxLength = 250; // Ajustar según sea necesario
+        if (this.value.length > maxLength) {
+            showToast('warning', `El comentario no puede exceder los ${maxLength} caracteres`, 'top-end');
+            this.value = this.value.substring(0, maxLength);
+        }
+        
+        // Eliminar mensaje de error si existe
+        removeValidationError(this);
+    });
+}
+
+
 
 /***** SECCIÓN 8: INICIALIZACIÓN *****/
 
@@ -1112,6 +1138,9 @@ function initializeEditTicket() {
 
     // 12. Configurar relación técnico-documento
     const technicianDocumentManager = setupTechnicianDocumentRelation();
+
+    // 13. Configurar campo de comentario
+    setupCommentField();
 }
 
 // Inicializar todo cuando el DOM esté completamente cargado

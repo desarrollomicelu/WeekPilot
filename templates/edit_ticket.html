@@ -389,6 +389,18 @@
                             {% endif %}
                         </div>
 
+                        <!-- Campo para comentario -->
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">
+                                <i class="fas fa-comment text-primary me-1"></i> Comentario
+                            </label>
+                            <textarea id="comment" name="comment" class="form-control" rows="3"
+                                placeholder="Agregue un comentario sobre el ticket..."
+                                aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
+                            <div id="commentHelp" class="form-text text-muted">
+                                Puede incluir detalles adicionales o información relevante para el ticket.
+                            </div>
+                        </div>
                         <!-- Campo oculto para almacenar referencias a las imágenes -->
                         <input type="hidden" id="imageReferences" name="image_references"
                             value="{{ ticket_images_json|default('[]') }}">
@@ -403,10 +415,6 @@
         <div class="d-flex justify-content-between my-2">
             <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-times me-2"></i>Cancelar
-            </a>
-            <!-- Botón de subir imágenes -->
-            <a href="{{ url_for('upload_images.upload') }}" class="btn btn-secondary d-flex align-items-center">
-                <i class="fas fa-upload me-2"></i>Subir Imágenes
             </a>
             <div>
                 <button type="submit" class="btn btn-success">
