@@ -1,6 +1,7 @@
 /***************************************************
- * view_technical.js
+ * view_technical.js (Unificado con lógica de imágenes)
  * Funciones para la vista de Técnicos (tickets asignados)
+ * + Subida / previsualización de imágenes y comentarios
  ***************************************************/
 
 /***** Funciones de Notificación *****/
@@ -40,20 +41,17 @@ function showSuccessTicketAlert() {
     });
 }
 
-function filterTickets(status) {
-    if (status === 'Todos') {
-        $('tbody tr').show();
-    } else {
-        $('tbody tr').each(function () {
-            var ticketStatus = $(this).find('td:nth-child(5) select').val();
-            $(this).toggle(ticketStatus === status);
-        });
-    }
-    updateTicketCounter();
-    setTimeout(updatePaginationAfterFilter, 100);
+/**
+ * Formatea texto reemplazando saltos de línea por <br>.
+ * @param {string} text
+ * @returns {string}
+ */
+function formatTextWithLineBreaks(text) {
+    if (!text) return '';
+    return text.replace(/\n/g, '<br>');
 }
 
-// Definir updatePaginationAfterFilter como una función global
+/***** Funciones para Filtrar y Paginar Tickets *****/
 window.updatePaginationAfterFilter = function () {
     const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
     const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
@@ -71,10 +69,28 @@ window.updatePaginationAfterFilter = function () {
     }
 };
 
-/***** Funcionalidad de Búsqueda y Filtrado *****/
-document.addEventListener("DOMContentLoaded", function () {
+function filterTickets(status) {
+    if (status === 'Todos') {
+        $('tbody tr').show();
+    } else {
+        $('tbody tr').each(function () {
+            var $select = $(this).find('select.status-select');
+            var ticketStatus = $select.val();
+            $(this).toggle(ticketStatus === status);
+        });
+    }
+    updateTicketCounter();
+    setTimeout(updatePaginationAfterFilter, 100);
+}
 
-    // --- Búsqueda en la tabla de tickets ---
+function updateTicketCounter() {
+    const visibleTickets = $('tbody tr:visible').length;
+    $('.badge.bg-primary strong').text(visibleTickets);
+}
+
+/***** Document Ready Principal *****/
+document.addEventListener("DOMContentLoaded", function () {
+    // 1) Búsqueda en tabla
     const searchInput = document.getElementById("searchInput");
     const ticketsTable = document.getElementById("ticketsTable");
     if (searchInput && ticketsTable) {
@@ -91,19 +107,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // --- Actualización del estado del ticket vía AJAX ---
+    // 2) Cambio de estado (AJAX)
     $(document).ready(function () {
-        // Definir el orden de los estados (de menor a mayor progreso)
+        // Orden de los estados
         const stateOrder = {
             "Asignado": 1,
             "En proceso": 2,
-            "Terminado": 3
+            "En revisión": 3,
+            "Terminado": 4
         };
 
-        // Al cargar la página, guardar el estado original como atributo data-*
+        // Guardar valor original al inicio
         $('.status-select').each(function () {
             const $select = $(this);
-            // Usar el atributo data-original-state si existe, o el valor actual
             if (!$select.attr('data-original-state')) {
                 $select.attr('data-original-state', $select.val());
             }
@@ -113,12 +129,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const $select = $(this);
             const ticketId = $select.data('ticket-id');
             const newStatus = $select.val();
-            // Usar el atributo data-original-state en lugar de data()
             const originalValue = $select.attr('data-original-state');
 
-            // Validar si es un retroceso de estado
+            // Validar retroceso de estado
             if (stateOrder[newStatus] < stateOrder[originalValue]) {
-                // Es un retroceso, mostrar error y revertir
                 Swal.fire({
                     icon: 'error',
                     title: 'Operación no permitida',
@@ -126,14 +140,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     confirmButtonColor: '#3085d6',
                     confirmButtonText: 'Entendido'
                 });
-
-                // Restaurar el valor original
                 $select.val(originalValue);
                 return false;
             }
 
-            // Si no es retroceso, continuar con el flujo normal
-            // Preguntar al usuario
+            // Confirmar cambio
             Swal.fire({
                 title: '¿Cambiar estado?',
                 text: `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
@@ -145,10 +156,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Indicar carga
+                    // Mostrar carga
                     $select.addClass('opacity-50').prop('disabled', true);
                     showToast('info', 'Actualizando estado...', 'top-end');
-                    // Enviar solicitud AJAX
+                    // Petición AJAX
                     $.ajax({
                         url: '/update_ticket_status_ajax',
                         method: 'POST',
@@ -158,7 +169,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         },
                         beforeSend: function() {
                             console.log("Enviando solicitud AJAX:", {
-                                url: '/update_ticket_status_ajax',
                                 ticket_id: ticketId,
                                 status: newStatus
                             });
@@ -169,8 +179,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (response.success) {
                                 showToast('success', 'Estado actualizado correctamente', 'top-end');
                                 updateRowStyles($select.closest('tr'), response.status);
-                                // Actualizar el valor original después de un cambio exitoso
-                                // Usar attr() en lugar de data()
                                 $select.attr('data-original-state', newStatus);
                             } else {
                                 showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
@@ -188,78 +196,30 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                             showToast('error', errorMsg, 'top-end');
                         }
-                    });                } else {
+                    });
+                } else {
                     $select.val(originalValue);
                 }
             });
         });
 
-        // Función simplificada usando clases de Bootstrap
         function updateRowStyles($row, status) {
-            // Quitar todas las clases de estado
-            $row.removeClass('table-success table-light');
-
-            // Aplicar clase según el estado
+            $row.removeClass('table-success table-light table-secondary');
             if (status === 'Terminado') {
                 $row.addClass('table-secondary');
             } else {
-                // Restaurar estilo de texto
                 $row.find('td').css('font-style', 'normal');
             }
         }
 
-        // Asegúrate de que esta función se llame cuando se carga la página
-        $(document).ready(function () {
-            console.log("Inicializando estilos de filas"); // Log para depuración
-
-            // Aplicar estilos iniciales a todas las filas según su estado
-            $('.status-select').each(function () {
-                const $select = $(this);
-                const status = $select.val();
-                console.log("Estado inicial:", status); // Log para depuración
-                updateRowStyles($select.closest('tr'), status);
-            });
-
-            // También actualizar cuando cambia el estado
-            $('.status-select').on('change', function () {
-                const $select = $(this);
-                const newStatus = $select.val();
-                console.log("Estado cambiado a:", newStatus); // Log para depuración
-                updateRowStyles($select.closest('tr'), newStatus);
-            });
+        // Inicializar estilos de filas
+        $('.status-select').each(function () {
+            const $select = $(this);
+            const status = $select.val();
+            updateRowStyles($select.closest('tr'), status);
         });
-    });
 
-
-    // --- Filtros Rápidos por Estado ---
-    $(document).ready(function () {
-        // Definir la función updateTicketCounter
-        function updateTicketCounter() {
-            const visibleTickets = $('tbody tr:visible').length;
-            $('.badge.bg-primary strong').text(visibleTickets);
-        }
-
-        function filterTickets(status) {
-            console.log("Filtrando por estado:", status);
-
-            if (status === 'Todos') {
-                console.log("Mostrando todos los tickets");
-                $('tbody tr').show();
-            } else {
-                $('tbody tr').each(function () {
-                    // Buscar el select de estado en cualquier columna
-                    var $select = $(this).find('select.status-select');
-                    var ticketStatus = $select.val();
-
-                    console.log("Ticket:", $(this).find('td:first').text(), "Estado:", ticketStatus);
-
-                    $(this).toggle(ticketStatus === status);
-                });
-            }
-            updateTicketCounter();
-            setTimeout(updatePaginationAfterFilter, 100);
-        }
-
+        // --- Filtro por estado (radios) ---
         $('input[name="filterStatus"]').on('change', function () {
             const selectedStatus = $(this).next('label').text().trim();
             filterTickets(selectedStatus);
@@ -272,14 +232,12 @@ document.addEventListener("DOMContentLoaded", function () {
             filterTickets(activeFilter);
         });
 
-        // Inicializar con "Todos"
+        // Inicializar filtro
         filterTickets('Todos');
         $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
     });
 
-
-
-    /***** Paginación de Tickets *****/
+    // 3) Paginación
     $(document).ready(function () {
         let currentPage = 1;
         let rowsPerPage = 10;
@@ -303,6 +261,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
                 }
             } else {
+                // Lógica de truncamiento (...)
                 $('#nextPage').before(`<li class="page-item ${currentPage === 1 ? 'active' : ''}" data-page="1"><a class="page-link" href="#">1</a></li>`);
                 let startPage = Math.max(2, currentPage - 2);
                 let endPage = Math.min(totalPages - 1, currentPage + 2);
@@ -373,7 +332,6 @@ document.addEventListener("DOMContentLoaded", function () {
         $('#searchInput').on('input', function () {
             setTimeout(updatePaginationAfterFilter, 100);
         });
-
         $('input[name="filterStatus"]').on('change', function () {
             setTimeout(updatePaginationAfterFilter, 100);
         });
@@ -381,7 +339,7 @@ document.addEventListener("DOMContentLoaded", function () {
         initPagination();
     });
 
-    // Función para ordenar tickets
+    // 4) Ordenar tickets
     function sortTickets(sortBy) {
         const rows = $('#ticketsTable tbody tr').get();
 
@@ -409,19 +367,272 @@ document.addEventListener("DOMContentLoaded", function () {
             $('#ticketsTable tbody').append(row);
         });
 
-        // Reinicializar la paginación después de ordenar
         setTimeout(updatePaginationAfterFilter, 100);
     }
 
-    // Manejar clics en opciones de ordenamiento
     $(document).on('click', '.sort-option', function (e) {
         e.preventDefault();
         const sortBy = $(this).data('sort');
         sortTickets(sortBy);
     });
 
-    // Ordenar por ID descendente al cargar la página
     $(document).ready(function () {
         sortTickets('id-desc');
     });
+
+    // 5) Manejo de la cámara y formulario de comentarios (PÁGINA DETALLE)
+    if (document.getElementById('commentForm')) {
+        // Botones y elementos de cámara
+        const startCameraBtn = document.getElementById('startCamera');
+        const takePhotoBtn = document.getElementById('takePhoto');
+        const retakePhotoBtn = document.getElementById('retakePhoto');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const photoCanvas = document.getElementById('photoCanvas');
+        const photoPreview = document.getElementById('photoPreview');
+        const capturedPhoto = document.getElementById('capturedPhoto');
+        const photoData = document.getElementById('photoData');
+
+        let stream = null;
+
+        // Iniciar cámara
+        if (startCameraBtn) {
+            startCameraBtn.addEventListener('click', async () => {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: false
+                    });
+                    cameraPreview.srcObject = stream;
+                    cameraPreview.classList.remove('d-none');
+                    startCameraBtn.classList.add('d-none');
+                    takePhotoBtn.classList.remove('d-none');
+                } catch (err) {
+                    console.error('Error al acceder a la cámara:', err);
+                    showToast('error', 'No se pudo acceder a la cámara. Verifica los permisos.');
+                }
+            });
+        }
+
+        // Tomar foto
+        if (takePhotoBtn) {
+            takePhotoBtn.addEventListener('click', () => {
+                const context = photoCanvas.getContext('2d');
+                photoCanvas.width = cameraPreview.videoWidth;
+                photoCanvas.height = cameraPreview.videoHeight;
+                context.drawImage(cameraPreview, 0, 0, photoCanvas.width, photoCanvas.height);
+
+                // Convertir a imagen
+                const imageData = photoCanvas.toDataURL('image/jpeg');
+                capturedPhoto.src = imageData;
+                photoData.value = imageData;
+
+                // Mostrar la foto capturada
+                photoPreview.classList.remove('d-none');
+                cameraPreview.classList.add('d-none');
+                takePhotoBtn.classList.add('d-none');
+
+                // Detener la cámara
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            });
+        }
+
+        // Volver a tomar foto
+        if (retakePhotoBtn) {
+            retakePhotoBtn.addEventListener('click', async () => {
+                photoPreview.classList.add('d-none');
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: false
+                    });
+                    cameraPreview.srcObject = stream;
+                    cameraPreview.classList.remove('d-none');
+                    takePhotoBtn.classList.remove('d-none');
+                } catch (err) {
+                    console.error('Error al acceder a la cámara:', err);
+                    showToast('error', 'No se pudo acceder a la cámara. Verifica los permisos.');
+                    startCameraBtn.classList.remove('d-none');
+                }
+            });
+        }
+
+        // Manejo del envío del formulario de comentario
+        const commentForm = document.getElementById('commentForm');
+        if (commentForm) {
+            commentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const submitBtn = this.querySelector('button[type="submit"]');
+
+                // Deshabilitar el botón y mostrar indicador de carga
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...';
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
+
+                    if (data.success) {
+                        showSuccessTicketAlert();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('error', data.message || 'Error al guardar los cambios');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
+                    showToast('error', 'Error al procesar la solicitud. Inténtalo de nuevo.');
+                });
+            });
+        }
+
+        // Actualizar estado del ticket en la página de detalle
+        const updateStatusBtn = document.getElementById('updateStatusBtn');
+        const ticketStatus = document.getElementById('ticketStatus');
+        if (updateStatusBtn && ticketStatus) {
+            const originalStatus = ticketStatus.value;
+            ticketStatus.setAttribute('data-original-state', originalStatus);
+
+            updateStatusBtn.addEventListener('click', function() {
+                const ticketId = ticketStatus.getAttribute('data-ticket-id');
+                const newStatus = ticketStatus.value;
+                const originalValue = ticketStatus.getAttribute('data-original-state');
+
+                const stateOrder = {
+                    "Asignado": 1,
+                    "En proceso": 2,
+                    "En revisión": 3,
+                    "Terminado": 4
+                };
+
+                if (stateOrder[newStatus] < stateOrder[originalValue]) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Operación no permitida',
+                        text: `No se puede cambiar el estado de "${originalValue}" a "${newStatus}". No se permite retroceder en el flujo de estados.`,
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'Entendido'
+                    });
+                    ticketStatus.value = originalValue;
+                    return false;
+                }
+
+                Swal.fire({
+                    title: '¿Cambiar estado?',
+                    text: `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, cambiar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        updateStatusBtn.disabled = true;
+                        updateStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Actualizando...';
+
+                        $.ajax({
+                            url: '/update_ticket_status_ajax',
+                            method: 'POST',
+                            data: {
+                                ticket_id: ticketId,
+                                status: newStatus
+                            },
+                            success: function(response) {
+                                updateStatusBtn.disabled = false;
+                                updateStatusBtn.innerHTML = '<i class="fas fa-save me-2"></i> Actualizar Estado';
+
+                                if (response.success) {
+                                    showToast('success', 'Estado actualizado correctamente', 'top-end');
+                                    ticketStatus.setAttribute('data-original-state', newStatus);
+
+                                    if (newStatus === 'Terminado') {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: '¡Ticket finalizado!',
+                                            text: 'El ticket ha sido marcado como terminado.',
+                                            confirmButtonColor: '#3085d6',
+                                            confirmButtonText: 'Aceptar'
+                                        });
+                                    }
+                                } else {
+                                    showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
+                                    ticketStatus.value = originalValue;
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Error en la solicitud AJAX:", status, error);
+                                updateStatusBtn.disabled = false;
+                                updateStatusBtn.innerHTML = '<i class="fas fa-save me-2"></i> Actualizar Estado';
+                                ticketStatus.value = originalValue;
+
+                                let errorMsg = 'Error al actualizar el estado';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMsg = xhr.responseJSON.message;
+                                }
+                                showToast('error', errorMsg, 'top-end');
+                            }
+                        });
+                    } else {
+                        ticketStatus.value = originalValue;
+                    }
+                });
+            });
+        }
+    }
+
+    // 6) Validar archivos al seleccionarlos (subida de imágenes)
+    const imagesInput = document.getElementById('images');
+    if (imagesInput) {
+        imagesInput.addEventListener('change', function() {
+            validateFiles(this, 5, 5);
+        });
+    }
 });
+
+/**
+ * Valida los archivos seleccionados (tipo, tamaño, cantidad).
+ * @param {HTMLInputElement} fileInput - elemento <input type="file">
+ * @param {number} [maxFiles=5] - límite de archivos
+ * @param {number} [maxSize=5] - tamaño máximo en MB
+ * @returns {boolean}
+ */
+function validateFiles(fileInput, maxFiles = 5, maxSize = 5) {
+    const files = fileInput.files;
+    if (files.length > maxFiles) {
+        showToast('error', `Máximo ${maxFiles} archivos permitidos`);
+        fileInput.value = '';
+        return false;
+    }
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.match('image.*')) {
+            showToast('error', `El archivo "${file.name}" no es una imagen válida`);
+            fileInput.value = '';
+            return false;
+        }
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > maxSize) {
+            showToast('error', `El archivo "${file.name}" excede el tamaño máximo de ${maxSize}MB`);
+            fileInput.value = '';
+            return false;
+        }
+    }
+    return true;
+}

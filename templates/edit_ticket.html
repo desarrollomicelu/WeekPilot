@@ -344,70 +344,69 @@
             </div>
         </div>
 
-        <!-- Sección de subida de imágenes -->
-        <div class="row mb-2">
-            <div class="col-md-12">
-                <div class="card shadow-sm image-upload-section">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-images me-2 text-primary"></i>Imágenes del Dispositivo</h5>
-                        <button type="button" class="btn btn-sm btn-primary" id="clearImagesBtn">
-                            <i class="fas fa-trash-alt me-1"></i> Limpiar imágenes
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- Campo para subir fotos desde galería -->
-                            <div class="col-md-6 mb-3">
-                                <label for="uploadImages" class="form-label">Subir Fotos</label>
-                                <input type="file" id="uploadImages" name="images" class="form-control" multiple
-                                    accept="image/*">
-                            </div>
-                            <!-- Campo para tomar foto con la cámara -->
-                            <div class="col-md-6 mb-3">
-                                <label for="takePhoto" class="form-label">Tomar Foto</label>
-                                <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*"
-                                    capture="environment">
-                            </div>
-                        </div>
+        <!-- Tarjeta con formulario para comentarios y subida de imágenes -->
+        <div class="card shadow-sm border-0 mb-2">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-upload me-2 text-primary"></i>Comentarios y Evidencias</h5>
+            </div>
+            <div class="card-body">
 
-                        <!-- Área de previsualización de imágenes -->
-                        <div id="previewContainer" class="row mt-4">
-                            <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
-                            {% if ticket_images %}
-                            {% for image in ticket_images %}
-                            <div class="col-6 col-md-3 mb-3 preview-image-container">
-                                <div class="position-relative">
-                                    <img src="{{ image.url }}" class="img-fluid rounded" alt="Imagen del ticket">
-                                    <button type="button"
-                                        class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image"
-                                        data-image-id="{{ image.id }}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                            {% endif %}
-                        </div>
-
-                        <!-- Campo para comentario -->
-                        <div class="mb-3">
-                            <label for="comment" class="form-label">
-                                <i class="fas fa-comment text-primary me-1"></i> Comentario
-                            </label>
-                            <textarea id="comment" name="comment" class="form-control" rows="3"
-                                placeholder="Agregue un comentario sobre el ticket..."
-                                aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
-                            <div id="commentHelp" class="form-text text-muted">
-                                Puede incluir detalles adicionales o información relevante para el ticket.
-                            </div>
-                        </div>
-                        <!-- Campo oculto para almacenar referencias a las imágenes -->
-                        <input type="hidden" id="imageReferences" name="image_references"
-                            value="{{ ticket_images_json|default('[]') }}">
-                        <!-- Campo oculto para almacenar IDs de imágenes a eliminar -->
-                        <input type="hidden" id="imagesToDelete" name="images_to_delete" value="[]">
+                <!-- Apartado para agregar comentarios -->
+                <div class="mb-4">
+                    <label for="comment" class="form-label">
+                        <i class="fas fa-comment text-primary me-1"></i> Agregar Comentario
+                    </label>
+                    <textarea id="comment" name="comment" class="form-control" rows="3"
+                        placeholder="Escribe aquí tus observaciones, diagnóstico o comentarios sobre el servicio..."
+                        aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
+                    <div id="commentHelp" class="form-text text-muted">
+                        Puede incluir detalles adicionales o información relevante para el ticket.
                     </div>
                 </div>
+
+                <!-- Campos para subir imágenes -->
+                <div class="mb-4">
+                    <h6 class="mb-3 border-bottom pb-2">Subir Imágenes</h6>
+                    <div class="row">
+                        <!-- Campo para subir fotos desde galería -->
+                        <div class="col-md-6 mb-3">
+                            <label for="uploadImages" class="form-label">Subir Fotos</label>
+                            <input type="file" id="uploadImages" name="images" class="form-control" multiple
+                                accept="image/*">
+                        </div>
+                        <!-- Campo para tomar foto con la cámara -->
+                        <div class="col-md-6 mb-3">
+                            <label for="takePhoto" class="form-label">Tomar Foto</label>
+                            <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*"
+                                capture="environment">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área de previsualización de imágenes -->
+                <div id="previewContainer" class="row mt-4">
+                    <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
+                    {% if ticket_images %}
+                    {% for image in ticket_images %}
+                    <div class="col-6 col-md-3 mb-3 preview-image-container">
+                        <div class="position-relative">
+                            <img src="{{ image.url }}" class="img-fluid rounded" alt="Imagen del ticket">
+                            <button type="button"
+                                class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image"
+                                data-image-id="{{ image.id }}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- Campo oculto para almacenar referencias a las imágenes -->
+                <input type="hidden" id="imageReferences" name="image_references"
+                    value="{{ ticket_images_json|default('[]') }}">
+                <!-- Campo oculto para almacenar IDs de imágenes a eliminar -->
+                <input type="hidden" id="imagesToDelete" name="images_to_delete" value="[]">
             </div>
         </div>
 
@@ -453,24 +452,11 @@
     </tr>
 </template>
 
-
-{% if current_spare_tickets %}{% for spare in current_spare_tickets %}
-<tr class="part-row">
-    <!-- Contenido de la fila -->
-</tr>
-{% endfor %}
-{% else %}
-<tr id="noPartsRow">
-    <td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
-</tr>
-{% endif %}
-
 <!-- Se incluye jQuery, Select2 y Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/edit_ticket_ST.js') }}"></script>
 <script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
-
 
 {% endblock %}

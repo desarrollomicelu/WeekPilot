@@ -410,8 +410,10 @@ def view_detail_ticket(ticket_id):
     return render_template(
         "view_detail_ticket.html",
         ticket=ticket,
-        client=client
+        client=client,
+        upload_images_url=url_for('upload_images.upload_form', ticket_id=ticket_id)
     )
+
 
 
 # Actualizar Estado de Ticket (AJAX)
@@ -447,3 +449,4 @@ def update_ticket_status_ajax():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+
