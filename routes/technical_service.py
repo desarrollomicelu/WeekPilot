@@ -1,12 +1,13 @@
 # routes/technical_service.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required
 from decimal import Decimal
 from datetime import datetime
 # Importa las funciones desde el módulo de servicios
 from models.problemsTickets import Problems_tickets
 from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts
+from services.ticket_email_service import TicketEmailService
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -19,16 +20,16 @@ from utils.decorators import technician_access
 technical_service_bp = Blueprint(
     "technical_service", __name__, template_folder="templates")
 
-# Función auxiliar para obtener todos los datos comunes
 
+# Función auxiliar para obtener todos los datos comunes
 
 def get_common_data():
     """Obtiene todos los datos comunes necesarios para las vistas de tickets"""
     product_info = get_product_information()
-    
+
     reference = []
     product_code = []
-    
+
     for item in product_info:
         reference.append(item["DESCRIPCIO"])
         product_code.append(item["CODIGO"])
@@ -44,6 +45,8 @@ def get_common_data():
     }
 
 # Crear Ticket
+
+
 @technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 def create_ticket():
@@ -69,7 +72,7 @@ def create_ticket():
         IMEI = request.form.get("IMEI")
         reference = request.form.get("reference")
         product_code = request.form.get("product_code")
-        comment = request.form.get("comment")        
+        comment = request.form.get("comment")
         selected_problem_ids = request.form.getlist("device_problems[]")
 
         # Valores financieros
@@ -78,7 +81,8 @@ def create_ticket():
             spare_value = float(request.form.get("spare_value") or 0)
             total = service_value + spare_value
         except ValueError:
-            flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
+            flash(
+                "Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.create_ticket"))
 
         # Fechas
@@ -92,18 +96,18 @@ def create_ticket():
         # Si el estado es "Asignado", registrar la fecha de asignación
         if state == "Asignado":
             assigned = datetime.now()
-            
+
         if state == "Recibido":
             received = datetime.now()
-            
-        if state == "En Proceso":   
+
+        if state == "En Proceso":
             in_progress = datetime.now()
-        
+
         if state == "En Revisión":
             under_review = datetime.now()
-        
-        if state == "Finalizado":
-            finished = datetime.now()   
+
+        if state == "Terminado":
+            finished = datetime.now()
 
         # Validar datos del cliente
         if not document:
@@ -118,7 +122,7 @@ def create_ticket():
         if phone and not phone.isdigit():
             flash("El teléfono debe contener solo números", "danger")
             return redirect(url_for("technical_service.create_ticket"))
-        
+
         # Validar datos del ticket
         if not technical_name or not technical_document:
             flash("El nombre y documento del técnico son obligatorios", "danger")
@@ -151,7 +155,7 @@ def create_ticket():
         if comment and len(comment) > 250:
             flash("El comentario no puede tener más de 250 caracteres", "danger")
             return redirect(url_for("technical_service.create_ticket"))
-        
+
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=document).first()
         if not client:
@@ -166,7 +170,8 @@ def create_ticket():
             db.session.commit()
 
         # Obtener problemas seleccionados
-        selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
+        selected_problems = Problems.query.filter(
+            Problems.id.in_(selected_problem_ids)).all()
 
         # Crear el nuevo ticket
         new_ticket = Tickets(
@@ -191,11 +196,11 @@ def create_ticket():
             under_review=under_review,
             finished=finished,
         )
-        
+
         # Asociar problemas al ticket
         for problem in selected_problems:
             new_ticket.problems.append(problem)
-        
+
         db.session.add(new_ticket)
         db.session.commit()
 
@@ -209,34 +214,40 @@ def create_ticket():
             if spare_codes[i]:  # Solo procesar si hay código de repuesto
                 # Verificar que haya cantidad
                 if i >= len(quantities) or not quantities[i]:
-                    flash(f"Falta la cantidad para el repuesto {spare_codes[i]}", "danger")
+                    flash(
+                        f"Falta la cantidad para el repuesto {spare_codes[i]}", "danger")
                     return redirect(url_for("technical_service.create_ticket"))
-                
+
                 try:
                     quantity = int(quantities[i])
                     if quantity <= 0:
-                        flash(f"La cantidad del repuesto {spare_codes[i]} debe ser mayor a cero", "danger")
+                        flash(
+                            f"La cantidad del repuesto {spare_codes[i]} debe ser mayor a cero", "danger")
                         return redirect(url_for("technical_service.create_ticket"))
                 except ValueError:
-                    flash(f"La cantidad del repuesto {spare_codes[i]} debe ser un número", "danger")
+                    flash(
+                        f"La cantidad del repuesto {spare_codes[i]} debe ser un número", "danger")
                     return redirect(url_for("technical_service.create_ticket"))
-                
+
                 # Verificar precio unitario
                 try:
                     unit_price_val = float(unit_prices[i])
                     if unit_price_val < 0:
-                        flash(f"El precio unitario del repuesto {spare_codes[i]} no puede ser negativo", "danger")
+                        flash(
+                            f"El precio unitario del repuesto {spare_codes[i]} no puede ser negativo", "danger")
                         return redirect(url_for("technical_service.create_ticket"))
                 except (ValueError, IndexError):
-                    flash(f"El precio unitario del repuesto {spare_codes[i]} debe ser un número válido", "danger")
+                    flash(
+                        f"El precio unitario del repuesto {spare_codes[i]} debe ser un número válido", "danger")
                     return redirect(url_for("technical_service.create_ticket"))
-                
+
                 try:
                     total_price_val = float(total_prices[i])
                 except (ValueError, IndexError):
-                    flash(f"Error al procesar el total del repuesto {spare_codes[i]}", "warning")
+                    flash(
+                        f"Error al procesar el total del repuesto {spare_codes[i]}", "warning")
                     return redirect(url_for("technical_service.create_ticket"))
-                
+
                 spare_ticket = Spares_tickets(
                     id_ticket=new_ticket.id_ticket,
                     spare_code=spare_codes[i],
@@ -247,9 +258,11 @@ def create_ticket():
                 db.session.add(spare_ticket)
 
         # Actualizar totales si es necesario
-        total_spare_value = sum(float(price) for price in total_prices if price)
+        total_spare_value = sum(float(price)
+                                for price in total_prices if price)
         new_ticket.spare_value = total_spare_value
-        new_ticket.total = new_ticket.service_value + Decimal(str(total_spare_value))
+        new_ticket.total = new_ticket.service_value + \
+            Decimal(str(total_spare_value))
         db.session.commit()
 
         flash("Ticket creado correctamente", "success")
@@ -269,13 +282,13 @@ def create_ticket():
 @login_required
 def list_tickets():
     clients = Clients_tickets.query.all()
-    tickets = Tickets.query.filter_by(type_of_service="0").order_by(Tickets.creation_date.asc()).all()
+    tickets = Tickets.query.filter_by(type_of_service="0").order_by(
+        Tickets.creation_date.asc()).all()
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
-        
+
     # Datos auxiliares para el formulario
     technicians = get_technicians()
 
-    
     # Cargar información adicional para cada ticket
     for ticket in tickets:
         # Asegurarse de que client_info esté cargado
@@ -291,22 +304,25 @@ def list_tickets():
 
 # Editar Ticket
 # Editar Ticket
+
+
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):
     # Obtener el ticket y cliente
     ticket = Tickets.query.get_or_404(ticket_id)
     client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
-    
+
     # Obtener repuestos del ticket
-    current_spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
-    
+    current_spare_tickets = Spares_tickets.query.filter_by(
+        id_ticket=ticket_id).all()
+
     # Obtener datos auxiliares
     technicians = get_technicians()
     product_info = get_product_information()
     spare_parts = get_spare_parts()
     problems_list = Problems.query.order_by(Problems.name).all()
-    
+
     # Procesamiento del formulario POST
     if request.method == "POST":
         # Actualizamos los datos del cliente
@@ -327,31 +343,34 @@ def edit_ticket(ticket_id):
         ticket.IMEI = request.form.get("IMEI")
         ticket.reference = request.form.get("reference")
         ticket.product_code = request.form.get("product_code")
-        
+
         # Actualizar el comentario
         ticket.comment = request.form.get("comment")
-        
+
         try:
-            ticket.service_value = float(request.form.get("service_value") or 0)
+            ticket.service_value = float(
+                request.form.get("service_value") or 0)
             ticket.spare_value = float(request.form.get("spare_value") or 0)
             ticket.total = ticket.service_value + ticket.spare_value
         except ValueError:
-            flash("Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
+            flash(
+                "Error: Los valores del servicio técnico y repuestos deben ser numéricos.", "danger")
             return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket_id))
-        
+
         # Actualizamos los problemas asociados
         selected_problem_ids = request.form.getlist("device_problems[]")
         try:
             selected_problem_ids = [int(pid) for pid in selected_problem_ids]
         except ValueError:
             selected_problem_ids = []
-        selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
+        selected_problems = Problems.query.filter(
+            Problems.id.in_(selected_problem_ids)).all()
         ticket.problems = selected_problems
-        
+
         # Actualizar repuestos
         # Primero eliminamos los repuestos existentes
         Spares_tickets.query.filter_by(id_ticket=ticket.id_ticket).delete()
-        
+
         # Procesar repuestos
         spare_codes = request.form.getlist("spare_part_code[]")
         quantities = request.form.getlist("part_quantity[]")
@@ -382,7 +401,7 @@ def edit_ticket(ticket_id):
         # Una vez procesados todos los repuestos
         flash("Ticket actualizado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets") + "?ticket_updated=success")
-    
+
     # Renderizar la plantilla con los datos
     return render_template(
         "edit_ticket.html",
@@ -402,18 +421,18 @@ def edit_ticket(ticket_id):
 def view_detail_ticket(ticket_id):
     # Obtenemos el ticket o devolvemos 404 si no existe
     ticket = Tickets.query.get_or_404(ticket_id)
-    
+
     # Obtenemos el cliente asociado al ticket
     client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
-    
+
     # Renderizamos el template de detalle, pasándole toda la información necesaria
     return render_template(
         "view_detail_ticket.html",
         ticket=ticket,
         client=client,
-        upload_images_url=url_for('upload_images.upload_form', ticket_id=ticket_id)
-    )
+        upload_images_url=url_for('upload_images.upload', ticket_id=ticket_id)
 
+    )
 
 
 # Actualizar Estado de Ticket (AJAX)
@@ -450,3 +469,42 @@ def update_ticket_status_ajax():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
+
+@technical_service_bp.route('/send_email_notification/<int:ticket_id>', methods=['POST'])
+@login_required
+def send_email_notification(ticket_id):
+    """Envía una notificación por correo electrónico al cliente sobre el ticket Terminado"""
+    ticket = Tickets.query.get_or_404(ticket_id)
+    
+    # Verificar que el ticket esté Terminado
+    if ticket.state != "Terminado" and ticket.state != "Terminado":
+        flash("El ticket debe estar Terminado para enviar la notificación", "warning")
+        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))
+    
+    # Obtener información necesaria
+    cliente = Clients_tickets.query.get(ticket.client)
+    tecnico = Empleados.query.filter_by(cedula=ticket.technical_document).first()
+    problemas = ticket.problems
+    
+    # Verificar que el cliente tenga correo
+    if not cliente.mail:
+        flash("El cliente no tiene una dirección de correo electrónico registrada", "warning")
+        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))
+    
+    # Enviar correo
+    email_service = current_app.ticket_email_service
+    success, error = email_service.enviar_notificacion_reparacion(
+        cliente=cliente,
+        ticket=ticket,
+        problemas=problemas,
+        tecnico=tecnico
+    )
+    
+    if success:
+        # Mensaje de éxito y redirección a la lista de tickets
+        flash(f"¡Correo enviado con éxito! Se ha notificado a {cliente.name} {cliente.lastname} que su dispositivo está listo.", "success")
+        return redirect(url_for('technical_service.list_tickets'))
+    else:
+        # Mensaje de error y permanencia en la página de detalle
+        flash(f"Error al enviar el correo: {error}. Por favor, inténtelo de nuevo o contacte al administrador del sistema.", "danger")
+        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))

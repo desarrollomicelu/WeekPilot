@@ -13,27 +13,19 @@ from dotenv import load_dotenv
 from flask import Flask, request, redirect, url_for, flash
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
+from services.ticket_email_service import TicketEmailService 
 
-
-
-"""
-flask_env = os.getenv('FLASK_ENV', 'production')
-if flask_env == 'development':
-    load_dotenv('.env.development')
-    print("Cargando configuración de desarrollo...")
-else:
-    load_dotenv('.env')
-    print("Cargando configuración de producción...")
-    
-"""
-
+# Cargar variables de entorno
 load_dotenv()
-    
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
-db.init_app(app)
+# Añadir la configuración de Azure a app.config
+app.config['AZURE_CONNECTION_STRING'] = os.environ.get('AZURE_CONNECTION_STRING', '')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@micelu.com')
 
+db.init_app(app)
 
 # Inicializa extensiones
 bcrypt.init_app(app)
@@ -42,43 +34,25 @@ migrate = Migrate(app, db)
 # Inicializa LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
-# Asegúrate de que el endpoint de login esté definido
 login_manager.login_view = "auth.login"
-
 
 @login_manager.user_loader
 def load_user(user_id):
-    # Si el ID es una cadena (UUID), no lo conviertas a entero
     return Empleados.query.get(user_id)
-'''
-@app.before_request
-def restrict_routes():
-    # Si el usuario es un técnico, restringir a rutas específicas
-    if current_user.is_authenticated and current_user.cargo == "servicioTecnico":
-        allowed_routes = [
-            'auth.logout', 
-            'view_technical.view_technical',
-            'view_technical.view_detail_ticket',
-            'view_technical.update_ticket_status_ajax',
-            # Agrega aquí más rutas permitidas para técnicos
-            'static'
-        ]
-        if request.endpoint and request.endpoint not in allowed_routes and not request.endpoint.startswith('static'):
-            flash("No tienes permiso para acceder a esta página", "warning")
-            return redirect(url_for('view_technical.view_technical'))
-    # Si el usuario no está autenticado, permitir solo rutas públicas
-    if not current_user.is_authenticated:
-        allowed_routes = ['auth.login', 'auth.logout', 'static']
-        if request.endpoint and request.endpoint not in allowed_routes and not request.endpoint.startswith('static'):
-            flash("Debes iniciar sesión para acceder a esta página", "warning")
-            return redirect(url_for('auth.login'))'''
 
+# Configuración del servicio de correo
+azure_connection_string = app.config['AZURE_CONNECTION_STRING']
+sender_address = app.config['MAIL_DEFAULT_SENDER']
+
+# Verificar si tenemos la configuración necesaria
+if not azure_connection_string:
+    app.logger.warning("AZURE_CONNECTION_STRING no está configurado. El servicio de correo no funcionará correctamente.")
+
+# Inicializar el servicio de correo
+app.ticket_email_service = TicketEmailService(azure_connection_string, sender_address)
 
 # Registra los blueprints
 register_blueprints(app)
-
-"""with app.app_context():
-    db.create_all()"""
 
 if __name__ == "__main__":
     app.run(debug=True)

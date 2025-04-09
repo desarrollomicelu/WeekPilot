@@ -332,23 +332,86 @@
         </div>
     </div>
 
-<!-- Botones de acción -->
-<div class="d-flex justify-content-between my-2">
-    <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>Volver
-    </a>
-    <div>
-        <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
-            <i class="fas fa-edit me-2"></i>Editar Ticket
+    <!-- Botones de acción -->
+    <div class="d-flex justify-content-between my-2">
+        <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
-        <button type="button" class="btn btn-success ms-2" onclick="window.print()">
+        <button type="button" class="btn btn-success ms-2">
             <i class="fas fa-print me-2"></i>Imprimir
         </button>
+        
+        <div>
+            <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
+                class="btn btn-primary">
+                <i class="fas fa-edit me-2"></i>Editar Ticket
+            </a>
+            <!-- Botón para enviar correo -->
+            {% if ticket.state == "Terminado" and client.mail %}
+            <button type="button" class="btn btn-info ms-2" id="sendEmailBtn">
+                <i class="fas fa-envelope me-2"></i>Enviar Correo
+            </button>
+            {% endif %}
+
+        </div>
     </div>
-</div>
-</div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Modal de confirmación para enviar correo -->
+    <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendEmailModalLabel">Confirmar envío de correo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas enviar un correo de notificación al cliente?</p>
+                    <p><strong>Destinatario:</strong> {{ client.mail }}</p>
 
-{% endblock %}
+                    <!-- Indicador de carga (oculto por defecto) -->
+                    <div id="emailLoadingIndicator" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Enviando correo...</span>
+                        </div>
+                        <p class="mt-2">Enviando correo, por favor espere...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form id="sendEmailForm"
+                        action="{{ url_for('technical_service.send_email_notification', ticket_id=ticket.id_ticket) }}"
+                        method="post">
+                        <button type="submit" id="sendEmailButton" class="btn btn-primary">Enviar Correo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificaciones -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="emailToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header" id="emailToastHeader">
+                <strong class="me-auto" id="emailToastTitle">Notificación</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="emailToastMessage">
+                <!-- El mensaje se insertará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor para mensajes flash (invisible) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message d-none" data-message="{{ message }}" data-category="{{ category }}"></div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/view_detail_ticket.js') }}"></script>
+
+    {% endblock %}

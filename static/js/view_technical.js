@@ -565,7 +565,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (newStatus === 'Terminado') {
                                         Swal.fire({
                                             icon: 'success',
-                                            title: '¡Ticket finalizado!',
+                                            title: '¡Ticket Terminado!',
                                             text: 'El ticket ha sido marcado como terminado.',
                                             confirmButtonColor: '#3085d6',
                                             confirmButtonText: 'Aceptar'

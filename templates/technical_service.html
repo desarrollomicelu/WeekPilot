@@ -57,7 +57,8 @@
       <div class="col-md-4">
         <!-- Agregar esto cerca de los filtros -->
         <div class="d-flex justify-content-end w-100">
-          <button type="button" class="btn btn-outline-secondary dropdown-toggle ms-auto" data-bs-toggle="dropdown" aria-expanded="false">
+          <button type="button" class="btn btn-outline-secondary dropdown-toggle ms-auto" data-bs-toggle="dropdown"
+            aria-expanded="false">
             <i class="fas fa-sort me-1"></i>Ordenar por
           </button>
           <ul class="dropdown-menu">
@@ -148,17 +149,22 @@
 
             <td class="text-center">
               <div class="btn-group">
-                <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
-                  class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}"
-                  class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="mailto:{{ ticket.client_info.mail }}" class="btn btn-sm btn-success">
-                  <i class="fas fa-envelope"></i>
-                </a>
+                <!-- Botón para Editar Ticket con formulario -->
+                <form action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" method="get"
+                  style="display:inline-block;">
+                  <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </form>
+
+                <!-- Botón para Ver Detalle Ticket con formulario -->
+                <form action="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}"
+                  method="get" style="display:inline-block;">
+                  <button type="submit" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </form>
+
               </div>
             </td>
           </tr>

@@ -140,7 +140,7 @@
                                 <option value="Asignado" {% if ticket.state == "Asignado" %}selected{% endif %}>Asignado</option>
                                 <option value="Recibido" {% if ticket.state == "Recibido" %}selected{% endif %}>Recibido</option>
                                 <option value="En proceso" {% if ticket.state == "En proceso" %}selected{% endif %}>En proceso</option>
-                                <option value="Finalizado" {% if ticket.state == "Finalizado" %}selected{% endif %}>Finalizado</option>
+                                <option value="Terminado" {% if ticket.state == "Terminado" %}selected{% endif %}>Terminado</option>
                             </select>
                         </div>
                     </div>
@@ -256,7 +256,7 @@
                                     <th>Asignado</th>
                                     <th>Recibido</th>
                                     <th>En Proceso</th>
-                                    <th>Finalizado</th>
+                                    <th>Terminado</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -264,7 +264,7 @@
                                     <td>{{ ticket.assigned.strftime('%Y-%m-%d %H:%M:%S') if ticket.assigned else 'No asignado' }}</td>
                                     <td>{{ ticket.received.strftime('%Y-%m-%d %H:%M:%S') if ticket.received else 'No recibido' }}</td>
                                     <td>{{ ticket.in_progress.strftime('%Y-%m-%d %H:%M:%S') if ticket.in_progress else 'No iniciado' }}</td>
-                                    <td>{{ ticket.finished.strftime('%Y-%m-%d %H:%M:%S') if ticket.finished else 'No finalizado' }}</td>
+                                    <td>{{ ticket.finished.strftime('%Y-%m-%d %H:%M:%S') if ticket.finished else 'No Terminado' }}</td>
                                 </tr>
                             </tbody>
                         </table>

@@ -343,7 +343,7 @@ def edit_tickets_RI(ticket_id):
                 ticket.received = datetime.now()
             elif state == "En proceso" and not ticket.in_progress:
                 ticket.in_progress = datetime.now()
-            elif state == "Finalizado" and not ticket.finished:
+            elif state == "Terminado" and not ticket.finished:
                 ticket.finished = datetime.now()
             
             # Actualizar problemas asociados
