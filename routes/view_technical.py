@@ -39,7 +39,7 @@ def save_image(image_file):
 
 
 # ----------------------------------------------------------------------
-# RUTA EXISTENTE (LISTA DE TICKETS ASIGNADOS AL TÉCNICO)
+# (LISTA DE TICKETS ASIGNADOS AL TÉCNICO)
 # ----------------------------------------------------------------------
 @view_technical_bp.route("/view_technical")
 @login_required
@@ -72,11 +72,6 @@ def view_technical():
 @login_required
 @technician_access()
 def technician_ticket_detail(ticket_id):
-    """
-    - Muestra detalles del ticket asignado al técnico (campo `comment`).
-    - Permite subir imágenes (múltiples archivos) y tomar foto.
-    - Permite agregar texto al campo `comment` y guardarlo.
-    """
     ticket = Tickets.query.get_or_404(ticket_id)
 
     if request.method == "POST":
@@ -137,7 +132,6 @@ def technician_ticket_detail(ticket_id):
 # ----------------------------------------------------------------------
 @view_technical_bp.route('/update_ticket_status_ajax', methods=['POST'])
 @login_required
-@admin_or_technician_access()
 def update_ticket_status_ajax():
     ticket_id = request.form.get('ticket_id')
     new_status = request.form.get('status')

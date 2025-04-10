@@ -1,16 +1,12 @@
 /**
  * view_detail_ticket.js
  * Script específico para la página de detalle de ticket (view_detail_ticket.html)
- * Maneja la interacción del usuario con el botón de envío de correo, impresión y notificaciones.
  */
 
 // Inicializar componentes cuando el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar el modal para enviar correo
     initEmailModal();
-    
-    // Configurar el botón de impresión
-    setupPrintButton();
     
     // Procesar mensajes flash para mostrarlos como toasts o alertas
     processFlashMessages();

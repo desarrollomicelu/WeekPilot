@@ -45,8 +45,6 @@ def get_common_data():
     }
 
 # Crear Ticket
-
-
 @technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 def create_ticket():
@@ -152,7 +150,7 @@ def create_ticket():
             flash("Debe seleccionar al menos un problema", "danger")
             return redirect(url_for("technical_service.create_ticket"))
 
-        if comment and len(comment) > 250:
+        if comment and len(comment) > 500:
             flash("El comentario no puede tener más de 250 caracteres", "danger")
             return redirect(url_for("technical_service.create_ticket"))
 
@@ -303,9 +301,6 @@ def list_tickets():
     )
 
 # Editar Ticket
-# Editar Ticket
-
-
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 def edit_ticket(ticket_id):

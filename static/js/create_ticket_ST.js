@@ -27,6 +27,7 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
     Toast.fire({ icon: icon, title: title });
 }
 
+
 /**
  * Muestra una alerta de éxito para la creación del ticket.
  */
@@ -427,10 +428,10 @@ document.addEventListener("DOMContentLoaded", function () {
     /***** 1. Mostrar alerta si el ticket fue creado *****/
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('ticket_created') === 'success') {
-        showSuccessTicketAlert();
+        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
-
+    
     /***** 2. Inicialización de Select2 *****/
     if (document.getElementById('reference')) {
         $('#reference').select2({

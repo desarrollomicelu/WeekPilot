@@ -128,56 +128,78 @@
                     <h5 class="mb-0"><i class="fas fa-clock me-2 text-primary"></i>Fechas y Tiempos</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between">
+                        <div class="date-card mb-3">
                             <div class="card h-100 border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Creación</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.creation_date.strftime('%d/%m/%Y') if
-                                        ticket.creation_date else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.creation_date.strftime('%H:%M:%S') if
-                                        ticket.creation_date else '' }}</small>
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Creación</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.creation_date.strftime('%d/%m/%Y') if ticket.creation_date else 'N/A'
+                                        }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.creation_date.strftime('%H:%M:%S') if ticket.creation_date else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="date-card mb-3">
                             <div class="card h-100 border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Asignado</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned
-                                        else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned
-                                        else '' }}</small>
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Asignado</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="date-card mb-3">
                             <div class="card h-100 border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">En Proceso</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.in_progress.strftime('%d/%m/%Y') if
-                                        ticket.in_progress else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.in_progress.strftime('%H:%M:%S') if
-                                        ticket.in_progress else '' }}</small>
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">En Proceso</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.in_progress.strftime('%d/%m/%Y') if ticket.in_progress else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.in_progress.strftime('%H:%M:%S') if ticket.in_progress else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="date-card mb-3">
                             <div class="card h-100 border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Terminado</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished
-                                        else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.finished.strftime('%H:%M:%S') if ticket.finished
-                                        else '' }}</small>
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">En Revisión</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Terminado</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.finished.strftime('%H:%M:%S') if ticket.finished else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /.d-flex -->
+                </div><!-- /.card-body -->
+            </div><!-- /.card -->
+        </div><!-- /.col-md-12 -->
+    </div><!-- /.row -->
 
     <!-- Fila 3: Repuestos Utilizados -->
     <div class="row mb-2">
@@ -337,10 +359,6 @@
         <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
-        <button type="button" class="btn btn-success ms-2">
-            <i class="fas fa-print me-2"></i>Imprimir
-        </button>
-        
         <div>
             <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
                 class="btn btn-primary">

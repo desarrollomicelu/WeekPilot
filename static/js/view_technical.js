@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const stateOrder = {
             "Asignado": 1,
             "En proceso": 2,
-            "En revisión": 3,
+            "En revision": 3,
             "Terminado": 4
         };
 
