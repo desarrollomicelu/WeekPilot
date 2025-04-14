@@ -1,9 +1,9 @@
 :root {
   --color-primario: #60A5FA;       /* Celeste (color principal) */
-  --color-secundario: #4590E8;    /* Azul marino (para contrastes) */
+  --color-secundario: #000000;    /* Azul marino (para contrastes) */
   --color-fondo: #F3F4F6;         /* Gris neutro (fondo) */
   --color-texto: #000000;         /* Negro (texto principal) */
-  --color-blanco: #FFFFFF;        /* Blanco (texto y elementos claros) */
+  --color-blanco: #000000;        /* Blanco (texto y elementos claros) */
   --sombra: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
 }
 
@@ -85,3 +85,4 @@ body {
 #searchInput:focus {
   box-shadow: 0 0 5px var(--color-secundario);
 }
+  

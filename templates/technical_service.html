@@ -1,19 +1,19 @@
-{% extends "base.html" %}
-{% block title %}Technical Service{% endblock %}
-{% block content %}
+  {% extends "base.html" %}
+  {% block title %}Technical Service{% endblock %}
+  {% block content %}
 
-<div class="container-fluid py-4">
+  <div class="container-fluid py-4 px-3">
   <!-- Fila del título -->
   <div class="row mb-2">
-    <div class="col">
+    <div class="col-12">
       <h2 class="mb-0">
         <i class="fas fa-ticket-alt text-primary me-2"></i>Gestión de Tickets Servicio Técnico
       </h2>
     </div>
   </div>
   <!-- Fila de controles -->
-  <div class="row">
-    <div class="col d-flex justify-content-end align-items-center gap-2">
+  <div class="row mt-3">
+    <div class="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2">
       <!-- Barra de búsqueda compacta -->
       <div class="input-group" style="max-width: 250px;">
         <span class="input-group-text bg-light">
@@ -35,157 +35,155 @@
 </div>
 
 
-<!-- Filtros rápidos -->
-<div class="card mb-4 border-0 shadow-sm">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-8">
-        <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
-          <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
-            %}checked{% endif %}>
-          <label class="btn btn-outline-primary" for="btn{{ status }}">
-            <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
-            {{ status }}
-          </label>
-          {% endfor %}
+  <!-- Filtros rápidos -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="d-flex gap-2 flex-nowrap">
+            {% for status in ['Todos', 'Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
+            <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
+              %}checked{% endif %}>
+            <label class="btn btn-outline-primary" for="btn{{ status }}">
+              <i
+                class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
+              {{ status }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de tickets -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <div>
+          <h3>Listado de todos los tickets </h3>
+        </div>
+        <div class="ms-3">
+          
         </div>
       </div>
-      <div class="col-md-4">
+      <span class="badge bg-primary rounded-pill py-2 px-3">
+        <i class="fas fa-ticket-alt me-2"></i>
+        Tickets activos: <strong>{{ tickets|length }}</strong>
+      </span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="ticketsTable">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">#</th>
+              <th style="width: 8%">Cliente</th>
+              <th >Documento</th>
+              <th >Técnico</th>
+              <th >Estado</th>
+              <th >Prioridad</th>
+              <th >Valor Serv.</th>
+              <th >Valor Rep.</th>
+              <th >Total</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ticket in tickets %}
+            <tr class="align-middle" data-status="{{ ticket.state }}">
+              <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div>{{ ticket.client_info.name }}</div>
+                </div>
+              </td>
+              <td>{{ ticket.client_info.document }}</td>
+              <td>
+                {% if ticket.technical_name %}
+                {{ ticket.technical_name.replace('.', ' ') | title }}
+                {% else %}
+                <span class="badge bg-secondary">Sin asignar</span>
+                {% endif %}
+              </td>
 
+              <td>
+                <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}">
+                  <option value="Sin asignar" {% if ticket.state == 'Sin asignar' %}selected{% endif %}>Sin asignar</option>
+                  <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
+                  <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
+                  <option value="Terminado" {% if ticket.state == 'Terminado' %}selected{% endif %}>Terminado</option>
+                </select>
+              </td>
+
+              <td>
+                <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                  {{ ticket.priority }}
+                </span>
+              </td>
+
+              <td>${{ "{:,.0f}".format(ticket.service_value) }}</td>
+              <td>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
+              <td><span class="badge bg-black fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
+              <td class="text-center">
+                <div class="btn-group">
+                  <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="mailto:{{ ticket.client_info.mail }}" class="btn btn-sm btn-danger">
+                    <i class="fas fa-envelope"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="11" class="text-center py-5">
+                <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
+                <p class="text-muted">No hay tickets registrados actualmente.</p>
+                <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">
+                  <i class="fas fa-plus me-1"></i> Crear nuevo ticket
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Tabla de tickets -->
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center">
-      <div>
-        <h3>Listado de todos los tickets </h3>
+    <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
+          <option value="10">10 filas</option>
+          <option value="25">25 filas</option>
+          <option value="50">50 filas</option>
+          <option value="100">100 filas</option>
+        </select>
+        <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ tickets|length }}</strong> tickets</small>
       </div>
-      <div class="ms-3">
-        
-      </div>
-    </div>
-    <span class="badge bg-primary rounded-pill py-2 px-3">
-      <i class="fas fa-ticket-alt me-2"></i>
-      Tickets activos: <strong>{{ tickets|length }}</strong>
-    </span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="ticketsTable">
-        <thead class="table-light">
-          <tr>
-            <th class="ps-3">#</th>
-            <th>Cliente</th>
-            <th>Documento</th>
-            <th>Técnico</th>
-            <th>Estado</th>
-            <th>Prioridad</th>
-            <th>Valor Serv.</th>
-            <th>Valor Rep.</th>
-            <th>Total</th>
-            <th class="text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ticket in tickets %}
-          <tr class="align-middle" data-status="{{ ticket.state }}">
-            <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div>{{ ticket.client_info.name }}</div>
-              </div>
-            </td>
-            <td>{{ ticket.client_info.document }}</td>
-            <td>
-              {% if ticket.technical_name %}
-              {{ ticket.technical_name.replace('.', ' ') | title }}
-              {% else %}
-              <span class="badge bg-secondary">Sin asignar</span>
-              {% endif %}
-            </td>
-
-            <td>
-              <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}">
-                <option value="Sin asignar" {% if ticket.state == 'Sin asignar' %}selected{% endif %}>Sin asignar</option>
-                <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
-                <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
-                <option value="Terminado" {% if ticket.state == 'Terminado' %}selected{% endif %}>Terminado</option>
-              </select>
-            </td>
-
-            <td>
-              <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
-                {{ ticket.priority }}
-              </span>
-            </td>
-
-            <td>${{ "{:,.0f}".format(ticket.service_value) }}</td>
-            <td>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
-            <td class="text-center">
-              <div class="btn-group">
-                <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{{ url_for('technical_service.view_detail_ticket', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="mailto:{{ ticket.client_info.mail }}" class="btn btn-sm btn-danger">
-                  <i class="fas fa-envelope"></i>
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="11" class="text-center py-5">
-              <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
-              <p class="text-muted">No hay tickets registrados actualmente.</p>
-              <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Crear nuevo ticket
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <nav aria-label="Paginación de tickets">
+        <ul class="pagination pagination-sm mb-0" id="pagination">
+          <li class="page-item disabled" id="prevPage">
+            <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
+          </li>
+          <li class="page-item active" data-page="1"><a class="page-link" href="#">1</a></li>
+          <!-- Páginas adicionales se agregarán dinámicamente -->
+          <li class="page-item" id="nextPage">
+            <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+          </li>
+        </ul>
+      </nav>
     </div>
   </div>
-  <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center">
-      <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
-        <option value="10">10 filas</option>
-        <option value="25">25 filas</option>
-        <option value="50">50 filas</option>
-        <option value="100">100 filas</option>
-      </select>
-      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ tickets|length }}</strong> tickets</small>
-    </div>
-    <nav aria-label="Paginación de tickets">
-      <ul class="pagination pagination-sm mb-0" id="pagination">
-        <li class="page-item disabled" id="prevPage">
-          <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
-        </li>
-        <li class="page-item active" data-page="1"><a class="page-link" href="#">1</a></li>
-        <!-- Páginas adicionales se agregarán dinámicamente -->
-        <li class="page-item" id="nextPage">
-          <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
-        </li>
-      </ul>
-    </nav>
   </div>
-</div>
-</div>
 
-<!-- Incluir jQuery, Bootstrap, SweetAlert y el script personalizado -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
-{% endblock %}
+  <!-- Incluir jQuery, Bootstrap, SweetAlert y el script personalizado -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
+  {% endblock %}

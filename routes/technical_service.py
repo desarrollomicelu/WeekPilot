@@ -190,7 +190,7 @@ def create_ticket():
 @login_required
 def list_tickets():
     clients = Clients_tickets.query.all()
-    tickets = Tickets.query.filter_by(type_of_service="Servicio Técnico").all()
+    tickets = Tickets.query.filter_by(type_of_service="0").all()
     technicians = Empleados.query.filter_by(cargo="servicioTecnico").all()
 
     # Cargar información adicional para cada ticket

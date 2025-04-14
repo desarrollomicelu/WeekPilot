@@ -1,5 +1,5 @@
 .titulo1{
-    text-align: center; 
+    text-align: left; 
     font-family: 'Poppins', sans-serif;
     
 }
@@ -53,5 +53,49 @@ tr[data-status="Terminado"] {
 
 /* Estilos para el toast container */
 .toast-container {
+    z-index: 1100;
+    position: fixed;
+    top: 130px; /* Espacio para que no interfiera con el navbar */
+    right: 15px;
+    max-width: 350px;
+}
+/* Estilos para el contenedor de alertas */
+.alert-container {
+    position: fixed;
+    top: 130px; /* Espacio para que no interfiera con el navbar */
+    right: 15px;
     z-index: 1090;
+    max-width: 350px;
+}
+
+/* Estilos para mejorar la integración con el navbar */
+.content {
+    padding-top: 20px; /* Espacio adicional en la parte superior */
+}
+
+/* Ajustes para formularios */
+.form-container {
+    margin-top: 20px;
+}
+
+/* Mejoras para la visualización en dispositivos móviles */
+@media (max-width: 768px) {
+    .toast-container, .alert-container {
+        max-width: 90%;
+        right: 5%;
+    }
+    
+    .card-header {
+        padding: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Mejoras para los botones de acción */
+.action-buttons {
+    margin-top: 20px;
+    margin-bottom: 30px;
 }

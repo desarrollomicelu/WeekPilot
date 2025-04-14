@@ -1,99 +1,70 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const content = document.getElementById('content');
-    const closeBtn = document.getElementById('close-btn');
-    const openBtn = document.getElementById('open-btn');
+    // Elementos del DOM
+    const navbarToggler = document.querySelector('.navbar-toggler');
+    const navbarCollapse = document.querySelector('.navbar-collapse');
     const overlay = document.getElementById('sidebar-overlay');
     
-    // Función para verificar si estamos en móvil
     function isMobile() {
         return window.innerWidth < 992;
     }
     
-    // Función para ajustar el contenido según el estado del sidebar
-    function adjustContent() {
-        if (sidebar.classList.contains('collapsed')) {
-            content.style.marginLeft = isMobile() ? '0' : '80px';
-            content.classList.add('expanded');
-        } else {
-            content.style.marginLeft = isMobile() ? '0' : '250px';
-            content.classList.remove('expanded');
-        }
+    // Función para cerrar el menú correctamente
+    function closeNavMenu() {
+        // Primero quitamos las clases
+        navbarCollapse.classList.remove('show');
+        if (overlay) overlay.classList.remove('active');
+        
+        // Luego actualizamos el estado del botón toggler
+        navbarToggler.setAttribute('aria-expanded', 'false');
+        
+        // Si estás usando Bootstrap 5, esto también podría ser necesario
+        document.body.classList.remove('overflow-hidden');
     }
     
-    // Función para ajustar el sidebar según el tamaño de pantalla
-    function adjustSidebar() {
-        if (isMobile()) {
-            // En móvil, el sidebar siempre empieza oculto
-            sidebar.classList.add('collapsed');
-            if (!sidebar.classList.contains('show')) {
+    // Manejar clic en el botón de toggle
+    navbarToggler.addEventListener('click', function() {
+        if (overlay) {
+            if (navbarCollapse.classList.contains('show')) {
                 overlay.classList.remove('active');
+            } else {
+                overlay.classList.add('active');
             }
         }
-        adjustContent();
+    });
+    
+    // Cerrar menú al hacer clic en el overlay
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeNavMenu();
+        });
     }
     
-    // Ajustar al cargar la página
-    adjustSidebar();
-    
-    // Ajustar cuando cambia el tamaño de la ventana
-    window.addEventListener('resize', adjustSidebar);
-    
-    // Manejar clic en el botón de cerrar
-    closeBtn.addEventListener('click', function() {
-        if (isMobile()) {
-            // En móvil, ocultar el sidebar y el overlay
-            sidebar.classList.remove('show');
-            overlay.classList.remove('active');
-        } else {
-            // En desktop, alternar entre expandido y colapsado
-            sidebar.classList.toggle('collapsed');
-            adjustContent();
-            
-            // Cambiar el ícono del botón según el estado
-            if (sidebar.classList.contains('collapsed')) {
-                closeBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-            } else {
-                closeBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-            }
-        }
-    });
-    
-    // Manejar clic en el botón de abrir
-    openBtn.addEventListener('click', function() {
-        if (isMobile()) {
-            // En móvil, mostrar el sidebar y el overlay
-            sidebar.classList.add('show');
-            overlay.classList.add('active');
-        } else {
-            // En desktop, expandir el sidebar
-            sidebar.classList.remove('collapsed');
-            adjustContent();
-            closeBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        }
-    });
-    
-    // Cerrar sidebar al hacer clic en el overlay (solo en móvil)
-    overlay.addEventListener('click', function() {
-        sidebar.classList.remove('show');
-        overlay.classList.remove('active');
-    });
-    
-    // Cerrar sidebar al hacer clic en un enlace del menú (solo en móvil)
-    const menuLinks = document.querySelectorAll('.sidebar-menu a');
+    // Cerrar menú al hacer clic en un enlace del menú (siempre en móvil)
+    const menuLinks = document.querySelectorAll('.navbar-nav .nav-link');
     menuLinks.forEach(link => {
         link.addEventListener('click', function() {
-            if (isMobile() && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                overlay.classList.remove('active');
+            if (isMobile() && navbarCollapse.classList.contains('show')) {
+                // Pequeño retraso para permitir la navegación antes de cerrar el menú
+                setTimeout(closeNavMenu, 10);
             }
         });
     });
     
-    // Inicializar el sidebar en estado colapsado en desktop
-    if (!isMobile()) {
-        sidebar.classList.add('collapsed');
-        closeBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        adjustContent();
-    }
+    // Cerrar al hacer clic fuera del menú
+    document.addEventListener('click', function(event) {
+        const isClickInsideMenu = navbarCollapse.contains(event.target);
+        const isClickOnToggler = navbarToggler.contains(event.target);
+        
+        if (isMobile() && navbarCollapse.classList.contains('show') && !isClickInsideMenu && !isClickOnToggler) {
+            closeNavMenu();
+        }
+    });
+    
+    // Ajustar overlay cuando cambia el tamaño de la ventana
+    window.addEventListener('resize', function() {
+        if (!isMobile()) {
+            closeNavMenu();
+        }
+    });
 });

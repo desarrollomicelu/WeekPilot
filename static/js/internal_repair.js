@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Inicializar Select2 para el nuevo select de repuesto si está disponible
                 if ($.fn.select2 && newRow.querySelector('select')) {
                     $(newRow.querySelector('select')).select2({
-                        width: '100%',
+                        width: '90%',
                         placeholder: "Seleccione un repuesto",
                         allowClear: true
                     });

@@ -1,64 +1,87 @@
-:root {
-    --color-azul-marino: #1E3A8A;
-    --color-celeste: #60A5FA;
-    --color-gris-neutro: #F3F4F6;
-    --color-blanco: #FFFFFF;
-    --color-negro: #000000;
-}
-
 body {
-    background: var(--color-celeste);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.card {
-    border-radius: 20px;
-    overflow: hidden;
-    border: none;
-    background-color: var(--color-blanco);
-}
-
-.card-body {
-    padding: 2rem;
-}
-
-h2 {
-    font-size: 1.5rem;
-    color: var(--color-negro);
-}
-
-.form-control {
-    border-radius: 10px;
-    font-size: 1rem;
-    height: calc(1.5em + 1rem + 2px);
-    background-color: var(--color-gris-neutro);
-    color: var(--color-negro);
-}
-
-.form-floating > label {
-    font-size: 1rem;
-    color: var(--color-negro);
-}
-
-.btn-primary {
-    background-color: var(--color-celeste);
-    color: var(--color-blanco);
-    border-radius: 10px;
-    padding: 1rem;
-    font-size: 1rem;
-    letter-spacing: 0.05rem;
-}
-
-.btn-primary:hover {
-    background-color: var(--color-azul-marino);
-    color: var(--color-blanco);
-}
-
-hr {
-    border-top: 1px solid #ddd;
-}
-
-.form-check-label {
-    font-size: 0.9rem;
-    color: var(--color-negro);
-}
+    background-color: #F4F5F6;
+    font-weight: bold;
+  }
+  
+  #content h3 {
+    
+    font-weight:bold;
+    font-size:2em;
+    font-family: "Poppins", Poppins-Bold;
+   
+  }
+  
+  .panel {
+    margin-top: 50px;
+    border-radius: 15px;
+    background-color: #EBEDEF ;
+  }
+  
+  
+  .boton1 {
+  color: white;
+  background: #000000;
+  border-top-right-radius: 4vw;
+  border-bottom-right-radius: 4vw;
+  border: none;
+  padding: 1vw 2vw;
+  box-shadow: 0.2vw 0.2vw 0.4vw rgba(0, 0, 0, 0.2);  
+  font-family: "Poppins", sans-serif;
+  font-weight: bold;
+  }
+  
+  .title-container {
+  background-color: black;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  }
+  
+  .title-text {
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
+  font-size: 1.2em;
+  font-family: 'Poppins', sans-serif;
+  }
+  
+  img {
+  width: 200px;
+  height: 150px;
+  }
+  
+  .input-group {
+  position: relative;
+  border-radius: 8px;
+  }
+  
+  .passwordToggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 10;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #000000;
+  }
+  
+  #password {
+  padding-right: 40px;
+  }
+  
+  .text-decoration-none{
+    color: #000000;
+  } 
+  .logo-image {
+    margin-top: 25px;
+    width: 280px;
+    height: auto;
+    border-radius: 45px;
+  }
+  .logo-container {
+    margin-top: 5px; /* Ajusta según tus necesidades */
+  }
