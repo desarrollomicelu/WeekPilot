@@ -29,20 +29,40 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
 
 /**
  * Muestra una alerta de éxito (usada tras actualizar un ticket).
+ * @param {Function} [callback] - Función opcional a ejecutar después de cerrar la alerta
  */
-function showSuccessTicketAlert() {
+function showSuccessTicketAlert(callback) {
     Swal.fire({
         icon: 'success',
-        title: '¡Ticket actualizado con éxito!',
-        text: 'Los cambios han sido guardados correctamente.',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar'
+        title: '¡Ticket creado con éxito!',
+        text: 'El ticket se ha generado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        iconColor: '#28a745',
+        customClass: {
+            popup: 'colored-toast'
+        },
+        didClose: () => {
+            if (typeof callback === 'function') {
+                callback();
+            }
+        }
     });
 }
 
 
 /***** Funcionalidad de Búsqueda y Filtrado *****/
 document.addEventListener("DOMContentLoaded", function () {
+    // Verificar si venimos de una actualización exitosa
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('ticket_updated') === 'success') {
+        showSuccessTicketAlert();
+        // Limpiar la URL para evitar que se muestre la alerta al refrescar
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
     // --- Búsqueda en la tabla de tickets ---
     const searchInput = document.getElementById("searchInput");

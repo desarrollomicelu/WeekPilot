@@ -496,10 +496,9 @@ def send_email_notification(ticket_id):
     )
     
     if success:
-        # Mensaje de éxito y redirección a la lista de tickets
-        flash(f"¡Correo enviado con éxito! Se ha notificado a {cliente.name} {cliente.lastname} que su dispositivo está listo.", "success")
-        return redirect(url_for('technical_service.list_tickets'))
+        # Redirigir a la página de detalle con parámetro de éxito
+        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id, email_sent='success'))
     else:
-        # Mensaje de error y permanencia en la página de detalle
-        flash(f"Error al enviar el correo: {error}. Por favor, inténtelo de nuevo o contacte al administrador del sistema.", "danger")
-        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))
+        # Redirigir con parámetro de error
+        current_app.logger.error(f"Error al enviar el correo: {error}")
+        return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id, email_sent='error'))

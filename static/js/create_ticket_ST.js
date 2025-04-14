@@ -35,9 +35,16 @@ function showSuccessTicketAlert() {
     Swal.fire({
         icon: 'success',
         title: '¡Ticket creado con éxito!',
-        text: 'El ticket ha sido registrado correctamente en el sistema.',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar'
+        text: 'El nuevo ticket se ha generado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        iconColor: '#28a745',
+        customClass: {
+            popup: 'colored-toast'
+        }
     });
 }
 

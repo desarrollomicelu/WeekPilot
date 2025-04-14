@@ -13,30 +13,38 @@
  * @param {number} [timer=3000] - Tiempo en milisegundos.
  */
 function showToast(icon, title, position = 'top-end', timer = 3000) {
+    // Definir colores según el tipo de notificación
+    let iconColor = '#3085d6'; // Color azul por defecto
+    
+    if (icon === 'success') {
+        iconColor = '#28a745'; // Verde para éxito
+    } else if (icon === 'error') {
+        iconColor = '#dc3545'; // Rojo para error
+    } else if (icon === 'warning') {
+        iconColor = '#ffc107'; // Amarillo para advertencia
+    } else if (icon === 'info') {
+        iconColor = '#17a2b8'; // Celeste para información
+    }
+    
     const Toast = Swal.mixin({
         toast: true,
         position: position,
         showConfirmButton: false,
         timer: timer,
         timerProgressBar: true,
+        iconColor: iconColor,
+        customClass: {
+            popup: 'colored-toast'
+        },
         didOpen: (toast) => {
             toast.addEventListener('mouseenter', Swal.stopTimer);
             toast.addEventListener('mouseleave', Swal.resumeTimer);
         }
     });
-    Toast.fire({ icon: icon, title: title });
-}
-
-/**
- * Muestra una alerta de éxito para la actualización del ticket.
- */
-function showSuccessTicketAlert() {
-    Swal.fire({
-        icon: 'success',
-        title: '¡Ticket actualizado con éxito!',
-        text: 'Los cambios en el ticket han sido guardados correctamente.',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar'
+    
+    Toast.fire({ 
+        icon: icon, 
+        title: title 
     });
 }
 
@@ -68,8 +76,6 @@ function formatNumberWithThousands(number) {
     // Redondear a entero y formatear con separadores de miles
     return Math.round(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
-
-
 
 /**
  * Elimina los separadores de miles de un número formateado.
@@ -333,10 +339,10 @@ function setupTechnicianDocumentRelation() {
     // Obtener referencias a los elementos del DOM
     const technicianSelect = document.getElementById('technical_name');
     const technicianDocumentInput = document.getElementById('technical_document');
-    const stateSelect = document.getElementById('state');
+    const stateInput = document.getElementById('state');
     
     // Verificar que los elementos existen
-    if (!technicianSelect || !technicianDocumentInput) {
+    if (!technicianSelect || !technicianDocumentInput || !stateInput) {
         console.error("No se encontraron los elementos necesarios para la relación técnico-documento");
         return;
     }
@@ -372,28 +378,14 @@ function setupTechnicianDocumentRelation() {
                 console.warn(`No se encontró documento para el técnico: ${selectedOption.value}`);
             }
             
-            // Actualizar el estado si existe el elemento
-            if (stateSelect) {
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Asignado") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
+            // Actualizar el estado a "Asignado"
+            stateInput.value = "Asignado";
         } else {
             // Si no hay técnico seleccionado
             technicianDocumentInput.value = "Sin asignar";
             
-            // Actualizar el estado si existe el elemento
-            if (stateSelect) {
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Sin asignar") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
+            // Actualizar el estado a "Sin asignar"
+            stateInput.value = "Sin asignar";
         }
     }
     
@@ -401,19 +393,43 @@ function setupTechnicianDocumentRelation() {
     technicianSelect.addEventListener('change', function() {
         updateTechnicianDocument();
         
-        // Mostrar notificación de cambio (opcional)
+        // Mostrar notificación de cambio
         if (this.value) {
             showToast('info', `Técnico cambiado a: ${this.options[this.selectedIndex].text}`, 'top-end', 2000);
+            showToast('info', `Estado cambiado a: Asignado`, 'top-end', 2000);
+        } else {
+            showToast('info', `Estado cambiado a: Sin asignar`, 'top-end', 2000);
         }
     });
     
-    // Ejecutar la actualización inicial al cargar la página
-    updateTechnicianDocument();
+    // Ejecutar la actualización de solo el documento al cargar la página
+    // (No cambiar el estado, solo actualizar el documento)
+    if (technicianSelect.value) {
+        const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
+        if (selectedOption && selectedOption.value) {
+            // Obtener el documento del atributo data-document
+            let document = selectedOption.getAttribute('data-document');
+            
+            // Si no se encuentra en el atributo, intentar obtenerlo del mapa
+            if (!document || document.trim() === '') {
+                document = technicianMap[selectedOption.value] || '';
+            }
+            
+            // Actualizar el campo de documento
+            if (document && document.trim() !== '') {
+                technicianDocumentInput.value = document;
+            } else {
+                technicianDocumentInput.value = "Sin documento";
+                console.warn(`No se encontró documento para el técnico: ${selectedOption.value}`);
+            }
+        } else {
+            technicianDocumentInput.value = "Sin asignar";
+        }
+    }
     
     // Devolver la función de actualización para uso externo si es necesario
     return { update: updateTechnicianDocument };
 }
-
 
 /**
  * Valida los campos de la tabla de repuestos
@@ -571,7 +587,6 @@ function setupExistingRows() {
 
     const partsTableBody = partsTable.querySelector('tbody');
     const existingRows = partsTableBody.querySelectorAll('.part-row');
-
 
     existingRows.forEach(row => {
         // Inicializar Select2 para el select de repuesto
@@ -791,52 +806,87 @@ function setupImageDeletion() {
 
 /***** SECCIÓN 6: FUNCIONES DE AUTOCOMPLETADO *****/
 /**
- * Configura la relación entre técnico, documento y estado
+ * Configura la actualización del código de producto al cambiar la referencia
  */
-function setupTechnicianStateRestriction() {
-    const technicianSelect = document.getElementById('technical_name');
-    const technicianDocumentInput = document.getElementById('technical_document');
-    const stateSelect = document.getElementById('state');
+function setupProductCodeUpdate() {
+    const referenceElem = document.getElementById('reference');
+    const productCodeInput = document.getElementById('product_code');
 
-    if (!technicianSelect || !technicianDocumentInput || !stateSelect) return;
+    if (!referenceElem || !productCodeInput) return;
 
-    technicianSelect.addEventListener('change', function () {
-        const selectedOption = this.options[this.selectedIndex];
+    // Guardar la referencia original para confirmación de cambios
+    let originalRef = referenceElem.value;
+    let originalRefText = referenceElem.options[referenceElem.selectedIndex]?.text || 'Sin seleccionar';
 
-        console.log("Técnico seleccionado:", selectedOption.value);
-        console.log("data-document:", selectedOption.getAttribute("data-document"));
+    referenceElem.addEventListener('change', function () {
+        const newRef = this.value;
+        const newRefText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
 
-        if (selectedOption && selectedOption.value) {
-            // Si se seleccionó un técnico
-            const doc = selectedOption.getAttribute('data-document');
+        if (newRef !== originalRef) {
+            Swal.fire({
+                title: 'Cambiar referencia',
+                text: `¿Estás seguro de cambiar la referencia del producto a "${newRefText}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    originalRef = newRef;
+                    originalRefText = newRefText;
 
-            // Verificar si el documento existe y no está vacío
-            if (doc && doc.trim() !== "") {
-                technicianDocumentInput.value = doc;
-            } else {
-                // Si no hay documento, mostrar un mensaje más claro
-                technicianDocumentInput.value = "Documento no disponible";
-                console.warn("El técnico seleccionado no tiene documento asociado");
-            }
+                    // Actualizar el código del producto
+                    const selectedOption = this.options[this.selectedIndex];
+                    productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
 
-            // Cambiar estado a "Sin asignar"
-            for (let i = 0; i < stateSelect.options.length; i++) {
-                if (stateSelect.options[i].value === "Sin asignar") {
-                    stateSelect.selectedIndex = i;
-                    break;
+                    showToast('success', `Referencia cambiada a "${newRefText}"`, 'top-end');
+                } else {
+                    // Revertir al valor original si se cancela
+                    this.value = originalRef;
+                    $(this).trigger('change'); // Para Select2
                 }
-            }
+            });
+        } else {
+            // Actualizar el código del producto sin confirmación si es la misma referencia
+            const selectedOption = this.options[this.selectedIndex];
+            productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
         }
     });
 
     // Inicialización al cargar la página
-    if (technicianSelect.value) {
-        const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
-        if (selectedOption && selectedOption.value) {
-            const doc = selectedOption.getAttribute('data-document');
-            technicianDocumentInput.value = (doc && doc.trim() !== "") ? doc : "Sin asignar";
+    if (referenceElem.value) {
+        const selectedOption = referenceElem.options[referenceElem.selectedIndex];
+        if (selectedOption && selectedOption.value && !productCodeInput.value) {
+            productCodeInput.value = selectedOption.getAttribute('data-code') || '';
         }
     }
+}
+
+/**
+ * Configura la funcionalidad del campo de comentario
+ */
+function setupCommentField() {
+    const commentTextarea = document.getElementById('comment');
+    if (!commentTextarea) return;
+    
+    // Limpiar el valor "None" si está presente
+    if (commentTextarea.value === "None") {
+        commentTextarea.value = "";
+    }
+    
+    // Limitar la longitud del comentario si es necesario
+    commentTextarea.addEventListener('input', function() {
+        const maxLength = 250; // Ajustar según sea necesario
+        if (this.value.length > maxLength) {
+            showToast('warning', `El comentario no puede exceder los ${maxLength} caracteres`, 'top-end');
+            this.value = this.value.substring(0, maxLength);
+        }
+        
+        // Eliminar mensaje de error si existe
+        removeValidationError(this);
+    });
 }
 
 /***** SECCIÓN 7: VALIDACIÓN Y ENVÍO DEL FORMULARIO *****/
@@ -955,6 +1005,13 @@ function setupFormSubmission() {
                         input.value = unformatNumber(input.value);
                     });
 
+                // Agregar campo oculto para indicar redirección
+                const redirectInput = document.createElement('input');
+                redirectInput.type = 'hidden';
+                redirectInput.name = 'redirect_after_save';
+                redirectInput.value = 'true';
+                ticketForm.appendChild(redirectInput);
+
                 // Enviar el formulario
                 ticketForm.removeEventListener('submit', arguments.callee);
                 ticketForm.submit();
@@ -963,105 +1020,12 @@ function setupFormSubmission() {
     });
 }
 
-/**
- * Configura la actualización del código de producto al cambiar la referencia
- */
-function setupProductCodeUpdate() {
-    const referenceElem = document.getElementById('reference');
-    const productCodeInput = document.getElementById('product_code');
-
-    if (!referenceElem || !productCodeInput) return;
-
-    // Guardar la referencia original para confirmación de cambios
-    let originalRef = referenceElem.value;
-    let originalRefText = referenceElem.options[referenceElem.selectedIndex]?.text || 'Sin seleccionar';
-
-    referenceElem.addEventListener('change', function () {
-        const newRef = this.value;
-        const newRefText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
-
-        if (newRef !== originalRef) {
-            Swal.fire({
-                title: 'Cambiar referencia',
-                text: `¿Estás seguro de cambiar la referencia del producto a "${newRefText}"?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, cambiar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    originalRef = newRef;
-                    originalRefText = newRefText;
-
-                    // Actualizar el código del producto
-                    const selectedOption = this.options[this.selectedIndex];
-                    productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
-
-                    showToast('success', `Referencia cambiada a "${newRefText}"`, 'top-end');
-                } else {
-                    // Revertir al valor original si se cancela
-                    this.value = originalRef;
-                    $(this).trigger('change'); // Para Select2
-                }
-            });
-        } else {
-            // Actualizar el código del producto sin confirmación si es la misma referencia
-            const selectedOption = this.options[this.selectedIndex];
-            productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
-        }
-    });
-
-    // Inicialización al cargar la página
-    if (referenceElem.value) {
-        const selectedOption = referenceElem.options[referenceElem.selectedIndex];
-        if (selectedOption && selectedOption.value && !productCodeInput.value) {
-            productCodeInput.value = selectedOption.getAttribute('data-code') || '';
-        }
-    }
-}
-
-/**
- * Configura la funcionalidad del campo de comentario
- */
-function setupCommentField() {
-    const commentTextarea = document.getElementById('comment');
-    if (!commentTextarea) return;
-    
-    // Limpiar el valor "None" si está presente
-    if (commentTextarea.value === "None") {
-        commentTextarea.value = "";
-    }
-    
-    // Limitar la longitud del comentario si es necesario
-    commentTextarea.addEventListener('input', function() {
-        const maxLength = 250; // Ajustar según sea necesario
-        if (this.value.length > maxLength) {
-            showToast('warning', `El comentario no puede exceder los ${maxLength} caracteres`, 'top-end');
-            this.value = this.value.substring(0, maxLength);
-        }
-        
-        // Eliminar mensaje de error si existe
-        removeValidationError(this);
-    });
-}
-
-
-
 /***** SECCIÓN 8: INICIALIZACIÓN *****/
 
 /**
  * Inicializa todos los componentes y funcionalidades al cargar la página
  */
 function initializeEditTicket() {
-
-    // 1. Verificar si el ticket fue actualizado (para mostrar alerta)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_updated') === 'success') {
-        showSuccessTicketAlert();
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
 
     // 2. Inicializar Select2 para los campos de selección
     if (document.getElementById('reference')) {
@@ -1072,7 +1036,8 @@ function initializeEditTicket() {
         });
     }
 
-    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2({
+    // Asegurarnos de que state no se incluya, ya que ahora es un input de texto y no un select
+    $('.searchable-select').not('#city, #priority, #technical_name, #technical_document, #product_code').select2({
         width: '100%',
         placeholder: "Seleccione una opción",
         allowClear: true
@@ -1106,10 +1071,7 @@ function initializeEditTicket() {
     if (spareValueInput) applyThousandsFormatting(spareValueInput);
     if (totalInput) applyThousandsFormatting(totalInput);
 
-
-
     // 5. Configurar autocompletado y restricciones
-    setupTechnicianStateRestriction();
     setupProductCodeUpdate();
 
     // 6. Configurar gestión de problemas
@@ -1136,7 +1098,7 @@ function initializeEditTicket() {
     // 11. Actualizar totales iniciales
     updateTotals();
 
-    // 12. Configurar relación técnico-documento
+    // 12. Configurar relación técnico-documento y estado
     const technicianDocumentManager = setupTechnicianDocumentRelation();
 
     // 13. Configurar campo de comentario

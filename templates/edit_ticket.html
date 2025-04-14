@@ -105,12 +105,7 @@
                         <div class="mb-3 row">
                             <label for="state" class="col-sm-4 col-form-label">Estado</label>
                             <div class="col-sm-8">
-                                <select class="form-select" id="state" name="state">
-                                    {% for status in ['Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
-                                    <option value="{{ status }}" {% if ticket.state==status %}selected{% endif %}>{{
-                                        status }}</option>
-                                    {% endfor %}
-                                </select>
+                                <input type="text" class="form-control" id="state" name="state" value="{{ ticket.state }}" readonly>
                             </div>
                         </div>
 

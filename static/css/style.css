@@ -1,0 +1,44 @@
+/* Estilos para los toast de SweetAlert2 */
+.colored-toast {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
+    width: auto !important;
+    max-width: 350px !important;
+}
+
+.colored-toast .swal2-icon {
+    margin: 0 12px 0 0 !important;
+    font-size: 1.5em !important;
+}
+
+.colored-toast .swal2-title {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.5 !important;
+    color: #333333 !important;
+}
+
+.colored-toast .swal2-timer-progress-bar {
+    background: rgba(0, 0, 0, 0.15) !important;
+    height: 3px !important;
+    bottom: 0 !important;
+}
+
+/* Animación para los toast */
+@keyframes toast-fadein {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.colored-toast {
+    animation: toast-fadein 0.3s ease-in-out !important;
+} 

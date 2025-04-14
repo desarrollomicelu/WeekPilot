@@ -35,9 +35,16 @@ function showSuccessTicketAlert() {
     Swal.fire({
         icon: 'success',
         title: '¡Ticket actualizado con éxito!',
-        text: 'Los cambios han sido guardados correctamente.',
-        confirmButtonColor: '#3085d6',
-        confirmButtonText: 'Aceptar'
+        text: 'Los cambios en el ticket han sido guardados correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        iconColor: '#28a745',
+        customClass: {
+            popup: 'colored-toast'
+        }
     });
 }
 

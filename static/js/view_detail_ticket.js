@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar el modal para enviar correo
     initEmailModal();
     
-    // Procesar mensajes flash para mostrarlos como toasts o alertas
-    processFlashMessages();
+    // Verificar si el correo se envió con éxito (parámetro en la URL)
+    checkEmailSent();
 });
 
 /**
@@ -46,115 +46,60 @@ function initEmailModal() {
 }
 
 /**
- * Procesa los mensajes flash y los muestra como toasts o alertas según su tipo
+ * Verifica si el correo fue enviado con éxito según parámetros en la URL
  */
-function processFlashMessages() {
-    // Esta función será llamada desde el HTML con Jinja2
-    // La implementación real estará en el template
-    
-    // Buscar elementos con la clase flash-message
-    const flashElements = document.querySelectorAll('.flash-message');
-    
-    flashElements.forEach(element => {
-        const message = element.getAttribute('data-message');
-        const category = element.getAttribute('data-category');
-        
-        if (message && category) {
-            // Si es un mensaje de éxito, mostrar como toast
-            if (category === 'success') {
-                showNotificationToast(message, category);
-            } 
-            // Si es un mensaje de error o advertencia, mostrar como alerta normal
-            else {
-                showNormalAlert(message, category);
-            }
-        }
-    });
-}
-/**
- * Muestra un toast de notificación personalizado (solo para mensajes de éxito)
- * @param {string} message - El mensaje a mostrar
- * @param {string} type - El tipo de notificación ('success')
- */
-function showNotificationToast(message, type) {
-    const toast = document.getElementById('emailToast');
-    const toastHeader = document.getElementById('emailToastHeader');
-    const toastTitle = document.getElementById('emailToastTitle');
-    const toastMessage = document.getElementById('emailToastMessage');
-    
-    if (!toast || !toastHeader || !toastTitle || !toastMessage) {
-        console.error('Elementos de toast no encontrados');
-        return;
+function checkEmailSent() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('email_sent') === 'success') {
+        showSuccessToast('¡Correo enviado con éxito!', 'El cliente ha sido notificado correctamente.');
+        // Limpiar el parámetro de la URL para evitar mostrar el mensaje al recargar
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('email_sent') === 'error') {
+        showErrorToast('Error al enviar correo', 'No se pudo enviar la notificación. Intente nuevamente.');
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
-    
-    // Limpiar clases anteriores
-    toastHeader.className = 'toast-header';
-    
-    // Establecer color según tipo
-    toastHeader.classList.add('bg-success', 'text-white');
-    toastTitle.textContent = '¡Éxito!';
-    
-    // Establecer mensaje
-    toastMessage.textContent = message;
-    
-    // Configurar opciones del toast (autohide después de 3 segundos)
-    const toastOptions = {
-        autohide: true,
-        delay: 3000
-    };
-    
-    // Mostrar toast
-    const bsToast = new bootstrap.Toast(toast, toastOptions);
-    bsToast.show();
 }
 
 /**
- * Muestra una alerta normal en la página (para mensajes de error y advertencia)
- * @param {string} message - El mensaje a mostrar
- * @param {string} type - El tipo de alerta ('danger', 'warning', 'info')
+ * Muestra un toast de éxito
+ * @param {string} title - Título del toast
+ * @param {string} message - Mensaje a mostrar
  */
-function showNormalAlert(message, type) {
-    // Crear el contenedor de alertas si no existe
-    let alertsContainer = document.getElementById('alertsContainer');
-    if (!alertsContainer) {
-        alertsContainer = document.createElement('div');
-        alertsContainer.id = 'alertsContainer';
-        alertsContainer.className = 'mt-3';
-        
-        // Insertar el contenedor al principio del contenido principal
-        const mainContent = document.querySelector('.container-fluid');
-        if (mainContent) {
-            mainContent.insertBefore(alertsContainer, mainContent.firstChild);
-        } else {
-            document.body.insertBefore(alertsContainer, document.body.firstChild);
+function showSuccessToast(title, message) {
+    Swal.fire({
+        icon: 'success',
+        title: title,
+        text: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        iconColor: '#28a745',
+        customClass: {
+            popup: 'colored-toast'
         }
-    }
-    
-    // Crear la alerta
-    const alertElement = document.createElement('div');
-    alertElement.className = `alert alert-${type} alert-dismissible fade show`;
-    alertElement.role = 'alert';
-    
-    // Icono según el tipo
-    let icon = 'info-circle';
-    if (type === 'danger') icon = 'exclamation-triangle';
-    if (type === 'warning') icon = 'exclamation-circle';
-    
-    // Contenido de la alerta
-    alertElement.innerHTML = `
-        <i class="fas fa-${icon} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    // Añadir la alerta al contenedor
-    alertsContainer.appendChild(alertElement);
-    
-    // Configurar auto-cierre después de 10 segundos para no acumular alertas
-    setTimeout(() => {
-        if (alertElement.parentNode) {
-            const bsAlert = new bootstrap.Alert(alertElement);
-            bsAlert.close();
+    });
+}
+
+/**
+ * Muestra un toast de error
+ * @param {string} title - Título del toast
+ * @param {string} message - Mensaje a mostrar
+ */
+function showErrorToast(title, message) {
+    Swal.fire({
+        icon: 'error',
+        title: title,
+        text: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+        iconColor: '#dc3545',
+        customClass: {
+            popup: 'colored-toast'
         }
-    }, 10000);
+    });
 }

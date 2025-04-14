@@ -5,6 +5,7 @@ Utiliza Azure Communication Services para enviar correos electrónicos.
 from flask import current_app
 from azure.communication.email import EmailClient
 import logging
+import datetime
 
 
 class TicketEmailService:
@@ -29,46 +30,8 @@ class TicketEmailService:
 
             email_client = EmailClient.from_connection_string(self.connection_string)
 
-            url_logo = "https://i.ibb.co/1DsGPLQ/imagen.jpg"
-
-            problemas_html = "".join(f"<li>{problema.name}</li>" for problema in problemas)
-
-            # Obtener el nombre del técnico de manera segura
-            nombre_tecnico = tecnico.nombre if tecnico else ticket.technical_name
-
-            contenido_html = f"""
-            <html>
-            <body style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; padding: 20px;">
-                <div style="text-align: center; margin-bottom: 25px;">
-                    <img src="{url_logo}" alt="Logo MiCelu" style="width:200px;">
-                </div>
-                <h2 style="color: #2a2a2a;">Notificación de dispositivo reparado</h2>
-                <p>Estimado(a) {cliente.name} {cliente.lastname},</p>
-                <p>
-                    Le informamos que su dispositivo ya ha sido reparado exitosamente. <br>
-                    Puede recogerlo en las instalaciones de <strong>MiCelu</strong> cuando guste.
-                </p>
-                <h3>Detalles del Servicio:</h3>
-                <ul>
-                    <li><strong>Número de Ticket:</strong> {ticket.id_ticket}</li>
-                    <li><strong>Técnico a cargo:</strong> {nombre_tecnico}</li>
-                </ul>
-                <h3>Problemas reportados:</h3>
-                <ul>
-                    {problemas_html}
-                </ul>
-                <h3>Diagnóstico del técnico:</h3>
-                <p style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">
-                    {ticket.comment or "Sin observaciones adicionales."}
-                </p>
-                <p>
-                    Le agradecemos por confiar en nuestros servicios.<br>
-                    Estamos siempre a su disposición para cualquier consulta.
-                </p>
-                <p>Atentamente,<br><strong>Equipo de soporte MiCelu</strong></p>
-            </body>
-            </html>
-            """
+            # Generar el contenido HTML del correo utilizando el método dedicado
+            contenido_html = self._generar_contenido_html(cliente, ticket, problemas, tecnico)
 
             destinatario = {
                 "address": cliente.mail,
@@ -112,39 +75,110 @@ class TicketEmailService:
         url_logo = "https://i.ibb.co/1DsGPLQ/imagen.jpg"
         
         # Generar lista HTML de problemas
-        problemas_html = "".join(f"<li>{problema.name}</li>" for problema in problemas)
+        problemas_html = "".join(f"<li style='margin-bottom: 5px;'>{problema.name}</li>" for problema in problemas)
         
-        # Generar contenido HTML completo
+        # Obtener el nombre del técnico de manera segura
+        nombre_tecnico = tecnico.nombre if tecnico and hasattr(tecnico, 'nombre') else ticket.technical_name
+        
+        # Generar contenido HTML completo con diseño mejorado
         return f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 25px;">
-                <img src="{url_logo}" alt="Logo MiCelu" style="width:200px;">
-            </div>
-            <h2 style="color: #2a2a2a;">Notificación de dispositivo reparado</h2>
-            <p>Estimado(a) {cliente.name} {cliente.lastname},</p>
-            <p>
-                Le informamos que su dispositivo ya ha sido reparado exitosamente. <br>
-                Puede recogerlo en las instalaciones de <strong>MiCelu</strong> cuando guste.
-            </p>
-            <h3>Detalles del Servicio:</h3>
-            <ul>
-                <li><strong>Número de Ticket:</strong> {ticket.id_ticket}</li>
-                <li><strong>Técnico a cargo:</strong> {tecnico.nombre}</li>
-            </ul>
-            <h3>Problemas reportados:</h3>
-            <ul>
-                {problemas_html}
-            </ul>
-            <h3>Diagnóstico del técnico:</h3>
-            <p style="background-color: #f9f9f9; padding: 10px; border-radius: 5px;">
-                {ticket.comment or "Sin observaciones adicionales."}
-            </p>
-            <p>
-                Le agradecemos por confiar en nuestros servicios.<br>
-                Estamos siempre a su disposición para cualquier consulta.
-            </p>
-            <p>Atentamente,<br><strong>Equipo de soporte MiCelu</strong></p>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Servicio Técnico MiCelu - Dispositivo Reparado</title>
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f9f9f9; color: #333333;">
+            <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-collapse: collapse; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+                <!-- Encabezado -->
+                <tr>
+                    <td style="background-color: #0066cc; padding: 20px; text-align: center;">
+                        <img src="{url_logo}" alt="Logo MiCelu" style="max-width: 180px; height: auto;">
+                    </td>
+                </tr>
+                
+                <!-- Contenido principal -->
+                <tr>
+                    <td style="padding: 30px 25px;">
+                        <h1 style="color: #0066cc; font-size: 24px; margin-top: 0; margin-bottom: 20px; text-align: center;">¡Su dispositivo está listo!</h1>
+                        
+                        <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">
+                            Estimado(a) <strong>{cliente.name} {cliente.lastname}</strong>,
+                        </p>
+                        
+                        <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">
+                            Nos complace informarle que hemos finalizado el servicio técnico de su dispositivo y ya se encuentra disponible para retirar en nuestras instalaciones.
+                        </p>
+                        
+                        <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0f7ff; border-radius: 6px; margin-bottom: 25px;">
+                            <tr>
+                                <td style="padding: 20px;">
+                                    <h2 style="color: #0066cc; font-size: 18px; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #cce0ff; padding-bottom: 10px;">
+                                        Detalles del Servicio
+                                    </h2>
+                                    
+                                    <table cellpadding="5" cellspacing="0" width="100%" style="font-size: 15px;">
+                                        <tr>
+                                            <td width="40%" style="font-weight: bold;">Número de Ticket:</td>
+                                            <td width="60%">{ticket.id_ticket}</td>
+                                        </tr>
+                                        <tr>
+                                            <td width="40%" style="font-weight: bold;">Técnico responsable:</td>
+                                            <td width="60%">{nombre_tecnico}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <h2 style="color: #0066cc; font-size: 18px; margin-top: 25px; margin-bottom: 15px;">Problemas Solucionados</h2>
+                        <ul style="font-size: 15px; line-height: 1.5; margin-bottom: 25px; padding-left: 20px;">
+                            {problemas_html}
+                        </ul>
+                        
+                        <h2 style="color: #0066cc; font-size: 18px; margin-top: 25px; margin-bottom: 15px;">Diagnóstico Técnico</h2>
+                        <div style="background-color: #f7f7f7; border-left: 4px solid #0066cc; padding: 15px; margin-bottom: 25px; font-size: 15px; line-height: 1.5;">
+                            {ticket.comment or "No se han registrado observaciones adicionales para este servicio."}
+                        </div>
+                        
+                        <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">
+                            Por favor, recuerde traer su comprobante de servicio o identificación al momento de retirar el equipo. Nuestro horario de atención es de Lunes a Viernes de 9:00 a 18:00 hrs.
+                        </p>
+                        
+                        <p style="font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                            Agradecemos su confianza en nuestros servicios. Si tiene alguna pregunta adicional, no dude en contactarnos.
+                        </p>
+                    </td>
+                </tr>
+                
+                <!-- Pie de página -->
+                <tr>
+                    <td style="background-color: #0066cc; color: #ffffff; padding: 15px; text-align: center; font-size: 14px;">
+                        <p style="margin: 0 0 10px 0;">
+                            <strong>Servicio Técnico MiCelu</strong>
+                        </p>
+                        <p style="margin: 0 0 5px 0;">
+                            <a href="tel:+123456789" style="color: #ffffff; text-decoration: none;">Teléfono: (123) 456-789</a>
+                        </p>
+                        <p style="margin: 0;">
+                            <a href="mailto:soporte@micelu.com" style="color: #ffffff; text-decoration: none;">soporte@micelu.com</a>
+                        </p>
+                    </td>
+                </tr>
+                
+                <!-- Aviso legal -->
+                <tr>
+                    <td style="background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #777777;">
+                        <p style="margin: 0 0 10px 0;">
+                            © {datetime.datetime.now().year} MiCelu. Todos los derechos reservados.
+                        </p>
+                        <p style="margin: 0;">
+                            Este correo es exclusivamente informativo y fue enviado automáticamente.
+                        </p>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """
