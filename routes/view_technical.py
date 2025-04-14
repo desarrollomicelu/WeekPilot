@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from models.tickets import Tickets
 from models.clients import Clients_tickets
 from extensions import db
-from utils.decorators import technician_access, admin_or_technician_access
+from utils.access_control import technician_required, role_required
 
 import os
 from PIL import Image
@@ -43,7 +43,7 @@ def save_image(image_file):
 # ----------------------------------------------------------------------
 @view_technical_bp.route("/view_technical")
 @login_required
-@technician_access()
+@technician_required
 def view_technical():
     # Normalizar la cédula del usuario actual
     normalized_cedula = ''.join(c for c in current_user.cedula if c.isalnum())
@@ -70,11 +70,14 @@ def view_technical():
 # ----------------------------------------------------------------------
 @view_technical_bp.route("/view_technical/ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
-@technician_access()
+@technician_required
 def technician_ticket_detail(ticket_id):
     ticket = Tickets.query.get_or_404(ticket_id)
 
     if request.method == "POST":
+        # Verificar si es una solicitud AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
         # 1. Subir imágenes (misma lógica que en tu upload_images)
         uploaded_files = request.files.getlist('images')
         taken_photo = request.files.get('photo')  # foto tomada con cámara
@@ -97,27 +100,52 @@ def technician_ticket_detail(ticket_id):
 
         # 2. Manejo de comentarios (campo `comment`)
         new_comment = request.form.get('new_comment', '').strip()
+        comment_updated = False
         if new_comment:
             # Reemplazar completamente el comentario existente con el nuevo
             ticket.comment = new_comment
+            comment_updated = True
 
         # Guardar en la base de datos
         try:
             db.session.commit()
+            
+            # Si es una solicitud AJAX, devolver respuesta JSON
+            if is_ajax:
+                response_data = {
+                    'success': True,
+                    'message': 'Comentario actualizado correctamente'
+                }
+                if success:
+                    response_data['images_success'] = success
+                if errors:
+                    response_data['images_errors'] = errors
+                return jsonify(response_data)
+                
+            # De lo contrario, usar flash y redirigir
+            if success:
+                flash(f'{success} imagen(es) subida(s) correctamente.', 'success')
+            if errors:
+                flash(f'{errors} imagen(es) no pudieron procesarse.', 'danger')
+            if comment_updated:
+                flash('Comentario actualizado correctamente.', 'success')
+                
+            # Redirigir a la lista de tickets del técnico
+            return redirect(url_for('view_technical.view_technical'))
+                
         except Exception as e:
             db.session.rollback()
+            
+            # Si es una solicitud AJAX, devolver error en JSON
+            if is_ajax:
+                return jsonify({
+                    'success': False,
+                    'message': f'Error al guardar: {str(e)}'
+                })
+                
+            # De lo contrario, usar flash y redirigir
             flash(f"Error al guardar: {str(e)}", "danger")
-            return redirect(request.url)
-
-        # Mensajes informativos
-        if success:
-            flash(f'{success} imagen(es) subida(s) correctamente.', 'success')
-        if errors:
-            flash(f'{errors} imagen(es) no pudieron procesarse.', 'danger')
-        if new_comment:
-            flash('Comentario actualizado correctamente.', 'info')
-
-        return redirect(url_for('view_technical.technician_ticket_detail', ticket_id=ticket_id))
+            return redirect(url_for('view_technical.view_technical'))
 
     # Modo GET: Se muestra el ticket y el formulario
     return render_template(
@@ -132,6 +160,7 @@ def technician_ticket_detail(ticket_id):
 # ----------------------------------------------------------------------
 @view_technical_bp.route('/update_ticket_status_ajax', methods=['POST'])
 @login_required
+@technician_required
 def update_ticket_status_ajax():
     ticket_id = request.form.get('ticket_id')
     new_status = request.form.get('status')

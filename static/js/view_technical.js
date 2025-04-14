@@ -34,7 +34,7 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
 function showSuccessTicketAlert() {
     Swal.fire({
         icon: 'success',
-        title: '¡Ticket actualizado con éxito!',
+        title: '¡Actualizado con éxito!',
         text: 'Los cambios en el ticket han sido guardados correctamente.',
         toast: true,
         position: 'top-end',
@@ -127,8 +127,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const stateOrder = {
             "Asignado": 1,
             "En proceso": 2,
-            "En revision": 3,
-            "Terminado": 4
+            "En revision": 3
         };
 
         // Guardar valor original al inicio
@@ -191,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             console.log("Respuesta recibida:", response);
                             $select.removeClass('opacity-50').prop('disabled', false);
                             if (response.success) {
-                                showToast('success', 'Estado actualizado correctamente', 'top-end');
+                                showToast('success', 'Actualizado con éxito', 'top-end');
                                 updateRowStyles($select.closest('tr'), response.status);
                                 $select.attr('data-original-state', newStatus);
                                 
@@ -485,14 +484,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.preventDefault();
                 const formData = new FormData(this);
                 const submitBtn = this.querySelector('button[type="submit"]');
+                const ticketId = submitBtn.getAttribute('data-ticket-id');
 
                 // Deshabilitar el botón y mostrar indicador de carga
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...';
 
+                // Agregar encabezado para identificar solicitud AJAX
+                const headers = new Headers();
+                headers.append('X-Requested-With', 'XMLHttpRequest');
+
                 fetch(window.location.href, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: headers
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -505,19 +510,62 @@ document.addEventListener("DOMContentLoaded", function () {
                     submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
 
                     if (data.success) {
-                        showSuccessTicketAlert();
+                        // Mostrar el toast de éxito
+                        Swal.fire({
+                            icon: 'success',
+                            title: data.message || 'Comentario actualizado correctamente',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            iconColor: '#28a745',
+                            customClass: {
+                                popup: 'colored-toast'
+                            }
+                        });
+
+                        // Mostrar mensajes adicionales si hay imágenes
+                        if (data.images_success) {
+                            showToast('success', `${data.images_success} imagen(es) subida(s) correctamente`);
+                        }
+                        if (data.images_errors) {
+                            showToast('error', `${data.images_errors} imagen(es) no pudieron procesarse`);
+                        }
+
+                        // Redirigir a la lista de tickets después de un breve retraso
                         setTimeout(() => {
-                            window.location.reload();
+                            window.location.href = '/view_technical';
                         }, 1500);
                     } else {
-                        showToast('error', data.message || 'Error al guardar los cambios');
+                        // Mostrar mensaje de error
+                        Swal.fire({
+                            icon: 'error',
+                            title: data.message || 'Error al guardar los cambios',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true
+                        });
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
-                    showToast('error', 'Error al procesar la solicitud. Inténtalo de nuevo.');
+                    
+                    // Mostrar toast de error
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al procesar la solicitud',
+                        text: 'Intenta de nuevo o contacta a soporte',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
                 });
             });
         }
@@ -537,8 +585,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const stateOrder = {
                     "Asignado": 1,
                     "En proceso": 2,
-                    "En revisión": 3,
-                    "Terminado": 4
+                    "En revisión": 3
                 };
 
                 if (stateOrder[newStatus] < stateOrder[originalValue]) {
@@ -579,7 +626,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 updateStatusBtn.innerHTML = '<i class="fas fa-save me-2"></i> Actualizar Estado';
 
                                 if (response.success) {
-                                    showToast('success', 'Estado actualizado correctamente', 'top-end');
+                                    showToast('success', 'Actualizado con éxito', 'top-end');
                                     ticketStatus.setAttribute('data-original-state', newStatus);
 
                                     // Animar brevemente el botón para indicar éxito

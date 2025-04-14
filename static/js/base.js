@@ -4,8 +4,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const navbarCollapse = document.querySelector('.navbar-collapse');
     const overlay = document.getElementById('sidebar-overlay');
     
+    // Función para detectar dispositivos móviles o tablets
     function isMobile() {
         return window.innerWidth < 992;
+    }
+    
+    // Evitar scroll cuando el menú está abierto en móviles
+    function toggleBodyScroll(shouldDisable) {
+        if (shouldDisable) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.height = '100vh';
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.height = '';
+        }
     }
     
     // Función para cerrar el menú correctamente
@@ -17,17 +29,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Luego actualizamos el estado del botón toggler
         navbarToggler.setAttribute('aria-expanded', 'false');
         
-        // Si estás usando Bootstrap 5, esto también podría ser necesario
-        document.body.classList.remove('overflow-hidden');
+        // Restablecer el scroll
+        toggleBodyScroll(false);
     }
     
     // Manejar clic en el botón de toggle
     navbarToggler.addEventListener('click', function() {
+        const isExpanded = navbarCollapse.classList.contains('show');
+        
         if (overlay) {
-            if (navbarCollapse.classList.contains('show')) {
+            if (isExpanded) {
                 overlay.classList.remove('active');
+                toggleBodyScroll(false);
             } else {
                 overlay.classList.add('active');
+                toggleBodyScroll(true);
             }
         }
     });
@@ -61,10 +77,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Ajustar overlay cuando cambia el tamaño de la ventana
+    // Ajustar overlay y comportamiento cuando cambia el tamaño de la ventana
     window.addEventListener('resize', function() {
         if (!isMobile()) {
             closeNavMenu();
         }
     });
+    
+    // Optimizar imágenes para dispositivos móviles con carga diferida
+    if ('loading' in HTMLImageElement.prototype) {
+        const images = document.querySelectorAll('img[loading="lazy"]');
+        images.forEach(img => {
+            img.src = img.dataset.src;
+        });
+    } else {
+        // Fallback para navegadores que no soportan lazy loading nativo
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.0/lazysizes.min.js';
+        document.body.appendChild(script);
+    }
+    
+    // Optimización táctil para dispositivos móviles
+    if (isMobile()) {
+        // Mejorar respuesta táctil eliminando delay
+        const touchElements = document.querySelectorAll('.nav-link, .btn, [role="button"]');
+        touchElements.forEach(el => {
+            el.style.touchAction = 'manipulation';
+        });
+        
+        // Fix para problemas de doble tap en dispositivos iOS
+        document.addEventListener('touchend', function() {}, false);
+    }
 });

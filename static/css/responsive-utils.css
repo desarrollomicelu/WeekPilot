@@ -1,0 +1,450 @@
+/* Utilidades responsivas para WeekPilot
+   --------------------------------------------------------- */
+
+:root {
+    /* Breakpoints estándar */
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+}
+
+/* Clases de ocultación responsiva */
+.d-xs-none { display: none !important; }
+.d-xs-block { display: block !important; }
+.d-xs-flex { display: flex !important; }
+.d-xs-inline { display: inline !important; }
+.d-xs-inline-block { display: inline-block !important; }
+
+@media (min-width: 576px) {
+    .d-sm-none { display: none !important; }
+    .d-sm-block { display: block !important; }
+    .d-sm-flex { display: flex !important; }
+    .d-sm-inline { display: inline !important; }
+    .d-sm-inline-block { display: inline-block !important; }
+}
+
+@media (min-width: 768px) {
+    .d-md-none { display: none !important; }
+    .d-md-block { display: block !important; }
+    .d-md-flex { display: flex !important; }
+    .d-md-inline { display: inline !important; }
+    .d-md-inline-block { display: inline-block !important; }
+}
+
+@media (min-width: 992px) {
+    .d-lg-none { display: none !important; }
+    .d-lg-block { display: block !important; }
+    .d-lg-flex { display: flex !important; }
+    .d-lg-inline { display: inline !important; }
+    .d-lg-inline-block { display: inline-block !important; }
+}
+
+@media (min-width: 1200px) {
+    .d-xl-none { display: none !important; }
+    .d-xl-block { display: block !important; }
+    .d-xl-flex { display: flex !important; }
+    .d-xl-inline { display: inline !important; }
+    .d-xl-inline-block { display: inline-block !important; }
+}
+
+/* Tamaños de texto responsivos */
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.875rem; }
+.text-md { font-size: 1rem; }
+.text-lg { font-size: 1.25rem; }
+.text-xl { font-size: 1.5rem; }
+
+@media (min-width: 576px) {
+    .text-sm-xs { font-size: 0.75rem; }
+    .text-sm-sm { font-size: 0.875rem; }
+    .text-sm-md { font-size: 1rem; }
+    .text-sm-lg { font-size: 1.25rem; }
+    .text-sm-xl { font-size: 1.5rem; }
+}
+
+@media (min-width: 768px) {
+    .text-md-xs { font-size: 0.75rem; }
+    .text-md-sm { font-size: 0.875rem; }
+    .text-md-md { font-size: 1rem; }
+    .text-md-lg { font-size: 1.25rem; }
+    .text-md-xl { font-size: 1.5rem; }
+}
+
+@media (min-width: 992px) {
+    .text-lg-xs { font-size: 0.75rem; }
+    .text-lg-sm { font-size: 0.875rem; }
+    .text-lg-md { font-size: 1rem; }
+    .text-lg-lg { font-size: 1.25rem; }
+    .text-lg-xl { font-size: 1.5rem; }
+}
+
+/* Ajustes de espaciado para dispositivos móviles */
+@media (max-width: 767px) {
+    .p-xs-0 { padding: 0 !important; }
+    .p-xs-1 { padding: 0.25rem !important; }
+    .p-xs-2 { padding: 0.5rem !important; }
+    .p-xs-3 { padding: 1rem !important; }
+    
+    .px-xs-0 { padding-left: 0 !important; padding-right: 0 !important; }
+    .px-xs-1 { padding-left: 0.25rem !important; padding-right: 0.25rem !important; }
+    .px-xs-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+    .px-xs-3 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    
+    .py-xs-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
+    .py-xs-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+    .py-xs-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+    .py-xs-3 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+    
+    .m-xs-0 { margin: 0 !important; }
+    .m-xs-1 { margin: 0.25rem !important; }
+    .m-xs-2 { margin: 0.5rem !important; }
+    .m-xs-3 { margin: 1rem !important; }
+    
+    .mx-xs-0 { margin-left: 0 !important; margin-right: 0 !important; }
+    .mx-xs-1 { margin-left: 0.25rem !important; margin-right: 0.25rem !important; }
+    .mx-xs-2 { margin-left: 0.5rem !important; margin-right: 0.5rem !important; }
+    .mx-xs-3 { margin-left: 1rem !important; margin-right: 1rem !important; }
+    
+    .my-xs-0 { margin-top: 0 !important; margin-bottom: 0 !important; }
+    .my-xs-1 { margin-top: 0.25rem !important; margin-bottom: 0.25rem !important; }
+    .my-xs-2 { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+    .my-xs-3 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+}
+
+/* Utilidades para ordenación de elementos flexbox */
+@media (max-width: 767px) {
+    .order-xs-first { order: -1 !important; }
+    .order-xs-0 { order: 0 !important; }
+    .order-xs-1 { order: 1 !important; }
+    .order-xs-2 { order: 2 !important; }
+    .order-xs-3 { order: 3 !important; }
+    .order-xs-last { order: 999 !important; }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    .order-md-first { order: -1 !important; }
+    .order-md-0 { order: 0 !important; }
+    .order-md-1 { order: 1 !important; }
+    .order-md-2 { order: 2 !important; }
+    .order-md-3 { order: 3 !important; }
+    .order-md-last { order: 999 !important; }
+}
+
+/* Anchos máximos para contenedores */
+.container-xs {
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media (min-width: 576px) {
+    .container-sm {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container-md {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .container-lg {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-xl {
+        max-width: 1140px;
+    }
+}
+
+/* Utilidades para imágenes responsivas */
+.img-fluid-xs {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (min-width: 768px) {
+    .img-fluid-md {
+        max-width: 80%;
+        height: auto;
+        margin: 0 auto;
+    }
+}
+
+/* Clases para tipografía responsive */
+@media (max-width: 767px) {
+    .text-xs-left { text-align: left !important; }
+    .text-xs-center { text-align: center !important; }
+    .text-xs-right { text-align: right !important; }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    .text-md-left { text-align: left !important; }
+    .text-md-center { text-align: center !important; }
+    .text-md-right { text-align: right !important; }
+}
+
+/* Sticky para encabezados de tablas en móviles */
+@media (max-width: 767px) {
+    .sticky-xs-top {
+        position: sticky;
+        top: 0;
+        z-index: 990;
+    }
+}
+
+/* Ajustes de borde para diferentes dispositivos */
+@media (max-width: 767px) {
+    .border-xs-0 { border: 0 !important; }
+    .rounded-xs-0 { border-radius: 0 !important; }
+}
+
+/* Utilidades para sobrescribir flexbox en móviles */
+@media (max-width: 767px) {
+    .flex-xs-column { flex-direction: column !important; }
+    .flex-xs-row { flex-direction: row !important; }
+    .flex-xs-wrap { flex-wrap: wrap !important; }
+    .justify-content-xs-center { justify-content: center !important; }
+    .justify-content-xs-between { justify-content: space-between !important; }
+    .align-items-xs-center { align-items: center !important; }
+    .align-items-xs-start { align-items: flex-start !important; }
+}
+
+/* Mejoras para visualización responsiva de tablas - Actualización 2023 */
+@media (max-width: 767px) {
+    /* Ajustes generales de tablas en móviles */
+    .table-responsive {
+        margin-bottom: 0;
+        border: none;
+        box-shadow: none;
+    }
+    
+    /* Hacer que las tablas sean más legibles en móviles */
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table td, .table th {
+        font-size: 0.9rem !important;
+        padding: 0.75rem !important;
+        vertical-align: middle !important;
+        white-space: nowrap;
+    }
+    
+    /* Asegurar que las celdas tengan un tamaño mínimo para mejor legibilidad */
+    .table td {
+        min-height: 48px;
+        min-width: 80px;
+    }
+    
+    /* Mejorar contraste y legibilidad */
+    .table-light {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    /* Hacer los botones más grandes y fáciles de tocar en móviles */
+    .btn {
+        padding: 0.6rem 1rem !important;
+        font-size: 1rem !important;
+        min-height: 44px;
+        min-width: 44px;
+        margin: 0.25rem;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 0.8rem !important;
+        font-size: 0.9rem !important;
+        min-height: 38px;
+        min-width: 38px;
+    }
+    
+    /* Iconos más grandes en botones */
+    .btn i, .btn .fas, .btn .far, .btn .fab {
+        font-size: 1.1em;
+    }
+    
+    /* Mejorar la visualización de badges */
+    .badge {
+        font-size: 0.85rem !important;
+        padding: 0.5em 0.7em !important;
+    }
+    
+    /* Ajustar columnas de acciones */
+    .action-icons {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .action-icons button, .action-icons .btn {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* Mejoras para tabletas */
+@media (min-width: 768px) and (max-width: 991px) {
+    .btn {
+        padding: 0.55rem 0.9rem !important;
+        font-size: 0.95rem !important;
+    }
+    
+    .table td, .table th {
+        font-size: 0.95rem !important;
+        padding: 0.7rem !important;
+    }
+}
+
+/* Ajustes para tablas con muchas columnas */
+.table-scrollable {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Asegurar que todas las tablas tengan el scroll horizontal en móviles */
+@media (max-width: 767px) {
+    .table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Mejoras para el campo de estado en tablas - vista escritorio y responsive */
+
+/* Estilo simplificado para selectores de estado */
+.status-select, 
+select[name="status"] {
+    min-width: 160px;
+    max-width: 200px;
+    text-align: left;
+    font-weight: normal;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    padding: 0.45rem 2rem 0.45rem 0.75rem; /* Aumentar más el padding derecho para la flecha */
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    appearance: none; /* Cambiado a none para controlar mejor la apariencia */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 12px 12px;
+}
+
+/* Quitar estilos de colores anteriores para las opciones */
+.status-select option,
+select[name="status"] option {
+    background-color: #fff;
+    font-weight: normal;
+    color: #333;
+}
+
+/* Estilos para estado seleccionado */
+.status-select:focus,
+select[name="status"]:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+    border-color: #80bdff;
+}
+
+/* Vista escritorio (>= 992px) */
+@media (min-width: 992px) {
+    .status-select, 
+    select[name="status"] {
+        min-width: 160px;
+        max-width: 200px;
+        font-size: 0.95rem;
+        padding: 0.5rem 2.25rem 0.5rem 0.75rem; /* Aumentar aún más el padding */
+    }
+    
+    /* Asegurar que el estado tenga ancho adecuado en pantallas grandes */
+    th:nth-child(4), 
+    td:nth-child(4) {
+        min-width: 180px !important;
+        width: 15% !important;
+        max-width: 220px !important;
+    }
+    
+    /* Columna de acciones */
+    th:last-child, 
+    td:last-child {
+        min-width: 120px !important;
+        width: 10% !important;
+    }
+    
+    /* Valor Servicio, Valor Repuestos y Total - ancho consistente */
+    th:nth-child(5), 
+    td:nth-child(5),
+    th:nth-child(6), 
+    td:nth-child(6),
+    th:nth-child(7), 
+    td:nth-child(7) {
+        width: 10% !important;
+        min-width: 100px;
+        text-align: right;
+    }
+    
+    /* Prioridad */
+    th:nth-child(5), 
+    td:nth-child(5) {
+        text-align: center;
+    }
+}
+
+/* Vista tablet (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+    .status-select, 
+    select[name="status"] {
+        min-width: 150px;
+        max-width: 180px;
+        padding-right: 2rem;
+    }
+    
+    .table td {
+        padding: 0.65rem !important;
+    }
+    
+    .table th {
+        white-space: nowrap;
+    }
+}
+
+/* Mejoras para selects dentro de tablas en vista tablet y móvil */
+@media (max-width: 991px) {
+    .status-select, 
+    select[name="status"] {
+        max-width: 160px;
+        min-width: 140px;
+        padding-right: 2rem;
+    }
+    
+    .table td {
+        padding: 0.65rem !important;
+    }
+    
+    .table th {
+        white-space: nowrap;
+    }
+}
+
+/* Eliminar esta regla duplicada, ya que hemos integrado su funcionalidad arriba */
+.table .status-select, 
+.table select[name="status"] {
+    width: 100%; /* Rellenar el espacio disponible en la celda */
+} 

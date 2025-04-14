@@ -5,6 +5,20 @@
     --color-texto: #000000;          /* Texto principal */
     --color-blanco: #ffffff;         /* Blanco (texto y bordes) */
     --sombra: 0 4px 6px rgba(0, 0, 0, 0.3);
+    
+    /* Variables para breakpoints responsive */
+    --breakpoint-xs: 0;
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+}
+
+/* Estilos básicos */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
@@ -13,6 +27,9 @@ body {
     margin: 0;
     padding: 0;
     color: var(--color-texto);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Estilos para el topbar */
@@ -20,21 +37,24 @@ body {
     background-color: var(--color-primario);
     box-shadow: var(--sombra);
     padding: 0.75rem 1rem;
-    
+    width: 100%;
+    position: relative;
+    z-index: 1000;
 }
 
-/*- Estilo para el nombre weepilot*/
+/* Estilo para el nombre weepilot */
 .topbar .navbar-brand {
     color: var(--color-blanco);
     font-weight: 600;
     font-size: 1.3rem;
     margin-right: 10px;
-    
 }
 
 .topbar .navbar-toggler {
     border: none;
     outline: none;
+    padding: 0.25rem 0.5rem;
+    margin-right: 0.5rem;
 }
 
 .topbar .navbar-toggler-icon {
@@ -110,12 +130,40 @@ body {
     color: var(--color-blanco);
 }
 
-/* Responsividad para navbar */
-@media (max-width: 991px) {
+/* Estilos del sidebar overlay */
+#sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
+
+#sidebar-overlay.active {
+    display: block;
+}
+
+/* Mejoras responsivas para tablets y móviles */
+/* Móviles y tablets pequeñas */
+@media (max-width: 767px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
     .topbar .navbar-collapse {
         background-color: var(--color-primario);
         padding: 1rem;
-        border-top: 1px solid var(--color-secundario);  
+        border-top: 1px solid var(--color-secundario);
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
     }
 
     .topbar .nav-link {
@@ -128,6 +176,81 @@ body {
     .logout-btn {
         width: 100%;
         justify-content: center;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .topbar .navbar-nav {
+        width: 100%;
+        margin: 0;
+    }
+    
+    /* Mejorar espaciado en tablas para móviles */
+    .table-responsive {
+        border: 0;
+    }
+    
+    .table td, .table th {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+    
+    /* Ajustes adicionales para UI en móviles */
+    h3 {
+        font-size: 1.25rem;
+    }
+    
+    .btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 991px) {
+    .topbar .navbar-collapse {
+        background-color: var(--color-primario);
+        padding: 1rem;
+        border-top: 1px solid var(--color-secundario);
+    }
+
+    .topbar .nav-link {
+        font-size: 0.9rem;
+        padding: 10px 8px;
+    }
+    
+    .navbar-nav.me-auto .nav-item {
+        margin: 0 2px;
+    }
+    
+    .topbar .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    /* Mejoras para tablas en tablets */
+    .table td, .table th {
+        font-size: 0.9rem;
+        padding: 0.65rem;
+    }
+}
+
+/* Estilos generales responsive */
+@media (max-width: 991px) {
+    .topbar .navbar-collapse {
+        background-color: var(--color-primario);
+        padding: 1rem;
+        border-top: 1px solid var(--color-secundario);  
+    }
+
+    .topbar .nav-link {
+        text-align: left;
+        width: 100%;
+        padding: 12px;
+    }
+
+    .logout-btn {
+        width: 100%;
+        justify-content: center;
         margin-top: 1rem;
     }
 
@@ -135,6 +258,52 @@ body {
         width: 100%;
     }
     
+    /* Añadir espacio para el contenido principal */
+    #content {
+        padding-top: 1rem;
+    }
+    
+    /* Botones adaptables */
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Escritorios medianos a grandes */
+@media (min-width: 992px) {
+    .navbar-expand-lg .navbar-nav .nav-link {
+        padding-right: 0.75rem;
+        padding-left: 0.75rem;  
+    }
+    
+    /* Mejora el centrado de los elementos del navbar */
+    .navbar-nav.me-auto {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    /* Espacio para los li del navbar */
+    .navbar-nav.me-auto .nav-item {
+        margin: 0 5px;
+    }
+    
+    #content {
+        padding-top: 1.5rem;
+    }
+}
+
+/* Específico para pantallas grandes */
+@media (min-width: 1200px) {
+    .container-fluid {
+        max-width: 1140px;
+        margin: 0 auto;
+    }
 }
 
 /* Estilos base para tablas, textos y otros */
@@ -147,6 +316,7 @@ h3 {
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--color-texto);
+    margin-bottom: 1rem;
 }
 
 /* Mejoras en botones y formularios */
@@ -164,30 +334,53 @@ h3 {
     font-size: 0.8rem;
     padding: 0.4em 0.6em;
 }
-/* Mejora el centrado de los elementos del navbar */
-.navbar-nav.me-auto {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-}
-/*Espacio para los li del navbar*/
-.navbar-nav.me-auto .nav-item {
-    margin: 0 5px;
+
+/* Estilos para inputs responsivos */
+.form-control {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
 }
 
-/* Asegura que el navbar-brand (WEEKPILOT) mantenga su posición */
-.container-fluid {
-    padding-left: 15px;
-    padding-right: 15px;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-}   
+/* Clases de utilidad responsive */
+.d-xs-none {
+    display: none !important;
+}
 
-/* Ajusta el espacio entre los elementos en dispositivos grandes */
-@media (min-width: 992px) {
-    .navbar-expand-lg .navbar-nav .nav-link {
-        padding-right: 0.75rem;
-        padding-left: 0.75rem;  
+@media (min-width: 576px) {
+    .d-sm-block {
+        display: block !important;
     }
+    .d-sm-none {
+        display: none !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .d-md-block {
+        display: block !important;
+    }
+    .d-md-none {
+        display: none !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .d-lg-block {
+        display: block !important;
+    }
+    .d-lg-none {
+        display: none !important;
+    }
+}
+
+/* Evitar desbordamiento horizontal */
+.row {
+    margin-left: -10px;
+    margin-right: -10px;
+}
+
+.col, .col-1, .col-2, .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9, .col-10, .col-11, .col-12, 
+.col-sm, .col-md, .col-lg, .col-xl {
+    padding-left: 10px;
+    padding-right: 10px;
 }

@@ -15,7 +15,7 @@ from models.tickets import Tickets
 from extensions import db
 from models.problems import Problems
 from models.sparesTickets import Spares_tickets
-from utils.decorators import technician_access
+from utils.access_control import role_required
 
 technical_service_bp = Blueprint(
     "technical_service", __name__, template_folder="templates")
@@ -47,6 +47,7 @@ def get_common_data():
 # Crear Ticket
 @technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
+@role_required("Admin")
 def create_ticket():
     # Obtener datos comunes
     common_data = get_common_data()
@@ -278,6 +279,7 @@ def create_ticket():
 
 @technical_service_bp.route("/technical_service")
 @login_required
+@role_required("Admin")
 def list_tickets():
     clients = Clients_tickets.query.all()
     tickets = Tickets.query.filter_by(type_of_service="0").order_by(
@@ -303,6 +305,7 @@ def list_tickets():
 # Editar Ticket
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
+@role_required("Admin")
 def edit_ticket(ticket_id):
     # Obtener el ticket y cliente
     ticket = Tickets.query.get_or_404(ticket_id)
@@ -413,6 +416,7 @@ def edit_ticket(ticket_id):
 # Ver Detalle de Ticket
 @technical_service_bp.route("/view_detail_ticket/<int:ticket_id>", methods=["GET"])
 @login_required
+@role_required("Admin")
 def view_detail_ticket(ticket_id):
     # Obtenemos el ticket o devolvemos 404 si no existe
     ticket = Tickets.query.get_or_404(ticket_id)
@@ -433,6 +437,7 @@ def view_detail_ticket(ticket_id):
 # Actualizar Estado de Ticket (AJAX)
 @technical_service_bp.route('/update_ticket_status_ajax', methods=['POST'])
 @login_required
+@role_required("Admin", "servicioTecnico")
 def update_ticket_status_ajax():
     ticket_id = request.form.get('ticket_id')
     new_status = request.form.get('status')
@@ -467,6 +472,7 @@ def update_ticket_status_ajax():
 
 @technical_service_bp.route('/send_email_notification/<int:ticket_id>', methods=['POST'])
 @login_required
+@role_required("Admin")
 def send_email_notification(ticket_id):
     """Envía una notificación por correo electrónico al cliente sobre el ticket Terminado"""
     ticket = Tickets.query.get_or_404(ticket_id)

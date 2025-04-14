@@ -1,5 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required
+from utils.access_control import role_required
 from PIL import Image
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -29,6 +31,8 @@ def save_image(image_file):
 
 # Ruta principal
 @upload_images_bp.route('/upload', methods=['GET', 'POST'])
+@login_required
+@role_required("Admin", "servicioTecnico")
 def upload():
     if request.method == 'POST':
         uploaded_files = request.files.getlist('images')

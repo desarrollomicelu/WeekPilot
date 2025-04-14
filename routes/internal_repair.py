@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, url_for, flash, redirect,
 from models.tickets import Tickets
 from flask_login import login_required
 from datetime import datetime
+from utils.access_control import role_required
 
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
@@ -42,6 +43,8 @@ def get_common_data():
     }
 
 @internal_repair_bp.route("/internal_repair", endpoint="internal_repair")
+@login_required
+@role_required("Admin")
 def internal_repair():
     """
     Ruta principal que muestra los datos de reparaciones internas en tablas.
@@ -65,6 +68,8 @@ def internal_repair():
     )
 
 @internal_repair_bp.route("/create_ticketsRI", methods=["GET", "POST"], endpoint="create_ticketsRI")
+@login_required
+@role_required("Admin")
 def create_ticketsRI():
     """
     Ruta para la creación de tickets de reparación interna.
@@ -249,6 +254,7 @@ def create_ticketsRI():
 #------editar ticketRI
 @internal_repair_bp.route("/edit_tickets_RI/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
+@role_required("Admin")
 def edit_tickets_RI(ticket_id):
     spare_parts = get_spare_parts() 
     """
@@ -423,6 +429,7 @@ def edit_tickets_RI(ticket_id):
     
 @internal_repair_bp.route("/detail_RI/<int:ticket_id>", methods=["GET"], endpoint="detail_RI")
 @login_required
+@role_required("Admin")
 def detalle_RI(ticket_id):
     """
     Ruta para mostrar los detalles de un ticket de reparación interna
@@ -448,14 +455,15 @@ def detalle_RI(ticket_id):
         repuestos_ticket=repuestos_ticket
     )
     
-# Ruta para actualizar el estado 
-@internal_repair_bp.route("/update_ticket_status", methods=["POST"])
+# Ruta para actualizar el estado vía AJAX
+@internal_repair_bp.route("/update_ticket_status_ajax", methods=["POST"])
 @login_required
-def update_ticket_status():
+@role_required("Admin")
+def update_ticket_status_ajax():
     """Actualiza el estado de un ticket de reparación interna vía AJAX"""
     try:
-        ticket_id = request.json.get('ticket_id')
-        new_status = request.json.get('status')
+        ticket_id = request.form.get('ticket_id')
+        new_status = request.form.get('state')
         
         if not ticket_id or not new_status:
             return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
@@ -487,11 +495,14 @@ def update_ticket_status():
         
         db.session.commit()
         
+        # Formatear la hora para mostrarla en la UI
+        formatted_time = current_time.strftime("%d/%m/%Y %H:%M:%S")
+        
         return jsonify({
             'success': True, 
             'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
-            'ticket_id': ticket_id,
-            'new_status': new_status
+            'status': new_status,
+            'timestamp': formatted_time
         })
         
     except Exception as e:
@@ -501,6 +512,7 @@ def update_ticket_status():
 # Ruta para la vista del tecnico 
 @internal_repair_bp.route("/technicianRI_view", methods=["GET"], endpoint="technicianRI_view")
 @login_required
+@role_required("Admin")
 def technician_view():
     """
     Ruta para que los técnicos vean sus tickets asignados.
@@ -518,6 +530,7 @@ def technician_view():
     )
 @internal_repair_bp.route("/update_ticket_progress", methods=["POST"])
 @login_required
+@role_required("Admin")
 def update_ticket_progress():
     """Actualiza el estado de un ticket de reparación interna desde la vista del técnico"""
     try:

@@ -50,7 +50,7 @@
     <div class="row">
       <div class="col-md-8">
         <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Asignado', 'En proceso','En revisión', 'Terminado'] %}
+          {% for status in ['Todos', 'Asignado', 'En proceso','En revisión'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
           <label class="btn btn-outline-primary" for="btn{{ status }}">
@@ -112,6 +112,7 @@
         </thead>
         <tbody>
           {% for ticket in tickets %}
+          {% if ticket.state != 'Terminado' %}
           <tr class="align-middle" data-status="{{ ticket.state }}">
             <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
             <td>{{ ticket.reference }}</td>
@@ -120,7 +121,6 @@
                 <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
                 <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
                 <option value="En revision" {% if ticket.state=='En revision' %}selected{% endif %}>En revisión</option>
-                <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>
               </select>
             </td>
             <td>
@@ -160,6 +160,7 @@
               </div>
             </td>
           </tr>
+          {% endif %}
           {% else %}
           <tr>
             <td colspan="7" class="text-center py-5">

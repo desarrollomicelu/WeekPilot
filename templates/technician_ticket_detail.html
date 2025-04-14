@@ -16,9 +16,18 @@
                 class="btn btn-secondary d-flex align-items-center">
                 <i class="fas fa-arrow-left me-2"></i> Volver a Mis Tickets
             </a>
-            <button id="updateStatusBtn" class="btn btn-primary d-flex align-items-center">
-                <i class="fas fa-save me-2"></i> Actualizar Estado
-            </button>
+            
+            <!-- Selector de estado y botón de actualizar -->
+            <div class="d-flex align-items-center">
+                <select id="ticketStatus" class="form-select form-select-sm me-2" data-ticket-id="{{ ticket.id_ticket }}">
+                    <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
+                    <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
+                    <option value="En revision" {% if ticket.state == 'En revision' %}selected{% endif %}>En revisión</option>
+                </select>
+                <button id="updateStatusBtn" class="btn btn-primary d-flex align-items-center">
+                    <i class="fas fa-save me-2"></i> Actualizar Estado
+                </button>
+            </div>
         </div>
     </div>
 
@@ -160,7 +169,7 @@
             <h5 class="mb-0"><i class="fas fa-upload me-2 text-primary"></i>Comentarios y Evidencias</h5>
         </div>
         <div class="card-body">
-            <form method="POST"
+            <form id="commentForm" method="POST"
                 action="{{ url_for('view_technical.technician_ticket_detail', ticket_id=ticket.id_ticket) }}"
                 enctype="multipart/form-data">
                 <!-- Apartado para agregar comentarios -->
@@ -192,17 +201,17 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary d-flex align-items-right">
-                    <i class="fas fa-save me-2"></i> Guardar Cambios
-                </button>
-        </div>
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary" data-ticket-id="{{ ticket.id_ticket }}">
+                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
 
-
-        </form>
-
-        <!-- Área de previsualización de imágenes -->
-        <div id="previewContainer" class="row mt-4">
-            <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
+            <!-- Área de previsualización de imágenes -->
+            <div id="previewContainer" class="row mt-4">
+                <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
+            </div>
         </div>
     </div>
 </div>

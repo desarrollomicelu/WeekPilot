@@ -96,7 +96,6 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3">#</th>
-            <th>Cliente</th>
             <th>Documento</th>
             <th>Técnico</th>
             <th>Estado</th>
@@ -111,11 +110,6 @@
           {% for ticket in tickets %}
           <tr class="align-middle" data-status="{{ ticket.state }}">
             <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div>{{ ticket.client_info.name }}</div>
-              </div>
-            </td>
             <td>{{ ticket.client_info.document }}</td>
             <td>
               {% if ticket.technical_name %}
@@ -170,7 +164,7 @@
           </tr>
           {% else %}
           <tr>
-            <td colspan="11" class="text-center py-5">
+            <td colspan="10" class="text-center py-5">
               <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
               <p class="text-muted">No hay tickets registrados actualmente.</p>
               <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">

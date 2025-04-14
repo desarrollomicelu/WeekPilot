@@ -49,6 +49,26 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
 }
 
 /**
+ * Muestra una alerta de éxito (usada tras actualizar un ticket).
+ */
+function showSuccessUpdateAlert() {
+    Swal.fire({
+        icon: 'success',
+        title: '¡Actualizado con éxito!',
+        text: 'Los cambios han sido guardados correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        iconColor: '#28a745',
+        customClass: {
+            popup: 'colored-toast'
+        }
+    });
+}
+
+/**
  * Valida el formato de un correo electrónico.
  * @param {string} email - Correo a validar.
  * @returns {boolean} - True si el email es válido.
@@ -990,31 +1010,39 @@ function setupFormSubmission() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Guardando...',
-                    html: 'Por favor espera mientras se guardan los cambios.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Desformatear los campos numéricos antes de enviar
-                document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
-                    .forEach(input => {
-                        input.value = unformatNumber(input.value);
+                // Mostrar primero la alerta de éxito
+                showSuccessUpdateAlert();
+                
+                // Luego mostrar la pantalla de carga
+                setTimeout(() => {
+                    Swal.fire({
+                        title: 'Guardando...',
+                        html: 'Por favor espera mientras se guardan los cambios.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
                     });
 
-                // Agregar campo oculto para indicar redirección
-                const redirectInput = document.createElement('input');
-                redirectInput.type = 'hidden';
-                redirectInput.name = 'redirect_after_save';
-                redirectInput.value = 'true';
-                ticketForm.appendChild(redirectInput);
+                    // Desformatear los campos numéricos antes de enviar
+                    document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
+                        .forEach(input => {
+                            input.value = unformatNumber(input.value);
+                        });
 
-                // Enviar el formulario
-                ticketForm.removeEventListener('submit', arguments.callee);
-                ticketForm.submit();
+                    // Agregar campo oculto para indicar redirección
+                    const redirectInput = document.createElement('input');
+                    redirectInput.type = 'hidden';
+                    redirectInput.name = 'redirect_after_save';
+                    redirectInput.value = 'true';
+                    ticketForm.appendChild(redirectInput);
+
+                    // Enviar el formulario
+                    ticketForm.removeEventListener('submit', arguments.callee);
+                    setTimeout(() => {
+                        ticketForm.submit();
+                    }, 1000);
+                }, 1500);
             }
         });
     });
