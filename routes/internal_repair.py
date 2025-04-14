@@ -1,6 +1,6 @@
 # routes/internal_repair.py
 
-from flask import Blueprint, render_template, request, url_for, flash, redirect
+from flask import Blueprint, render_template, request, url_for, flash, redirect, jsonify
 from models.tickets import Tickets
 from flask_login import login_required
 from datetime import datetime
@@ -47,11 +47,9 @@ def internal_repair():
     Ruta principal que muestra los datos de reparaciones internas en tablas.
     """
     # Obtener todos los tickets de reparación interna ordenados por fecha de creación (más recientes primero)
-    repairs = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.desc()).all()
-    tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.desc()).all()
+    repairs = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
+    tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
 
-    print("Datos de los tickets:", tickets)
-    print("Datos de las reparaciones:", repairs)
 
     
     # Obtener datos adicionales que puedan ser necesarios para mostrar en la vista
@@ -100,21 +98,23 @@ def create_ticketsRI():
             total = request.form.get("total") or 0
             spare_value = request.form.get("spare_value") or 0
             
-            if not IMEI.isdigit():
-                flash("Error: El IMEI solo puede contener números.", "danger")
-                return redirect(url_for("internal_repair.create_ticketsRI"))
+            if IMEI:
+                if not IMEI.isdigit():
+                    flash("Error: El IMEI solo puede contener números.", "danger")
+                    return render_template(
+                        "create_ticketsRI.html",
+                        current_date=current_date,
+                        **common_data
+                    )
 
-            if len(IMEI) > 15:
-                flash("Error: El IMEI no puede tener más de 15 caracteres.", "danger")
-                return redirect(url_for("internal_repair.create_ticketsRI"))
+                if len(IMEI) != 15:
+                    flash("Error: El IMEI debe contener exactamente 15 caracteres.", "danger")
+                    return render_template(
+                        "create_ticketsRI.html",
+                        current_date=current_date,
+                        **common_data
+                    )
             
-            print("==== DIAGNÓSTICO COMPLETO ====")
-            print("Método de solicitud:", request.method)
-            print("Tipo de content-type:", request.content_type)
-            print("Todos los datos del formulario:", request.form.to_dict())
-            print("==== FIN DEL DIAGNÓSTICO ====")
-
-            print("Datos recibidos del formulario:", sede, technical_name, technical_document, state, priority, assigned, reference_selected, product_code_selected, IMEI, service_value, total, spare_value)
             # Validar campos obligatorios
             if not all([sede, technical_name, technical_document, state, priority, 
                         reference_selected, product_code_selected]):
@@ -447,3 +447,119 @@ def detalle_RI(ticket_id):
         problemas_ticket=problemas_ticket,
         repuestos_ticket=repuestos_ticket
     )
+    
+# Ruta para actualizar el estado 
+@internal_repair_bp.route("/update_ticket_status", methods=["POST"])
+@login_required
+def update_ticket_status():
+    """Actualiza el estado de un ticket de reparación interna vía AJAX"""
+    try:
+        ticket_id = request.json.get('ticket_id')
+        new_status = request.json.get('status')
+        
+        if not ticket_id or not new_status:
+            return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            
+        ticket = Tickets.query.get_or_404(ticket_id)
+        
+        # Verificar que sea un ticket de reparación interna
+        if ticket.type_of_service != "1":
+            return jsonify({'success': False, 'message': 'Este ticket no es de reparación interna'}), 400
+        
+        # Guardar el estado anterior para el mensaje
+        previous_status = ticket.state
+        
+        # Actualizar el estado
+        ticket.state = new_status
+        
+        # Actualizar fechas según el estado
+        current_time = datetime.now()
+        if new_status == "Asignado" and not ticket.assigned:
+            ticket.assigned = current_time
+        elif new_status == "En proceso" and not ticket.in_progress:
+            ticket.in_progress = current_time
+        elif new_status == "Terminado" and not ticket.finished:
+            ticket.finished = current_time
+        elif new_status == "Cancelado":
+            # Opcionalmente, puedes agregar un campo para la fecha de cancelación
+            # Si no existe, puedes usar el campo finished o crear uno nuevo
+            ticket.finished = current_time
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
+            'ticket_id': ticket_id,
+            'new_status': new_status
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+    
+# Ruta para la vista del tecnico 
+@internal_repair_bp.route("/technicianRI_view", methods=["GET"], endpoint="technicianRI_view")
+@login_required
+def technician_view():
+    """
+    Ruta para que los técnicos vean sus tickets asignados.
+    """
+    # Obtener el nombre del técnico actual (del usuario logueado)
+    #current_user_name = current_user.name  # Ajusta esto según tu modelo de usuario
+    
+    # Obtener todos los tickets asignados al técnico actual
+    assigned_tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
+    
+    return render_template(
+        "view_technicalRI.html",
+        assigned_tickets=assigned_tickets,
+        is_technician_view=True  # Añadimos esta variable para controlar la vista
+    )
+@internal_repair_bp.route("/update_ticket_progress", methods=["POST"])
+@login_required
+def update_ticket_progress():
+    """Actualiza el estado de un ticket de reparación interna desde la vista del técnico"""
+    try:
+        ticket_id = request.json.get('ticket_id')
+        new_status = request.json.get('status')
+        notes = request.json.get('notes', '')  # Opcional: notas de progreso
+        
+        if not ticket_id or not new_status:
+            return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            
+        ticket = Tickets.query.get_or_404(ticket_id)
+        
+        # Verificar que sea un ticket de reparación interna
+        if ticket.type_of_service != "1":
+            return jsonify({'success': False, 'message': 'Este ticket no es de reparación interna'}), 400
+        
+        # Guardar el estado anterior para el mensaje
+        previous_status = ticket.state
+        
+        # Actualizar el estado
+        ticket.state = new_status
+        
+        # Actualizar fechas según el estado
+        current_time = datetime.now()
+        if new_status == "Asignado" and not ticket.assigned:
+            ticket.assigned = current_time
+        elif new_status == "En proceso" and not ticket.in_progress:
+            ticket.in_progress = current_time
+        elif new_status == "Terminado" and not ticket.finished:
+            ticket.finished = current_time
+        
+        # Aquí podrías guardar las notas en una tabla de historial si lo necesitas
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
+            'ticket_id': ticket_id,
+            'new_status': new_status
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500

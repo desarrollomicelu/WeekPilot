@@ -240,14 +240,13 @@
 
                         <div class="mt-3">
                             <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
-                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly>{% for problem in problems %}{% if problem.id in selected_problem_ids %}{{ problem.name }}
+                          {% endif %}{% endfor %}</textarea>
                             <div class="d-flex justify-content-between mt-2">
-                                <button type="button" id="selectAllProblems"
-                                    class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
-                                <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar
-                                    Selección</button>
+                              <button type="button" id="selectAllProblems" class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+                              <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar Selección</button>
                             </div>
-                        </div>
+                          </div>
                     </div>
                 </div>
             </div>

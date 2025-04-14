@@ -8,18 +8,18 @@
 
 {% block content %}
 
-<div class="container-fluid py-4">
+  <div class="container-fluid py-4 px-3">
   <!-- Fila del título -->
   <div class="row mb-2">
-    <div class="col">
+    <div class="col-12">
       <h2 class="mb-0">
         <i class="fas fa-ticket-alt text-primary me-2"></i>Gestión de Tickets Servicio Técnico
       </h2>
     </div>
   </div>
   <!-- Fila de controles -->
-  <div class="row">
-    <div class="col d-flex justify-content-end align-items-center gap-2">
+  <div class="row mt-3">
+    <div class="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2">
       <!-- Barra de búsqueda compacta -->
       <div class="input-group" style="max-width: 250px;">
         <span class="input-group-text bg-light">
@@ -207,8 +207,6 @@
       </ul>
     </nav>
   </div>
-</div>
-</div>
 
 <script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
 {% endblock %}

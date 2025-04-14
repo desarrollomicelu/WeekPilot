@@ -1,6 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Reparación Interna{% endblock %}
 {% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/internal_repair.css') }}">
+{% endblock %}
+
+<!-- Contenedor de alertas con posición fija y separado del navbar -->
+<div class="alert-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+          {% endfor %}
+      {% endif %}
+  {% endwith %}
+</div>
 
 <div class="container-fluid py-4">
   <!-- Fila del título -->
@@ -26,10 +43,11 @@
       <a href="{{ url_for('internal_repair.create_ticketsRI') }}" class="btn btn-success d-flex align-items-center">
         <i class="fas fa-plus me-2"></i>Nueva Reparación
       </a>
-      <!-- Botón de inventario de repuestos -->
-      <a href="" class="btn btn-secondary d-flex align-items-center">
-        <i class="fas fa-warehouse me-2"></i>Inventario
-      </a>
+      <!-- Buscar por fecha 
+      <div class="d-flex align-items-center">
+        <label for="dateFilter" class="form-label me-2 mb-0">Filtrar por fecha:</label>
+        <input type="date" id="dateFilter" class="form-control form-control-sm">
+      </div>-->
     </div>
   </div>
 </div>
@@ -39,13 +57,11 @@
   <div class="card-body">
     <div class="row">
       <div class="col-md-8">
-        <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Pendientes', 'En Reparación', 'Completados', 'Cancelados'] %}
-          <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
-            %}checked{% endif %}>
+        <div class="d-flex gap-2 flex-nowrap">
+          {% for status in ['Todos', 'Sin asignar', 'Asignados', 'En Proceso', 'Terminados', 'Cancelados'] %}
+          <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos' %}checked{% endif %}>
           <label class="btn btn-outline-primary" for="btn{{ status }}">
-            <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Pendientes' %}clock{% elif status == 'En Reparación' %}wrench{% elif status == 'Completados' %}check-circle{% else %}times-circle{% endif %} me-1"></i>
+            <i class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Sin asignar' %}clock{% elif status == 'Asignados' %}user{% elif status == 'En Proceso' %}wrench{% elif status == 'Completados' %}check-circle{% else %}times-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
@@ -53,10 +69,10 @@
       </div>
       <div class="col-md-4">
         <div class="d-flex justify-content-end">
-          <select class="form-select" style="max-width: 200px;" id="cityfilter">
-            <option value="all">Ciudad</option>
-            <option value="it">Medellin</option>
-            <option value="operations">Bogota</option>
+          <select class="form-select" style="max-width: 210px;" id="cityfilter">
+            <option value="all">Todas las ciudades</option>
+            <option value="Medellin">Medellín</option>
+            <option value="Bogota">Bogotá</option>
           </select>
         </div>
       </div>
@@ -68,15 +84,7 @@
 <div class="card shadow-sm border-0">
   <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
-        <label class="form-check-label fw-bold ms-2" for="selectAllCheckbox">Seleccionar todos</label>
-      </div>
-      <div class="ms-3">
-        <button class="btn btn-sm btn-outline-secondary" disabled id="bulkActionBtn">
-          <i class="fas fa-cogs me-1"></i> Acciones
-        </button>
-      </div>
+      <h2> Lista Tickets Reparación Interna</h2>
     </div>
     <span class="badge bg-primary rounded-pill py-2 px-3">
       <i class="fas fa-tools me-2"></i>
@@ -89,12 +97,12 @@
         <thead class="table-light text-nowrap">
           <tr>
             <th class="ps-3">#</th>
-            <th>Referencia</th>
+            <th style="width: 10%">Referencia</th>
             <!--<th>Imei</th>-->
             <th>Ciudad</th>
             <th>Técnico</th>
             <th>Estado</th>
-            <th>Fecha de Ingreso</th>
+            <!--<th>Fecha de Ingreso</th>-->
             <th>Prioridad</th>
             <th>Valor Servicio</th>
             <th>Valor Repuestos</th>
@@ -117,37 +125,46 @@
               {% endif %}
             </td>
             <td>
-              <select class="form-select form-select-sm" data-ticket-id="{{ ticket.id_ticket }}" name="status">
-                {% for status in ['Asignado', 'En proceso', 'Terminado'] %}
-                <option value="{{ status }}" {% if ticket.state==status %}selected{% endif %}>{{ status }}</option>
+              <select class="form-select form-select-sm status-select" 
+                      data-ticket-id="{{ ticket.id_ticket }}" 
+                      data-previous-status="{{ ticket.state }}" 
+                      name="status">
+                {% for status in ['Sin asignar', 'Asignado', 'En proceso', 'Terminado', 'Cancelado'] %}
+                <option value="{{ status }}" {% if ticket.state == status %}selected{% endif %}>{{ status }}</option>
                 {% endfor %}
               </select>
             </td>
-            <td>
+            <!--<td>
               {% if ticket.creation_date %}
               <div>{{ ticket.creation_date.strftime("%d/%m/%Y") if ticket.creation_date else "Fecha no disponible" }}</div>
               <small class="text-muted">{{ ticket.creation_date.strftime("%H:%M:%S") if ticket.creation_date else "" }}</small>
               {% else %}
               <span class="badge bg-secondary">No registrada</span>
               {% endif %}
+            </td>-->
+            <td>
+              <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ ticket.priority }}
+              </span>
             </td>
-            <td>{{ ticket.priority }}</td>
-            <td><i class="fas fa-tools text-muted me-1"></i>${{ "{:,.0f}".format(ticket.service_value) }}</td>
-            <td><i class="fas fa-cogs text-muted me-1"></i>${{ "{:,.0f}".format(ticket.spare_value) }}</td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total) }}</span></td>
+            <td>${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</td>
+            <td>${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
+            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</span></td>
             <td class="text-center">
               <div class="btn-group">
-                  <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-edit"></i>
-                  </a>
-                  <a href="{{ url_for('internal_repair.detail_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-eye"></i>
+                <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-edit"></i>
                 </a>
-                  <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
-                      <i class="fas fa-envelope"></i>
-                  </a>
+                <a href="{{ url_for('internal_repair.detail_RI', ticket_id=ticket.id_ticket) }}"
+                  class="btn btn-sm btn-outline-info">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-danger">
+                  <i class="fas fa-envelope"></i>
+                </a>
               </div>
-          </td>
+            </td>
           </tr>
           {% else %}
           <tr>
@@ -316,7 +333,11 @@
     </div>
   </div>
 </div>
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{url_for('static', filename=('js/internal_repair.js'))}}"></script>
+<script src="{{url_for('static', filename=('js/edit_ri.js'))}}"></script>
+<script src="{{url_for('static', filename=('js/state.js'))}}"></script>
+
 {% endblock %}

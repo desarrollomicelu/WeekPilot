@@ -7,16 +7,7 @@
 {% endblock %}
 
 {% block content %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
+
 <form method="POST" action="{{ url_for('internal_repair.create_ticketsRI') }}" id="ticketForm">
   <div class="row text-align-center mb-4">
     <div class="col-md-6">
@@ -122,7 +113,7 @@
                     <th style="width:35%;">Descripción</th>
                     <th style="width:15%;">Cantidad</th>
                     <th style="width:20%;">Valor Unitario</th>
-                    <!--<th style="width:15%;">Valor Total</th>-->
+                    <th style="width:15%;">Valor Total</th>
                     <th style="width:10%;">Acciones</th>
                   </tr>
                 </thead>
@@ -201,10 +192,14 @@
                           <input type="text" class="form-control" id="product_code" name="product_code" readonly>
                       </div>
 
-                        <div class="col-sm-6 mb-3">
-                            <label for="IMEI" class="form-label">IMEI o Serial</label>
-                            <input type="text" class="form-control" id="IMEI" name="IMEI">
+                      <div class="col-sm-6 mb-3">
+                        <label for="IMEI" class="form-label">IMEI o Serial</label>
+                        <input type="text" class="form-control" id="IMEI" name="IMEI" 
+                               pattern="\d{15}" title="El IMEI debe contener exactamente 15 dígitos numéricos">
+                        <div class="invalid-feedback">
+                            El IMEI debe contener exactamente 15 dígitos numéricos.
                         </div>
+                        <small class="form-text text-muted">Ingrese exactamente 15 dígitos numéricos.</small>
                     </div>
                 </div>
 
@@ -212,34 +207,37 @@
 
                 <!-- Valores Financieros -->
                 <div class="mb-3 row">
-                    <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
-                    <div class="col-sm-7">
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="service_value" name="service_value" value="0" min="0" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3 row">
-                    <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
-                    <div class="col-sm-7">
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="spare_value" name="spare_value" value="0" min="0" readonly>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
-                    <div class="col-sm-7">
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control fw-bold" id="total" name="total" value="0" readonly>
-                        </div>
-                    </div>
-                </div>
+                  <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
+                  <div class="col-sm-7">
+                      <div class="input-group">
+                          <span class="input-group-text">$</span>
+                          <input type="text" class="form-control currency-input" id="service_value" name="service_value" value="0" required>
+                          <input type="hidden" id="service_value_raw" name="service_value_raw" value="0">
+                      </div>
+                  </div>
+              </div>
+              
+              <div class="mb-3 row">
+                  <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
+                  <div class="col-sm-7">
+                      <div class="input-group">
+                          <span class="input-group-text">$</span>
+                          <input type="text" class="form-control currency-input" id="spare_value" name="spare_value" value="0" readonly>
+                          <input type="hidden" id="spare_value_raw" name="spare_value_raw" value="0">
+                      </div>
+                  </div>
+              </div>
+              
+              <div class="row">
+                  <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
+                  <div class="col-sm-7">
+                      <div class="input-group">
+                          <span class="input-group-text">$</span>
+                          <input type="text" class="form-control fw-bold currency-input" id="total" name="total" value="0" readonly>
+                          <input type="hidden" id="total_raw" name="total_raw" value="0">
+                      </div>
+                  </div>
+              </div>
             </div>
         </div>
     </div>
@@ -261,6 +259,8 @@
 </div>
 
 <!-- Template para nueva fila de repuesto -->
+<!-- Template para nueva fila de repuesto -->
+<!-- Template para nueva fila de repuesto -->
 <template id="partRowTemplate">
   <tr class="part-row">
     <td class="part-index"></td>
@@ -270,16 +270,16 @@
         {% for spare in spare_parts %}
         <option value="{{ spare.code }}">{{ spare.code }} - {{ spare.description }}</option>
         {% endfor %}
-    </select>
+      </select>
     </td>
     <td>
       <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
     </td>
     <td>
-      <input type="number" class="form-control part-unit-value" min="0" name="part_unit_value[]" value="0" required>
+      <input type="text" class="form-control part-unit-value currency-input" name="part_unit_value[]" value="0" required>
     </td>
     <td>
-      <input type="number" class="form-control part-total-value" name="part_total_value[]" value="0" readonly>
+      <input type="text" class="form-control part-total-value currency-input" name="part_total_value[]" value="0" readonly>
     </td>
     <td>
       <button type="button" class="btn btn-sm btn-danger remove-part">
@@ -288,6 +288,7 @@
     </td>
   </tr>
 </template>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script src="{{url_for('static', filename=('js/internal_repair.js'))}}"></script>
@@ -305,10 +306,7 @@
     } else {
         noPartsRow.style.display = 'none';
     }
-    
-    // Calcular el valor total de los repuestos
-    calculateTotalValue();
-}
+  }
 </script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -403,6 +401,39 @@
     });
 });
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener el formulario y el campo IMEI
+        const ticketForm = document.getElementById('ticketForm');
+        const imeiField = document.getElementById('IMEI');
+        
+        // Agregar validación al enviar el formulario
+        ticketForm.addEventListener('submit', function(event) {
+            // Verificar si el campo IMEI tiene valor
+            if (imeiField.value.trim()) {
+                // Validar que sea exactamente 15 caracteres numéricos
+                if (!/^\d{15}$/.test(imeiField.value.trim())) {
+                    event.preventDefault(); // Detener el envío del formulario
+                    
+                    // Mostrar mensaje de error
+                    alert('El IMEI debe contener exactamente 15 dígitos numéricos.');
+                    
+                    // Resaltar el campo con error
+                    imeiField.classList.add('is-invalid');
+                    
+                    // Enfocar el campo para corrección
+                    imeiField.focus();
+                    return false;
+                }
+            }
+        });
+        
+        // Limpiar la clase de error cuando el usuario comienza a editar
+        imeiField.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+    </script>
 
 
 

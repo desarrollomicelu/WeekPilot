@@ -7,48 +7,62 @@
   <title>Iniciar sesión</title>
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body>
-  <div class="container d-flex justify-content-center align-items-center min-vh-100">
-    <div class="row w-100">
-      <div class="col-sm-12 col-md-8 col-lg-6 mx-auto">
-        <div class="card shadow-lg border-0 rounded-4">
-          <div class="card-body p-4">
-            <h2 class="text-center mb-4 font-weight-bold">Iniciar sesión</h2>
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="alert alert-danger mt-3">{{ messages[0][1] }}</div>
-            {% endif %} {% endwith %}
-
-            <form action="{{ url_for('auth.login') }}" method="POST">
-              <div class="form-floating mb-3">
-                <label for="floatingInput">Nombre</label>
-                <input type="text" class="form-control" id="floatingInput" name="nombre" placeholder="Ingrese su Nombre"
-                  required />
-              </div>
-              <div class="form-floating mb-3">
-                <label for="floatingPassword">Contraseña</label>
-                <input type="password" class="form-control" id="floatingPassword" name="password"
-                  placeholder="Contraseña" required />
-              </div>
-              <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" value="" id="rememberPasswordCheck" />
-                <label class="form-check-label" for="rememberPasswordCheck">
-                  Recordar contraseña
-                </label>
-              </div>
-              <div class="d-grid">
-                <button class="btn btn-primary btn-lg text-uppercase fw-bold mx-auto d-block" type="submit">
-                  Iniciar sesión
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+  <section class="d-flex justify-content-center align-items-start vh-100">
+    <div class="panel card shadow col-xs-12 col-sm-8 col-md-6 col-lg-4 p-4">
+      <div class="title-container">
+        <h4 class="title-text text-center">INICIO DE SESIÓN</h4>
       </div>
+      <form action="{{ url_for('auth.login') }}" method="POST">
+        <div class="mb-4">
+          <label for="floatingInput" class="label-text">
+            <i class="fas fa-user" style="color: black;"></i> Usuario:
+          </label>
+          <input type="text" class="form-control" id="floatingInput" name="nombre" placeholder="Ingrese su Nombre" required />
+        </div>
+        <div class="mb-4">
+          <label for="floatingPassword" class="label-text">
+            <i class="fas fa-lock" style="color: black;"></i> Contraseña:
+          </label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="floatingPassword" name="password" placeholder="Ingrese su Contraseña" required />
+            <span class="passwordToggle" id="togglePassword">
+              <i class="bi bi-eye"></i>
+            </span>
+          </div>
+  
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              <div class="alert alert-danger mt-3">
+                <strong>{{ messages[0][0].capitalize() }}:</strong> {{ messages[0][1] }}
+              </div>
+            {% endif %}
+          {% endwith %}
+        </div>
+  
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" value="" id="rememberPasswordCheck" />
+          <label class="form-check-label" for="rememberPasswordCheck">
+            Recordar contraseña
+          </label>
+        </div>
+  
+        <div class="mb-2">
+          <button id="botton" type="submit" class="boton1 col-12 d-flex justify-content-center">
+            <span class="button-text">Iniciar</span>
+          </button>
+        </div>
+  
+        <div class="logo-container mt-2 text-center">
+          <img src="{{ url_for('static', filename='images/micelu1.png') }}" alt="Logo" class="logo-image">
+        </div>
+      </form>
     </div>
-  </div>
+  </section>
+  
 
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
