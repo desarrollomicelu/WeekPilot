@@ -90,10 +90,17 @@ function filterTickets(status) {
     setTimeout(updatePaginationAfterFilter, 100);
 }
 
-function updateTicketCounter() {
+/**
+ * Función global para actualizar el contador de tickets visibles.
+ */
+window.updateTicketCounter = function() {
     const visibleTickets = $('tbody tr:visible').length;
-    $('.badge.bg-primary strong').text(visibleTickets);
-}
+    const counterElement = $('.badge.bg-primary strong');
+    if (counterElement.length) {
+        counterElement.text(visibleTickets);
+    }
+    console.log("Contador actualizado: " + visibleTickets);
+};
 
 /***** Document Ready Principal *****/
 document.addEventListener("DOMContentLoaded", function () {
@@ -187,6 +194,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 showToast('success', 'Estado actualizado correctamente', 'top-end');
                                 updateRowStyles($select.closest('tr'), response.status);
                                 $select.attr('data-original-state', newStatus);
+                                
+                                // Mover la fila al principio de la tabla
+                                const $row = $select.closest('tr');
+                                if (typeof window.moveTicketToTop === 'function') {
+                                    window.moveTicketToTop($row);
+                                }
                             } else {
                                 showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
                                 $select.val(originalValue);
@@ -569,13 +582,30 @@ document.addEventListener("DOMContentLoaded", function () {
                                     showToast('success', 'Estado actualizado correctamente', 'top-end');
                                     ticketStatus.setAttribute('data-original-state', newStatus);
 
+                                    // Animar brevemente el botón para indicar éxito
+                                    updateStatusBtn.classList.add('btn-success');
+                                    updateStatusBtn.classList.remove('btn-primary');
+                                    setTimeout(() => {
+                                        updateStatusBtn.classList.remove('btn-success');
+                                        updateStatusBtn.classList.add('btn-primary');
+                                    }, 1500);
+
                                     if (newStatus === 'Terminado') {
                                         Swal.fire({
                                             icon: 'success',
                                             title: '¡Ticket Terminado!',
-                                            text: 'El ticket ha sido marcado como terminado.',
+                                            html: 'El ticket ha sido marcado como terminado.<br><br>Ahora puedes notificar al cliente enviando un correo electrónico.',
+                                            showCancelButton: true,
                                             confirmButtonColor: '#3085d6',
-                                            confirmButtonText: 'Aceptar'
+                                            cancelButtonColor: '#6c757d',
+                                            confirmButtonText: 'Enviar correo al cliente',
+                                            cancelButtonText: 'Cerrar'
+                                        }).then((result) => {
+                                            if (result.isConfirmed && document.getElementById('sendEmailBtn')) {
+                                                // Mostrar modal de envío de correo
+                                                const sendEmailModal = new bootstrap.Modal(document.getElementById('sendEmailModal'));
+                                                sendEmailModal.show();
+                                            }
                                         });
                                     }
                                 } else {
@@ -643,3 +673,36 @@ function validateFiles(fileInput, maxFiles = 5, maxSize = 5) {
     }
     return true;
 }
+
+/**
+ * Reordena un ticket para colocarlo al principio de la tabla.
+ * @param {jQuery} $row - Fila del ticket a reordenar
+ */
+window.moveTicketToTop = function($row) {
+    if (!$row || !$row.length) return;
+    
+    const $table = $('#ticketsTable tbody');
+    if (!$table.length) return;
+    
+    // Animar y mover la fila al principio de la tabla
+    $row.css('background-color', '#fffde7');
+    setTimeout(function() {
+        $row.fadeOut(300, function() {
+            $table.prepend($row);
+            $row.fadeIn(300);
+            
+            // Restaurar el color original después de un tiempo
+            setTimeout(function() {
+                $row.css('background-color', '');
+                
+                // Actualizar el contador y la paginación
+                if (typeof window.updateTicketCounter === 'function') {
+                    window.updateTicketCounter();
+                }
+                if (typeof window.updatePaginationAfterFilter === 'function') {
+                    window.updatePaginationAfterFilter();
+                }
+            }, 1500);
+        });
+    }, 300);
+};

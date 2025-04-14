@@ -41,4 +41,25 @@
 
 .colored-toast {
     animation: toast-fadein 0.3s ease-in-out !important;
+}
+
+/* Estilos para filas de tickets actualizadas */
+@keyframes highlight-row {
+    0% { background-color: #fffde7; }
+    100% { background-color: transparent; }
+}
+
+.highlight-updated-row {
+    animation: highlight-row 2s ease-out;
+}
+
+/* Transición suave para cambios de color */
+.ticket-row {
+    transition: background-color 0.5s ease;
+}
+
+/* Efectos de hover más suaves en la tabla de tickets */
+#ticketsTable tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.08);
 } 

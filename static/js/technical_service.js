@@ -156,6 +156,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Actualizar el valor original después de un cambio exitoso
                                 // Usar attr() en lugar de data()
                                 $select.attr('data-original-state', newStatus);
+                                
+                                // Mover la fila al principio de la tabla usando la función global
+                                const $row = $select.closest('tr');
+                                if (typeof window.moveTicketToTop === 'function') {
+                                    window.moveTicketToTop($row);
+                                } else {
+                                    // Fallback si la función global no está disponible
+                                    $row.css('background-color', '#fffde7');
+                                    const $table = $('#ticketsTable tbody');
+                                    setTimeout(function() {
+                                        $row.fadeOut(300, function() {
+                                            $table.prepend($row);
+                                            $row.fadeIn(300);
+                                            setTimeout(function() {
+                                                $row.css('background-color', '');
+                                                updateTicketCounter();
+                                                window.updatePaginationAfterFilter();
+                                            }, 1500);
+                                        });
+                                    }, 300);
+                                }
                             } else {
                                 showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
                                 $select.val(originalValue);
@@ -328,36 +349,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Función para actualizar la paginación después de filtrar
         function updatePaginationAfterFilter() {
-            // Si estás dentro del contexto de jQuery, puedes acceder a las variables y funciones
-            // definidas en el ámbito de $(document).ready
-            if (typeof filteredRows !== 'undefined') {
-                filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-                totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-                if (currentPage > totalPages) {
-                    currentPage = Math.max(1, totalPages);
+            const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
+            const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
+            const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+            
+            // Actualizar contador de tickets visibles
+            $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
+            
+            // Regenerar botones de paginación si es necesario
+            if ($('#pagination').length) {
+                $('#pagination li').not('#prevPage, #nextPage').remove();
+                for (let i = 1; i <= totalPages; i++) {
+                    const isActive = i === 1 ? 'active' : '';
+                    $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
                 }
-                generatePaginationButtons();
-                showPage(currentPage);
-            } else {
-                console.log("Variables de paginación no disponibles en este contexto");
-                // Versión simplificada si las variables no están disponibles
-                const visibleRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-                const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
-                const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
-                
-                // Actualizar contador de tickets visibles
-                $('#currentRowsCount').text(Math.min(rowsPerPage, visibleRows.length));
-                
-                // Regenerar botones de paginación si es necesario
-                if ($('#pagination').length) {
-                    $('#pagination li').not('#prevPage, #nextPage').remove();
-                    for (let i = 1; i <= totalPages; i++) {
-                        $('#nextPage').before(`<li class="page-item" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-                    }
-                    // Activar primera página
-                    $('#pagination li[data-page="1"]').addClass('active');
+                // Actualizar los botones de navegación
+                $('#prevPage').addClass('disabled');
+                if (totalPages <= 1) {
+                    $('#nextPage').addClass('disabled');
+                } else {
+                    $('#nextPage').removeClass('disabled');
                 }
             }
+            
+            console.log("Paginación actualizada");
         }
 
         $('#rowsPerPage').on('change', function () {
@@ -440,3 +455,42 @@ document.addEventListener("DOMContentLoaded", function () {
         sortTickets('id-desc');
     });
 });
+
+/**
+ * Función para actualizar el contador de tickets visibles.
+ */
+function updateTicketCounter() {
+    const visibleTickets = $('tbody tr:visible').length;
+    $('.badge.bg-primary strong').text(visibleTickets);
+}
+
+/**
+ * Actualiza la paginación después de filtrar o modificar la tabla.
+ * Esta función es global para que pueda usarse desde otros scripts.
+ */
+window.updatePaginationAfterFilter = function() {
+    const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
+    const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+    
+    // Actualizar contador de tickets visibles
+    $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
+    
+    // Regenerar botones de paginación si es necesario
+    if ($('#pagination').length) {
+        $('#pagination li').not('#prevPage, #nextPage').remove();
+        for (let i = 1; i <= totalPages; i++) {
+            const isActive = i === 1 ? 'active' : '';
+            $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
+        }
+        // Actualizar los botones de navegación
+        $('#prevPage').addClass('disabled');
+        if (totalPages <= 1) {
+            $('#nextPage').addClass('disabled');
+        } else {
+            $('#nextPage').removeClass('disabled');
+        }
+    }
+    
+    console.log("Paginación actualizada");
+};
