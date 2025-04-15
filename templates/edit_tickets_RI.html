@@ -6,8 +6,8 @@
 {% endblock %}
 {% block content %}
 
-
 <form method="POST" action="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" id="ticketForm">
+  <!-- Fila 1: Header -->
   <div class="row text-align-center mb-4">
     <div class="col-md-6">
       <h2 class="mb-0">
@@ -21,13 +21,15 @@
     </div>
   </div>
 
-  <!-- Fila 1: Información y Detalles de reparacion interna -->
+  <!-- Fila 2: Parte superior (Detalles y Problemas) -->
   <div class="row mb-2">
-    <!-- Columna 1: Detalles del Ticket -->
+    <!-- Columna Izquierda: Detalles de Reparación Interna -->
     <div class="col-md-6">
       <div class="card shadow-sm mb-2">
         <div class="card-header bg-light">
-          <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles de Reparación Interna</h5>
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2 text-primary"></i>Detalles de Reparación Interna
+          </h5>
         </div>
         <div class="card-body">
           <div class="mb-3 row">
@@ -43,26 +45,25 @@
           <div class="mb-3 row">
             <label for="technical_name" class="col-sm-3 col-form-label">Técnico:</label>
             <div class="col-sm-8">
-                <select class="form-select" id="technical_name" name="technical_name">
-                    <option value="">Sin asignar</option>
-                    {% for technician in technicians %}
-                    <option value="{{ technician.NOMBRE }}" 
-                            data-document="{{ technician.CODVEN }}" 
-                            {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
-                        {{ technician.NOMBRE }}
-                    </option>
-                    {% endfor %}
-                </select>
+              <select class="form-select" id="technical_name" name="technical_name">
+                <option value="">Sin asignar</option>
+                {% for technician in technicians %}
+                <option value="{{ technician.NOMBRE }}" 
+                        data-document="{{ technician.CODVEN }}" 
+                        {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
+                  {{ technician.NOMBRE }}
+                </option>
+                {% endfor %}
+              </select>
             </div>
           </div>
           <div class="mb-3 row">
             <label for="documento" class="col-sm-3 col-form-label">Documento:</label>
             <div class="col-sm-8">
-              <input type="text" id="technical_document" name="technical_document"  class="form-control" readonly 
-                value="{{ ticket.technical_document }}">
+              <input type="text" id="technical_document" name="technical_document" class="form-control" readonly 
+                     value="{{ ticket.technical_document }}">
             </div>
           </div>
-
           <div class="mb-3 row">
             <label for="status" class="col-sm-3 col-form-label">Estado:</label>
             <div class="col-sm-8">
@@ -75,14 +76,13 @@
               </select>
             </div>
           </div>
-
           <div class="mb-3 row">
             <label for="creation_date" class="col-sm-3 col-form-label">Fecha creación:</label>
             <div class="col-sm-8">
-              <input type="text" class="form-control" readonly value="{{ ticket.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}">
+              <input type="text" class="form-control" readonly 
+                     value="{{ ticket.creation_date.strftime('%Y-%m-%d %H:%M:%S') }}">
             </div>
           </div>
-
           <div class="mb-3 row">
             <label for="priority" class="col-sm-3 col-form-label">Prioridad:</label>
             <div class="col-sm-8">
@@ -97,11 +97,50 @@
       </div>
     </div>
 
-    <!-- Columna 2: Repuestos Utilizados -->
+    <!-- Columna Derecha: Problemas del Dispositivo -->
     <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
+          </h5>
+        </div>
+        <div class="card-body">
+          <input type="text" id="searchProblems" class="form-control mb-2" placeholder="Buscar problema...">
+          <div class="form-check-container mb-3" style="max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 10px;">
+            {% for problem in problems %}
+            <div class="form-check problem-option">
+              <input class="form-check-input problem-checkbox" type="checkbox" 
+                     value="{{ problem.id }}" id="problem_{{ problem.id }}" 
+                     name="device_problems[]" 
+                     {% if problem.id in selected_problem_ids %}checked{% endif %}>
+              <label class="form-check-label" for="problem_{{ problem.id }}">
+                {{ problem.name }}
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mt-3">
+            <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
+            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+            <div class="d-flex justify-content-between mt-2">
+              <button type="button" id="selectAllProblems" class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+              <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar Selección</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila 3: Repuestos Utilizados (ancho completo) -->
+  <div class="row mb-2">
+    <div class="col-12">
       <div class="card shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
-          <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+          <h5 class="mb-0">
+            <i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados
+          </h5>
           <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
             <i class="fas fa-plus me-1"></i> Agregar repuesto
           </button>
@@ -173,48 +212,10 @@
     </div>
   </div>
 
-  <!-- Fila 3: Problemas del Dispositivo y Valores -->
+  <!-- Fila 4: Valores (ancho completo) -->
   <div class="row mb-2">
-    <!-- Problemas del Dispositivo -->
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-light">
-          <h5 class="mb-0">
-            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
-          </h5>
-        </div>
-        <div class="card-body">
-          <input type="text" id="searchProblems" class="form-control mb-2" placeholder="Buscar problema...">
-
-          <div class="form-check-container mb-3" style="max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 10px;">
-            {% for problem in problems %}
-            <div class="form-check problem-option">
-              <input class="form-check-input problem-checkbox" type="checkbox" 
-                     value="{{ problem.id }}" id="problem_{{ problem.id }}" 
-                     name="device_problems[]" 
-                     {% if problem.id in selected_problem_ids %}checked{% endif %}>
-              <label class="form-check-label" for="problem_{{ problem.id }}">
-                {{ problem.name }}
-              </label>
-            </div>
-            {% endfor %}
-          </div>
-
-          <div class="mt-3">
-            <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
-            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
-            <div class="d-flex justify-content-between mt-2">
-              <button type="button" id="selectAllProblems" class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
-              <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar Selección</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Valores -->
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
+    <div class="col-12">
+      <div class="card shadow-sm">
         <div class="card-header bg-light">
           <h5 class="mb-0">Valores</h5>
         </div>
@@ -223,26 +224,24 @@
           <div class="mb-2">
             <h6 class="mb-3">Información del Equipo</h6>
             <div class="row">
-                <div class="col-sm-6 mb-3">
-                    <label for="reference" class="form-label">Referencia</label>
-                    <select class="form-select searchable-select" id="reference" name="reference">
-                      <option value="">Seleccione una referencia</option>
-                      {% for item in reference %}
-                        <option value="{{ item.DESCRIPCIO }}" 
-                                data-code="{{ item.CODIGO }}" 
-                                {% if item.DESCRIPCIO == ticket.reference %}selected{% endif %}>
-                          {{ item.DESCRIPCIO }} {% if item.CODLINEA %}({{ item.CODLINEA }}){% endif %}
-                        </option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  
-                  <div class="col-sm-6 mb-3">
-                    <label for="product_code" class="form-label">Código Producto</label>
-                    <input type="text" class="form-control" id="product_code" name="product_code" 
-                           value="{{ ticket.product_code }}" readonly>
-                  </div>
-
+              <div class="col-sm-6 mb-3">
+                <label for="reference" class="form-label">Referencia</label>
+                <select class="form-select searchable-select" id="reference" name="reference">
+                  <option value="">Seleccione una referencia</option>
+                  {% for item in reference %}
+                    <option value="{{ item.DESCRIPCIO }}" 
+                            data-code="{{ item.CODIGO }}" 
+                            {% if item.DESCRIPCIO == ticket.reference %}selected{% endif %}>
+                      {{ item.DESCRIPCIO }} {% if item.CODLINEA %}({{ item.CODLINEA }}){% endif %}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-sm-6 mb-3">
+                <label for="product_code" class="form-label">Código Producto</label>
+                <input type="text" class="form-control" id="product_code" name="product_code" 
+                       value="{{ ticket.product_code }}" readonly>
+              </div>
               <div class="col-sm-6 mb-3">
                 <label for="IMEI" class="form-label">IMEI o Serial</label>
                 <input type="text" class="form-control" id="IMEI" name="IMEI" value="{{ ticket.IMEI }}" maxlength="15">
@@ -263,7 +262,6 @@
               </div>
             </div>
           </div>
-
           <div class="mb-3 row">
             <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
             <div class="col-sm-7">
@@ -271,10 +269,9 @@
                 <span class="input-group-text">$</span>
                 <input type="text" class="form-control" id="spare_value" name="spare_value" 
                        value="{{ ticket.spare_value }}" min="0" readonly>
-		</div>
+              </div>
             </div>
           </div>
-
           <div class="row">
             <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
             <div class="col-sm-7">
@@ -290,38 +287,7 @@
     </div>
   </div>
 
-  <!-- Fechas de seguimiento -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card shadow-sm">
-        <div class="card-header bg-light">
-          <h5 class="mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>Fechas de Seguimiento</h5>
-        </div>
-        <div class="card-body">
-          <table class="table table-sm table-bordered">
-            <thead class="thead-light">
-              <tr>
-                <th>Asignado</th>
-                <th>Recibido</th>
-                <th>En Proceso</th>
-                <th>Finalizado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{{ ticket.assigned.strftime('%Y-%m-%d %H:%M:%S') if ticket.assigned else 'No asignado' }}</td>
-                <td>{{ ticket.received.strftime('%Y-%m-%d %H:%M:%S') if ticket.received else 'No recibido' }}</td>
-                <td>{{ ticket.in_progress.strftime('%Y-%m-%d %H:%M:%S') if ticket.in_progress else 'No iniciado' }}</td>
-                <td>{{ ticket.finished.strftime('%Y-%m-%d %H:%M:%S') if ticket.finished else 'No finalizado' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Botones de acción -->
+  <!-- Fila 5: Botones de acción -->
   <div class="d-flex justify-content-between my-2">
     <a href="{{ url_for('internal_repair.internal_repair') }}" class="btn btn-outline-secondary">
       <i class="fas fa-times me-2"></i>Cancelar
@@ -366,19 +332,20 @@
   </tr>
 </template>
 
+<!-- Scripts (se mantienen sin cambios) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-<script src="{{url_for('static', filename=('js/edit_ri.js'))}}"></script>
+<script src="{{ url_for('static', filename=('js/edit_ri.js')) }}"></script>
 
-<!-- Scripts -->
+<!-- Scripts adicionales -->
 <script>
-    // Script para actualizar automáticamente el documento del técnico al seleccionarlo
+    // Actualización automática del documento del técnico
     document.getElementById('technical_name').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         document.getElementById('documento').value = selectedOption.dataset.document || '';
     });
     
-    // Script para calcular el total automáticamente
+    // Calcular el total automáticamente
     function calculateTotal() {
         const spareValue = parseFloat(document.getElementById('spare_value').value) || 0;
         const serviceValue = parseFloat(document.getElementById('service_value').value) || 0;
@@ -388,7 +355,5 @@
     document.getElementById('spare_value').addEventListener('input', calculateTotal);
     document.getElementById('service_value').addEventListener('input', calculateTotal);
 </script>
-
-
 
 {% endblock %}

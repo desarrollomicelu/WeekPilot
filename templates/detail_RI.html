@@ -7,14 +7,16 @@
     <div class="row align-items-center mb-2">
         <div class="col-md-6">
             <h2 class="mb-0">
-                <i class="fas fa-ticket-alt text-primary me-2"></i>Detalle de Ticket de Reparación Interna #{{ ticket.id_ticket }}
+                <i class="fas fa-ticket-alt text-primary me-2"></i>Detalle de Ticket de Reparación Interna #{{
+                ticket.id_ticket }}
             </h2>
         </div>
         <div class="col-md-6 text-end">
             <a href="{{ url_for('internal_repair.internal_repair') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i> Volver
             </a>
-            <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
+            <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
+                class="btn btn-primary">
                 <i class="fas fa-edit me-2"></i> Editar Ticket
             </a>
         </div>
@@ -42,12 +44,13 @@
                             <p class="form-control-plaintext">{{ ticket.technical_document or 'N/A' }}</p>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3 row">
                         <label class="col-sm-4 col-form-label fw-bold">Estado:</label>
                         <div class="col-sm-8">
                             <p class="form-control-plaintext">
-                                <span class="badge {% if ticket.state == 'Finalizado' %}bg-success{% elif ticket.state == 'En proceso' %}bg-warning text-dark{% elif ticket.state == 'Asignado' %}bg-info{% else %}bg-secondary{% endif %}">
+                                <span
+                                    class="badge {% if ticket.state == 'Finalizado' %}bg-success{% elif ticket.state == 'En proceso' %}bg-warning text-dark{% elif ticket.state == 'Asignado' %}bg-info{% else %}bg-secondary{% endif %}">
                                     {{ ticket.state }}
                                 </span>
                             </p>
@@ -65,7 +68,8 @@
                         <label class="col-sm-4 col-form-label fw-bold">Prioridad:</label>
                         <div class="col-sm-8">
                             <p class="form-control-plaintext">
-                                <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                <span
+                                    class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
                                     {{ ticket.priority }}
                                 </span>
                             </p>
@@ -74,7 +78,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Columna 2: Información del Equipo -->
         <div class="col-md-6">
             <div class="card shadow-sm mb-2">
@@ -116,112 +120,90 @@
 
     <!-- Fila 2: Fechas y Tiempos -->
     <div class="row mb-2">
-        <div class="col-md-12">
+        <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-light">
                     <h5 class="mb-0"><i class="fas fa-clock me-2 text-primary"></i>Fechas y Tiempos</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-2 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                    <div class="row row-cols-5">
+                        <!-- Creación -->
+                        <div class="col mb-3">
+                            <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Creación</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.creation_date.strftime('%d/%m/%Y') if ticket.creation_date else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.creation_date.strftime('%H:%M:%S') if ticket.creation_date else '' }}</small>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.creation_date.strftime('%d/%m/%Y') if ticket.creation_date else 'N/A'
+                                        }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.creation_date.strftime('%H:%M:%S') if ticket.creation_date else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                        <!-- Asignado -->
+                        <div class="col mb-3">
+                            <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Asignado</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned else '' }}</small>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                        <!-- En Revisión -->
+                        <div class="col mb-3">
+                            <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">En Revision</h6>
-                                    <p class="mb-0 fw-bold under-review-timestamp">{{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}</p>
-                                    <small class="text-muted under-review-timestamp">{{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}</small>
+                                    <h6 class="text-muted mb-2">En Revisión</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                        <!-- En Proceso -->
+                        <div class="col mb-3">
+                            <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">En Proceso</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.in_progress.strftime('%d/%m/%Y') if ticket.in_progress else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.in_progress.strftime('%H:%M:%S') if ticket.in_progress else '' }}</small>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.in_progress.strftime('%d/%m/%Y') if ticket.in_progress else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.in_progress.strftime('%H:%M:%S') if ticket.in_progress else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                        <!-- Finalizado -->
+                        <div class="col mb-3">
+                            <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Finalizado</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.finished.strftime('%H:%M:%S') if ticket.finished else '' }}</small>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.finished.strftime('%H:%M:%S') if ticket.finished else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- /.row -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Fila 3: Repuestos Utilizados -->
-    <div class="row mb-2">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>#</th>
-                                    <th style="width:40%;">Descripción</th>
-                                    <th>Cantidad</th>
-                                    <th>Valor Unitario</th>
-                                    <th>Valor Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if repuestos_ticket %}
-                                    {% for spare in repuestos_ticket %}
-                                    <tr>
-                                        <td>{{ loop.index }}</td>
-                                        <td>{{ spare.spare_code }}</td>
-                                        <td>{{ spare.quantity }}</td>
-                                        <td>${{ "{:,.0f}".format(spare.unit_price) }}</td>
-                                        <td>${{ "{:,.0f}".format(spare.total_price) }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center py-3">No se han agregado repuestos para este servicio.</td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <td colspan="4" class="text-end fw-bold">Total Repuestos:</td>
-                                    <td class="fw-bold">${{ "{:,.0f}".format(ticket.spare_value) }}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Fila 4: Problemas del Dispositivo y Valores -->
     <div class="row mb-2">
@@ -290,7 +272,8 @@
             <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
         <div>
-            <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
+            <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
+                class="btn btn-primary">
                 <i class="fas fa-edit me-2"></i>Editar Ticket
             </a>
             <button type="button" class="btn btn-success ms-2" onclick="window.print()">
