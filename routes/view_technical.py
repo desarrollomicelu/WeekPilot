@@ -162,11 +162,13 @@ def technician_ticket_detail(ticket_id):
 @login_required
 @technician_required
 def update_ticket_status_ajax():
+    # Aceptar tanto 'ticket_id' como 'id' para compatibilidad
     ticket_id = request.form.get('ticket_id')
-    new_status = request.form.get('status')
+    # Aceptar tanto 'state' como 'status' para compatibilidad con todos los módulos
+    new_status = request.form.get('state') or request.form.get('status')
 
     if not ticket_id or not new_status:
-        return jsonify({'success': False, 'message': 'Datos incompletos'})
+        return jsonify({'success': False, 'message': 'Faltan datos requeridos'})
 
     try:
         ticket = Tickets.query.get(ticket_id)

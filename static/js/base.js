@@ -108,4 +108,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fix para problemas de doble tap en dispositivos iOS
         document.addEventListener('touchend', function() {}, false);
     }
+    
+    // Convertir todos los botones outline-primary a outline-secondary
+    // Encuentra todos los botones con clase btn-outline-primary
+    const primaryButtons = document.querySelectorAll('.btn-outline-primary:not(.keep-primary)');
+    
+    // Cambia la clase de cada botón
+    primaryButtons.forEach(function(button) {
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-outline-secondary');
+    });
+    
+    // Para elementos dentro de btn-check (botones de radio/checkbox)
+    const primaryLabels = document.querySelectorAll('.btn-check + .btn-outline-primary');
+    primaryLabels.forEach(function(label) {
+        label.classList.remove('btn-outline-primary');
+        label.classList.add('btn-outline-secondary');
+    });
+    
+    // Convertir todos los elementos text-primary a text-secondary
+    const primaryTextElements = document.querySelectorAll('.text-primary:not(.keep-primary)');
+    primaryTextElements.forEach(function(element) {
+        element.classList.remove('text-primary');
+        element.classList.add('text-secondary');
+    });
+    
+    // Convertir iconos específicamente
+    const primaryIcons = document.querySelectorAll('i.text-primary, .fas.text-primary, .far.text-primary, .fab.text-primary');
+    primaryIcons.forEach(function(icon) {
+        icon.classList.remove('text-primary');
+        icon.classList.add('text-secondary');
+    });
 });

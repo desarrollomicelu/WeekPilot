@@ -8,18 +8,15 @@
 
 {% block content %}
 
-  <div class="container-fluid py-4 px-3">
-  <!-- Fila del título -->
-  <div class="row mb-2">
-    <div class="col-12">
+  <div class="container-fluid py-2 px-2">
+  <!-- Fila del título y búsqueda/nuevo ticket -->
+  <div class="row mb-2 align-items-center">
+    <div class="col-md-6">
       <h2 class="mb-0">
-        <i class="fas fa-ticket-alt text-primary me-2"></i>Gestión de Tickets Servicio Técnico
+        <i class="fas fa-ticket-alt text-secondary me-2"></i>Gestión de Tickets Servicio Técnico
       </h2>
     </div>
-  </div>
-  <!-- Fila de controles -->
-  <div class="row mt-3">
-    <div class="col-12 d-flex flex-wrap justify-content-end align-items-center gap-2">
+    <div class="col-md-6 d-flex flex-wrap justify-content-end align-items-center gap-2">
       <!-- Barra de búsqueda compacta -->
       <div class="input-group" style="max-width: 250px;">
         <span class="input-group-text bg-light">
@@ -38,35 +35,20 @@
 
 
 <!-- Filtros rápidos -->
-<div class="card mb-4 border-0 shadow-sm">
-  <div class="card-body">
+<div class="card mb-3 border-0 shadow-sm mx-2">
+  <div class="card-body py-2">
     <div class="row">
-      <div class="col-md-8">
-        <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'Terminado'] %}
+      <div class="col-12">
+        <div class="d-flex gap-2 flex-wrap justify-content-center">
+          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
-          <label class="btn btn-outline-primary" for="btn{{ status }}">
+          <label class="btn btn-outline-secondary" for="btn{{ status }}">
             <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% elif status == 'En Revision' %}search{% else %}check-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
-        </div>
-      </div>
-      <div class="col-md-4">
-        <!-- Agregar esto cerca de los filtros -->
-        <div class="d-flex justify-content-end w-100">
-          <button type="button" class="btn btn-outline-secondary dropdown-toggle ms-auto" data-bs-toggle="dropdown"
-            aria-expanded="false">
-            <i class="fas fa-sort me-1"></i>Ordenar por
-          </button>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item sort-option" data-sort="id-desc" href="#">ID (más reciente primero)</a></li>
-            <li><a class="dropdown-item sort-option" data-sort="id-asc" href="#">ID (más antiguo primero)</a></li>
-            <li><a class="dropdown-item sort-option" data-sort="status" href="#">Estado</a></li>
-            <li><a class="dropdown-item sort-option" data-sort="priority" href="#">Prioridad</a></li>
-          </ul>
         </div>
       </div>
     </div>
@@ -75,17 +57,12 @@
 
 
 <!-- Tabla de tickets -->
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center">
-      <div>
-        <h3>Listado de todos los tickets </h3>
-      </div>
-      <div class="ms-3">
-
-      </div>
+<div class="card shadow-sm border-0 mx-2">
+  <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+    <div>
+      <h3 class="mb-0">Listado de todos los tickets</h3>
     </div>
-    <span class="badge bg-primary rounded-pill py-2 px-3">
+    <span class="badge bg-secondary rounded-pill py-2 px-3">
       <i class="fas fa-ticket-alt me-2"></i>
       Tickets activos: <strong>{{ tickets|length }}</strong>
     </span>
@@ -95,21 +72,21 @@
       <table class="table table-hover align-middle mb-0" id="ticketsTable">
         <thead class="table-light">
           <tr>
-            <th class="ps-3">#</th>
+            <th class="ps-2">#</th>
             <th>Documento</th>
             <th>Técnico</th>
             <th>Estado</th>
             <th>Prioridad</th>
-            <th>Valor Serv.</th>
-            <th>Valor Rep.</th>
-            <th>Total</th>
+            <th class="text-end">Valor Serv.</th>
+            <th class="text-end">Valor Rep.</th>
+            <th class="text-end">Total</th>
             <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
           <tr class="align-middle" data-status="{{ ticket.state }}">
-            <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
+            <td class="ps-2 fw-bold">#{{ ticket.id_ticket }}</td>
             <td>{{ ticket.client_info.document }}</td>
             <td>
               {% if ticket.technical_name %}
@@ -120,11 +97,11 @@
             </td>
 
             <td>
-              <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}">
+              <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}" data-original-state="{{ ticket.state }}">
                 <option value="Sin asignar" {% if ticket.state=='Sin asignar' %}selected{% endif %}>Sin asignar</option>
                 <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
                 <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
-                <option value="En revision" {% if ticket.state=='En revision' %}selected{% endif %}>En revision</option>
+                <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En Revision</option>
                 <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>
               </select>
             </td>
@@ -136,17 +113,16 @@
               </span>
             </td>
 
-            <!-- Cambiar estas líneas -->
-            <td>${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</td>
-            <td>${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</span></td>
+            <td class="text-end">${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</td>
+            <td class="text-end">${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
+            <td class="text-end"><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</span></td>
 
             <td class="text-center">
-              <div class="btn-group">
+              <div class="btn-group btn-group-sm">
                 <!-- Botón para Editar Ticket con formulario -->
                 <form action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" method="get"
                   style="display:inline-block;">
-                  <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">
                     <i class="fas fa-edit"></i>
                   </button>
                 </form>
@@ -167,7 +143,7 @@
             <td colspan="10" class="text-center py-5">
               <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
               <p class="text-muted">No hay tickets registrados actualmente.</p>
-              <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-primary">
+              <a href="{{ url_for('technical_service.create_ticket') }}" class="btn btn-secondary">
                 <i class="fas fa-plus me-1"></i> Crear nuevo ticket
               </a>
             </td>
@@ -177,7 +153,7 @@
       </table>
     </div>
   </div>
-  <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+  <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
       <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
         <option value="10">10 filas</option>
@@ -201,6 +177,7 @@
       </ul>
     </nav>
   </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/technical_service.js') }}"></script>
 {% endblock %}

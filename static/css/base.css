@@ -384,3 +384,83 @@ h3 {
     padding-left: 10px;
     padding-right: 10px;
 }
+
+/* Personalización global de botones - Cambiar azul a gris */
+.btn-outline-primary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active,
+.btn-outline-primary.active {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+.btn-check:checked + .btn-outline-primary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* Botones outline-primary en grupos de botones */
+.btn-group .btn-outline-primary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+.btn-group .btn-outline-primary:hover,
+.btn-group .btn-outline-primary:focus,
+.btn-group .btn-outline-primary:active,
+.btn-group .btn-outline-primary.active {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+/* Cambiar iconos y elementos con clase text-primary a gris */
+.text-primary {
+    color: #6c757d !important;
+}
+
+/* Cambiar iconos dentro de botones y elementos */
+.btn-primary i, 
+.btn i.text-primary,
+.fas.text-primary, 
+.far.text-primary, 
+.fab.text-primary,
+i.text-primary {
+    color: #6c757d !important;
+}
+
+/* Asegurarse que las insignias o badges primarios también sean grises */
+.bg-primary {
+    background-color: #6c757d !important;
+}
+
+/* Botones primarios */
+.btn-primary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+/* Estilos globales para el paginado */
+.page-item.active .page-link {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+}
+
+.page-link {
+    color: #6c757d !important;
+}
+
+.page-link:hover, 
+.page-link:focus {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #5a6268 !important;
+}

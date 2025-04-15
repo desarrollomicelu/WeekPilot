@@ -59,7 +59,7 @@ class Tickets(db.Model, UserMixin):
             self.finished = now
         elif new_state == "Recibido":
             self.received = now
-        elif new_state == "En revisión":
+        elif new_state == "En Revision" or new_state == "En revisión":
             self.under_review = now
 
         return now  # Devolver la hora para usarla en la respuesta

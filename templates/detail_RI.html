@@ -123,7 +123,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Creación</h6>
@@ -132,7 +132,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Asignado</h6>
@@ -141,7 +141,16 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">En Revision</h6>
+                                    <p class="mb-0 fw-bold under-review-timestamp">{{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}</p>
+                                    <small class="text-muted under-review-timestamp">{{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">En Proceso</h6>
@@ -150,7 +159,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-2">Finalizado</h6>

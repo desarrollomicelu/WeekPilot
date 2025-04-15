@@ -3,12 +3,8 @@
   --color-secundario: #000000;    /* Azul marino (para contrastes) */
   --color-fondo: #F3F4F6;         /* Gris neutro (fondo) */
   --color-texto: #000000;         /* Negro (texto principal) */
-<<<<<<< HEAD
   --color-blanco: #FFFFFF;
   --color-gris: #8b8d8b;    /* Blanco (texto y elementos claros) */
-=======
-  --color-blanco: #000000;        /* Blanco (texto y elementos claros) */
->>>>>>> ReparacionInterna
   --sombra: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
 }
 
@@ -17,11 +13,85 @@ body {
   color: var(--color-texto);
 }
 
+/* Ajustes para maximizar el espacio de la tabla */
+.container-fluid {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+.card {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-radius: 0.25rem;
+}
+
 .table-container {
   background-color: var(--color-blanco);
   border-radius: 8px;
   box-shadow: var(--sombra);
   padding: 20px;
+}
+
+/* Ajustes para la tabla */
+.table {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.table th {
+  white-space: nowrap;
+  padding: 0.5rem !important;
+}
+
+.table td {
+  padding: 0.5rem !important;
+}
+
+/* Columna ID */
+.table th:first-child, 
+.table td:first-child {
+  width: 5% !important;
+  min-width: 60px !important;
+}
+
+/* Columna Documento */
+.table th:nth-child(2), 
+.table td:nth-child(2) {
+  width: 10% !important;
+  min-width: 80px !important;
+}
+
+/* Columna Técnico */
+.table th:nth-child(3), 
+.table td:nth-child(3) {
+  width: 15% !important;
+  min-width: 100px !important;
+}
+
+/* Columna Estado */
+.table th:nth-child(4), 
+.table td:nth-child(4) {
+  width: 14% !important;
+  min-width: 130px !important;
+}
+
+/* Valores y totales - columnas más estrechas */
+.table th:nth-child(6),
+.table td:nth-child(6),
+.table th:nth-child(7), 
+.table td:nth-child(7),
+.table th:nth-child(8), 
+.table td:nth-child(8) {
+  width: 8% !important;
+  min-width: 80px !important;
+  text-align: right;
+}
+
+/* Columna acciones */
+.table th:last-child,
+.table td:last-child {
+  width: 10% !important;
+  min-width: 100px !important;
 }
 
 .table-hover tbody tr:hover {
@@ -90,7 +160,6 @@ body {
 #searchInput:focus {
   box-shadow: 0 0 5px var(--color-secundario);
 }
-<<<<<<< HEAD
 
 /* Estilos para la sección de subida de imágenes */
 .preview-image-container img {
@@ -128,6 +197,185 @@ body {
 .image-upload-section .form-control[type="file"]:hover {
     background-color: var(--color-fondo);
 }
-=======
+
+/* Mejora de estilos responsivos para la tabla */
+@media (max-width: 992px) {
+  .container-fluid {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
   
->>>>>>> ReparacionInterna
+  .table th,
+  .table td {
+    padding: 0.4rem !important;
+  }
+}
+
+/* Ajustes para que la tabla ocupe todo el espacio posible */
+.table-responsive {
+  margin: 0;
+  padding: 0;
+}
+
+/* Ajuste del contenido a la pantalla completa */
+#content {
+  padding: 0.5rem;
+}
+
+/* Ajuste de los dropdowns de estado */
+/* Estilos mejorados para selects de estado */
+.status-select {
+  width: 100% !important;
+  min-width: 120px !important;
+  max-width: 160px !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1.75rem 0.5rem 0.5rem !important;
+  border-radius: 0.25rem !important;
+  cursor: pointer !important;
+  background-color: #f8f9fa !important;
+  border: 1px solid #ced4da !important;
+  box-shadow: none !important;
+  text-overflow: ellipsis !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Colores para los diferentes estados */
+.status-select option[value="Sin asignar"],
+.status-select option[value="Asignado"],
+.status-select option[value="En proceso"],
+.status-select option[value="En Revision"],
+.status-select option[value="Terminado"] {
+  font-weight: 500 !important;
+  padding: 10px !important;
+}
+
+/* Removiendo estilos específicos por estado */
+/* Estilos para hover y focus */
+.status-select:hover {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd !important;
+}
+
+.status-select:focus {
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  border-color: #86b7fe !important;
+  background-color: #fff !important;
+}
+
+/* Estilos para dispositivos móviles */
+@media (max-width: 768px) {
+  .status-select {
+    min-width: 100px !important;
+    max-width: 140px !important;
+    font-size: 0.85rem !important;
+    padding: 0.4rem 1.5rem 0.4rem 0.4rem !important;
+  }
+  
+  /* Aumentar el tamaño para mejorar la tactilidad en móviles */
+  .form-select-sm {
+    height: auto !important;
+    min-height: 38px !important;
+  }
+}
+
+/* Ajuste para el dropdown desplegado */
+.status-select option {
+  padding: 10px 5px !important;
+  font-size: 0.9rem !important;
+}
+
+/* Asegurar que los botones de filtro son grises */
+.btn-check:checked + .btn-outline-secondary, 
+.btn-check:checked + .btn-outline-primary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #fff !important;
+}
+
+.filter-active {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #fff !important;
+}
+
+/* Ajustes para la clase active en los botones de filtro */
+.btn-outline-secondary:hover,
+.btn-outline-primary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+  color: #fff !important;
+}
+
+/* Asegurar que todos los iconos sean grises */
+.text-primary,
+i.text-primary,
+.fas.text-primary,
+.far.text-primary, 
+.fab.text-primary {
+  color: #6c757d !important;
+}
+
+/* Cambiar los badges primarios a grises */
+.badge.bg-primary {
+  background-color: #6c757d !important;
+}
+
+/* Estilos para el paginado */
+.pagination .page-item.active .page-link {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #fff !important;
+}
+
+.pagination .page-link {
+  color: #6c757d !important;
+}
+
+.pagination .page-link:hover {
+  background-color: #e9ecef !important;
+  border-color: #dee2e6 !important;
+  color: #5a6268 !important;
+}
+
+/* Estilos para los timestamps */
+.timestamp-container {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.timestamp {
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #fff;
+    border-left: 4px solid #6c757d;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.timestamp strong {
+    color: #495057;
+}
+
+.active-timestamp {
+    border-left-color: #28a745;
+    background-color: #f8fff9;
+}
+
+/* Colores específicos para cada estado */
+.assigned-timestamp.active-timestamp { border-left-color: #007bff; }
+.under_review-timestamp.active-timestamp { border-left-color: #ffc107; }
+.in_progress-timestamp.active-timestamp { border-left-color: #17a2b8; }
+.finished-timestamp.active-timestamp { border-left-color: #28a745; }
+.received-timestamp.active-timestamp { border-left-color: #6f42c1; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .timestamp-container {
+        flex-direction: column;
+    }
+    
+    .timestamp {
+        min-width: 100%;
+    }
+}

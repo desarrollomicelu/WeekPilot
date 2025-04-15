@@ -102,7 +102,7 @@ def create_ticket():
         if state == "En Proceso":
             in_progress = datetime.now()
 
-        if state == "En Revisión":
+        if state == "En Revision":
             under_review = datetime.now()
 
         if state == "Terminado":
@@ -435,39 +435,41 @@ def view_detail_ticket(ticket_id):
 
 
 # Actualizar Estado de Ticket (AJAX)
-@technical_service_bp.route('/update_ticket_status_ajax', methods=['POST'])
+@technical_service_bp.route("/update_ticket_status_ajax", methods=["POST"])
 @login_required
-@role_required("Admin", "servicioTecnico")
+@role_required("Admin")
 def update_ticket_status_ajax():
-    ticket_id = request.form.get('ticket_id')
-    new_status = request.form.get('status')
-
-    if not ticket_id or not new_status:
-        return jsonify({'success': False, 'message': 'Datos incompletos'})
-
+    """Actualiza el estado de un ticket vía AJAX"""
     try:
-        # Buscar el ticket
-        ticket = Tickets.query.get(ticket_id)
-        if not ticket:
-            return jsonify({'success': False, 'message': 'Ticket no encontrado'})
-
-        # Actualizar el estado y registrar la hora del cambio
-        now = ticket.update_state(new_status)
-
+        ticket_id = request.form.get('ticket_id')
+        new_status = request.form.get('state') or request.form.get('status')
+        
+        if not ticket_id or not new_status:
+            return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            
+        ticket = Tickets.query.get_or_404(ticket_id)
+        
+        # Guardar el estado anterior para el mensaje
+        previous_status = ticket.state
+        
+        # Actualizar el estado y obtener el timestamp
+        timestamp = ticket.update_state(new_status)
+        
         db.session.commit()
-
+        
         # Formatear la hora para mostrarla en la UI
-        formatted_time = now.strftime("%d/%m/%Y %H:%M:%S")
-
+        formatted_time = timestamp.strftime("%d/%m/%Y %H:%M:%S")
+        
         return jsonify({
-            'success': True,
-            'message': 'Estado actualizado correctamente',
+            'success': True, 
+            'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
             'status': new_status,
             'timestamp': formatted_time
         })
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
 
 @technical_service_bp.route('/send_email_notification/<int:ticket_id>', methods=['POST'])

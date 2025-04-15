@@ -1,3 +1,18 @@
+/**
+ * technical_service.js - Gestión de tickets de servicio técnico
+ * 
+ * NOTA IMPORTANTE SOBRE COMPATIBILIDAD:
+ * -------------------------------------
+ * Este archivo ha sido modificado para ser compatible con todos los módulos del sistema:
+ * 
+ * 1. Las peticiones AJAX para actualizar estados SIEMPRE usan el parámetro 'state'
+ * 2. El backend acepta tanto 'state' como 'status' para mantener compatibilidad
+ * 3. El filtrado usa el atributo 'data-status' de las filas (<tr>) en lugar de los selectores
+ * 4. Se mantiene compatibilidad con el módulo state.js usado en reparación interna
+ * 
+ * NO MODIFICAR ESTOS PARÁMETROS para mantener la consistencia entre módulos.
+ */
+
 /***************************************************
  * technical_service.js
  * Funciones para la vista de Technical Service (lista de tickets)
@@ -88,8 +103,17 @@ document.addEventListener("DOMContentLoaded", function () {
             "Sin asignar": 1,
             "Asignado": 2,
             "En proceso": 3,
-            "En revision": 4,
+            "En Revision": 4,
             "Terminado": 5
+        };
+
+        // Mapeo de estados para timestamps
+        const stateTimestampMap = {
+            "Asignado": "assigned",
+            "En proceso": "in_progress",
+            "En Revision": "under_review",
+            "Terminado": "finished",
+            "Recibido": "received"
         };
 
         // Al cargar la página, guardar el estado original como atributo data-*
@@ -99,13 +123,22 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!$select.attr('data-original-state')) {
                 $select.attr('data-original-state', $select.val());
             }
+            
+            // Asegurar que la fila tenga el atributo data-status correcto
+            const currentState = $select.val();
+            $select.closest('tr').attr('data-status', currentState);
+            
+            // Asegurar que los timestamps tengan las clases correctas
+            if (currentState in stateTimestampMap) {
+                const timestampClass = stateTimestampMap[currentState];
+                $select.closest('tr').find(`.${timestampClass}-timestamp`).addClass('active-timestamp');
+            }
         });
 
         $('.status-select').on('change', function () {
             const $select = $(this);
             const ticketId = $select.data('ticket-id');
             const newStatus = $select.val();
-            // Usar el atributo data-original-state en lugar de data()
             const originalValue = $select.attr('data-original-state');
             
             // Validar si es un retroceso de estado
@@ -137,54 +170,78 @@ document.addEventListener("DOMContentLoaded", function () {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Indicar carga
-                    $select.addClass('opacity-50').prop('disabled', true);
+                    // Mostrar indicador de carga
+                    $select.addClass('opacity-50');
+                    $select.prop('disabled', true);
+
+                    // Mostrar toast de carga
                     showToast('info', 'Actualizando estado...', 'top-end');
-                    // Enviar solicitud AJAX
+
+                    // Enviar solicitud AJAX con el parámetro state (compatible con todos los módulos)
                     $.ajax({
                         url: '/update_ticket_status_ajax',
                         method: 'POST',
                         data: {
                             ticket_id: ticketId,
-                            status: newStatus
+                            state: newStatus    // Nombre del parámetro unificado con otros módulos
                         },
                         success: function (response) {
-                            $select.removeClass('opacity-50').prop('disabled', false);
+                            // Quitar indicador de carga
+                            $select.removeClass('opacity-50');
+                            $select.prop('disabled', false);
+
                             if (response.success) {
-                                showToast('success', 'Estado actualizado correctamente', 'top-end');
-                                updateRowStyles($select.closest('tr'), response.status);
-                                // Actualizar el valor original después de un cambio exitoso
-                                // Usar attr() en lugar de data()
+                                // Actualizar el estado original
                                 $select.attr('data-original-state', newStatus);
                                 
-                                // Mover la fila al principio de la tabla usando la función global
-                                const $row = $select.closest('tr');
-                                if (typeof window.moveTicketToTop === 'function') {
-                                    window.moveTicketToTop($row);
-                                } else {
-                                    // Fallback si la función global no está disponible
-                                    $row.css('background-color', '#fffde7');
-                                    const $table = $('#ticketsTable tbody');
-                                    setTimeout(function() {
-                                        $row.fadeOut(300, function() {
-                                            $table.prepend($row);
-                                            $row.fadeIn(300);
-                                            setTimeout(function() {
-                                                $row.css('background-color', '');
-                                                updateTicketCounter();
-                                                window.updatePaginationAfterFilter();
-                                            }, 1500);
-                                        });
-                                    }, 300);
+                                // Actualizar el atributo data-status de la fila para los filtros
+                                $select.closest('tr').attr('data-status', newStatus);
+
+                                // Actualizar el timestamp si está disponible
+                                if (response.timestamp) {
+                                    const timestampField = stateTimestampMap[newStatus];
+                                    if (timestampField) {
+                                        const $timestamp = $select.closest('tr').find(`.${timestampField}-timestamp`);
+                                        if ($timestamp.length) {
+                                            $timestamp.text(response.timestamp);
+                                        }
+                                    }
                                 }
+                            
+                                // Mover la fila al principio de la tabla
+                                const $row = $select.closest('tr');
+                                $row.css('background-color', '#fffde7');
+                                const $table = $('#ticketsTable tbody');
+                                setTimeout(function() {
+                                    $row.fadeOut(300, function() {
+                                        $table.prepend($row);
+                                        $row.fadeIn(300);
+                                        setTimeout(function() {
+                                            $row.css('background-color', '');
+                                            // Actualizar contador y paginación
+                                            updateTicketCounter();
+                                            updatePaginationAfterFilter();
+                                        }, 1500);
+                                    });
+                                }, 300);
+                                
+                                // Mostrar notificación de éxito
+                                showToast('success', 'Estado actualizado correctamente', 'top-end');
                             } else {
+                                // Mostrar error y restaurar valor original
                                 showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
                                 $select.val(originalValue);
                             }
                         },
                         error: function (xhr) {
-                            $select.removeClass('opacity-50').prop('disabled', false);
+                            // Quitar indicador de carga
+                            $select.removeClass('opacity-50');
+                            $select.prop('disabled', false);
+                            
+                            // Restaurar valor original
                             $select.val(originalValue);
+                            
+                            // Mostrar mensaje de error
                             let errorMsg = 'Error al actualizar el estado';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMsg = xhr.responseJSON.message;
@@ -193,43 +250,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
                 } else {
+                    // Si el usuario cancela, restaurar el valor original
                     $select.val(originalValue);
                 }
-            });
-        });
-
-        // Función simplificada usando clases de Bootstrap
-        function updateRowStyles($row, status) {
-            // Quitar todas las clases de estado
-            $row.removeClass('table-success table-light');
-            
-            // Aplicar clase según el estado
-            if (status === 'Terminado') {
-                $row.addClass('table-secondary');
-            } else {
-                // Restaurar estilo de texto
-                $row.find('td').css('font-style', 'normal');
-            }
-        }
-
-        // Asegúrate de que esta función se llame cuando se carga la página
-        $(document).ready(function() {
-            console.log("Inicializando estilos de filas"); // Log para depuración
-            
-            // Aplicar estilos iniciales a todas las filas según su estado
-            $('.status-select').each(function() {
-                const $select = $(this);
-                const status = $select.val();
-                console.log("Estado inicial:", status); // Log para depuración
-                updateRowStyles($select.closest('tr'), status);
-            });
-            
-            // También actualizar cuando cambia el estado
-            $('.status-select').on('change', function() {
-                const $select = $(this);
-                const newStatus = $select.val();
-                console.log("Estado cambiado a:", newStatus); // Log para depuración
-                updateRowStyles($select.closest('tr'), newStatus);
             });
         });
     });
@@ -239,43 +262,89 @@ document.addEventListener("DOMContentLoaded", function () {
     $(document).ready(function () {
         function filterTickets(status) {
             if (status === 'Todos') {
-                $('tbody tr').show();
+                // Mostrar todos los tickets
+                $('#ticketsTable tbody tr').show();
             } else if (status === 'Activos') {
                 // Mostrar todos los tickets que NO están en estado "Terminado"
-                $('tbody tr').each(function () {
-                    var ticketStatus = $(this).find('td:nth-child(5) select').val();
-                    $(this).toggle(ticketStatus !== 'Terminado');
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState !== 'Terminado');
                 });
             } else {
-                $('tbody tr').each(function () {
-                    var ticketStatus = $(this).find('td:nth-child(5) select').val();
-                    $(this).toggle(ticketStatus === status);
+                // Filtrar por el estado específico seleccionado
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState === status);
                 });
             }
+            // Actualizar contador de tickets visibles
             updateTicketCounter();
-            // updatePaginationAfterFilter(); // Comentar o eliminar esta línea
+            
+            // Mostrar mensaje si no hay resultados visibles
+            showNoResultsMessage($('#ticketsTable tbody tr:visible').length === 0);
+        }
+        
+        // Función para mostrar u ocultar el mensaje de "No hay resultados"
+        function showNoResultsMessage(show) {
+            const noResultsRow = $('#noResultsRow');
+            
+            if (show) {
+                if (noResultsRow.length === 0) {
+                    // Crear y añadir la fila de "No hay resultados"
+                    const newRow = `
+                        <tr id="noResultsRow">
+                            <td colspan="10" class="text-center py-4">
+                                <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
+                                <p class="text-muted">No hay tickets que coincidan con el filtro seleccionado.</p>
+                            </td>
+                        </tr>
+                    `;
+                    $('#ticketsTable tbody').append(newRow);
+                }
+            } else {
+                // Eliminar la fila de "No hay resultados" si existe
+                noResultsRow.remove();
+            }
         }
 
-        function updateTicketCounter() {
-            const visibleTickets = $('tbody tr:visible').length;
-            $('.badge.bg-primary strong').text(visibleTickets);
-        }
-
+        // Manejo del evento de cambio en los botones de filtro
         $('input[name="filterStatus"]').on('change', function () {
             const selectedStatus = $(this).next('label').text().trim();
             filterTickets(selectedStatus);
-            $('.filter-active').removeClass('filter-active');
+            // Actualizar clase visual activa
+            $('.btn-outline-secondary').removeClass('filter-active');
             $(this).next('label').addClass('filter-active');
+            // Actualizar paginación después de filtrar
+            setTimeout(updatePaginationAfterFilter, 100);
         });
 
-        $('select[name="status"]').on('change', function () {
-            const activeFilter = $('input[name="filterStatus"]:checked').next('label').text().trim();
-            filterTickets(activeFilter);
-        });
-
-        // Inicializar con "Todos"
+        // Inicializar con "Todos" seleccionado
         filterTickets('Todos');
         $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+        
+        // Búsqueda en la tabla
+        $('#searchInput').on('input', function() {
+            const searchValue = this.value.toLowerCase();
+            let visibleCount = 0;
+            
+            // Filtrar filas según el texto de búsqueda
+            $('#ticketsTable tbody tr').each(function() {
+                if ($(this).attr('id') === 'noResultsRow') return; // Ignorar la fila de "No hay resultados"
+                
+                const rowText = $(this).text().toLowerCase();
+                const visible = rowText.includes(searchValue);
+                $(this).toggle(visible);
+                
+                if (visible) visibleCount++;
+            });
+            
+            // Mostrar mensaje si no hay resultados
+            showNoResultsMessage(visibleCount === 0);
+            
+            // Actualizar contador y paginación
+            updateTicketCounter();
+            setTimeout(updatePaginationAfterFilter, 100);
+        });
     });
 
 
@@ -289,7 +358,7 @@ document.addEventListener("DOMContentLoaded", function () {
         function initPagination() {
             const allRows = $('#ticketsTable tbody tr').not('.no-results');
             filteredRows = allRows;
-            rowsPerPage = parseInt($('#rowsPerPage').val());
+            rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
             totalPages = Math.ceil(filteredRows.length / rowsPerPage);
             generatePaginationButtons();
             showPage(1);
@@ -347,34 +416,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        // Función para actualizar la paginación después de filtrar
-        function updatePaginationAfterFilter() {
-            const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-            const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
-            const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-            
-            // Actualizar contador de tickets visibles
-            $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
-            
-            // Regenerar botones de paginación si es necesario
-            if ($('#pagination').length) {
-                $('#pagination li').not('#prevPage, #nextPage').remove();
-                for (let i = 1; i <= totalPages; i++) {
-                    const isActive = i === 1 ? 'active' : '';
-                    $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-                }
-                // Actualizar los botones de navegación
-                $('#prevPage').addClass('disabled');
-                if (totalPages <= 1) {
-                    $('#nextPage').addClass('disabled');
-                } else {
-                    $('#nextPage').removeClass('disabled');
-                }
-            }
-            
-            console.log("Paginación actualizada");
-        }
-
         $('#rowsPerPage').on('change', function () {
             rowsPerPage = parseInt($(this).val());
             totalPages = Math.ceil(filteredRows.length / rowsPerPage);
@@ -407,8 +448,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         initPagination();
+        
+        // Exponer la función initPagination globalmente
+        window.initPagination = initPagination;
     });
-
 
 
     // Función para ordenar tickets
@@ -416,23 +459,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const rows = $('#ticketsTable tbody tr').get();
         
         rows.sort(function(a, b) {
-            if (sortBy === 'id-desc') {
-                const idA = parseInt($(a).find('td:first').text().replace('#', ''));
-                const idB = parseInt($(b).find('td:first').text().replace('#', ''));
-                return idB - idA;
-            } else if (sortBy === 'id-asc') {
-                const idA = parseInt($(a).find('td:first').text().replace('#', ''));
-                const idB = parseInt($(b).find('td:first').text().replace('#', ''));
-                return idA - idB;
-            } else if (sortBy === 'status') {
-                const statusA = $(a).find('td:nth-child(5) select').val();
-                const statusB = $(b).find('td:nth-child(5) select').val();
-                return statusA.localeCompare(statusB);
-            } else if (sortBy === 'priority') {
-                const priorityA = $(a).find('td:nth-child(6) span').text().trim();
-                const priorityB = $(b).find('td:nth-child(6) span').text().trim();
-                return priorityA.localeCompare(priorityB);
-            }
+            // Por defecto, ordenar por ID descendente (más reciente primero)
+            const idA = parseInt($(a).find('td:first').text().replace('#', ''));
+            const idB = parseInt($(b).find('td:first').text().replace('#', ''));
+            return idB - idA;
         });
         
         $.each(rows, function(index, row) {
@@ -440,15 +470,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         
         // Reinicializar la paginación después de ordenar
-        initPagination();
+        if (typeof window.initPagination === 'function') {
+            window.initPagination();
+        }
     }
-
-    // Manejar clics en opciones de ordenamiento
-    $(document).on('click', '.sort-option', function(e) {
-        e.preventDefault();
-        const sortBy = $(this).data('sort');
-        sortTickets(sortBy);
-    });
 
     // Ordenar por ID descendente al cargar la página
     $(document).ready(function() {
@@ -460,8 +485,8 @@ document.addEventListener("DOMContentLoaded", function () {
  * Función para actualizar el contador de tickets visibles.
  */
 function updateTicketCounter() {
-    const visibleTickets = $('tbody tr:visible').length;
-    $('.badge.bg-primary strong').text(visibleTickets);
+    const visibleTickets = $('#ticketsTable tbody tr:visible').length;
+    $('.badge.bg-secondary strong').text(visibleTickets);
 }
 
 /**
@@ -491,6 +516,5 @@ window.updatePaginationAfterFilter = function() {
             $('#nextPage').removeClass('disabled');
         }
     }
-    
-    console.log("Paginación actualizada");
 };
+

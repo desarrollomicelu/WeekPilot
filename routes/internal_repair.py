@@ -460,19 +460,17 @@ def detalle_RI(ticket_id):
 @login_required
 @role_required("Admin")
 def update_ticket_status_ajax():
-    """Actualiza el estado de un ticket de reparación interna vía AJAX"""
+    """Actualiza el estado de un ticket vía AJAX"""
     try:
+        # Aceptar tanto 'ticket_id' como 'id' para compatibilidad
         ticket_id = request.form.get('ticket_id')
-        new_status = request.form.get('state')
+        # Aceptar tanto 'state' como 'status' para compatibilidad con todos los módulos
+        new_status = request.form.get('state') or request.form.get('status')
         
         if not ticket_id or not new_status:
             return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
             
         ticket = Tickets.query.get_or_404(ticket_id)
-        
-        # Verificar que sea un ticket de reparación interna
-        if ticket.type_of_service != "1":
-            return jsonify({'success': False, 'message': 'Este ticket no es de reparación interna'}), 400
         
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
@@ -489,8 +487,6 @@ def update_ticket_status_ajax():
         elif new_status == "Terminado" and not ticket.finished:
             ticket.finished = current_time
         elif new_status == "Cancelado":
-            # Opcionalmente, puedes agregar un campo para la fecha de cancelación
-            # Si no existe, puedes usar el campo finished o crear uno nuevo
             ticket.finished = current_time
         
         db.session.commit()
