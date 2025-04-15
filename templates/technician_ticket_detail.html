@@ -10,33 +10,47 @@
                 <i class="fas fa-ticket-alt text-primary me-2"></i> Detalle de Ticket #{{ ticket.id_ticket }}
             </h2>
         </div>
-        <div class="col-md-6 d-flex justify-content-end gap-2">
+        <div class="col-md-6 d-flex justify-content-end">
             <!-- Botón para volver a la vista anterior -->
             <a href="{{ url_for('view_technical.view_technical') }}"
                 class="btn btn-secondary d-flex align-items-center">
-                <i class="fas fa-arrow-left me-2"></i> Volver a Mis Tickets
+                <i class="fas fa-arrow-left me-2 text-white"></i> Volver a Mis Tickets
             </a>
-            
-            <!-- Selector de estado y botón de actualizar -->
-            <div class="d-flex align-items-center">
-                <select id="ticketStatus" class="form-select form-select-sm me-2" data-ticket-id="{{ ticket.id_ticket }}">
-                    <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
-                    <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
-                    <option value="En revision" {% if ticket.state == 'En revision' %}selected{% endif %}>En revisión</option>
-                </select>
-                <button id="updateStatusBtn" class="btn btn-primary d-flex align-items-center">
-                    <i class="fas fa-save me-2"></i> Actualizar Estado
-                </button>
-            </div>
         </div>
     </div>
 
-    <!-- Tarjeta con información del ticket -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Información del Ticket</h5>
+    <!-- Sección de detalles del ticket -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-dark"><i class="fas fa-info-circle me-2 text-primary"></i> Información del Ticket #{{ ticket.id_ticket }}</h5>
+                <span class="badge {{ ticket_status_badge }} p-2">{{ ticket.state }}</span>
+            </div>
         </div>
         <div class="card-body">
+            <!-- Eliminar la sección de actualización de estado -->
+            <!-- <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="ticketStatus" class="form-label fw-bold">Estado actual:</label>
+                        <select class="form-select" id="ticketStatus" data-ticket-id="{{ ticket.id }}" data-original-state="{{ ticket.state }}">
+                            <option value="Asignado" {% if ticket.state == 'Asignado' %}selected{% endif %}>Asignado</option>
+                            <option value="En proceso" {% if ticket.state == 'En proceso' %}selected{% endif %}>En proceso</option>
+                            <option value="En Revision" {% if ticket.state == 'En Revision' %}selected{% endif %}>En Revisión</option>
+                            <option value="Terminado" {% if ticket.state == 'Terminado' %}selected{% endif %}>Terminado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button id="updateStatusBtn" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Actualizar Estado
+                    </button>
+                    <div class="ms-3 small text-muted d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span>El estado solo puede avanzar, no retroceder</span>
+                    </div>
+                </div>
+            </div> -->
             <div class="row">
                 <!-- Fechas y Tiempos -->
                 <div class="col-md-12 mb-4">
@@ -45,7 +59,7 @@
                         <div class="col-md-3 mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Creación</h6>
+                                    <h6 class="text-muted mb-2"><i class="fas fa-calendar-plus me-1"></i> Creación</h6>
                                     <p class="mb-0 fw-bold">{{ ticket.creation_date.strftime('%d/%m/%Y') if
                                         ticket.creation_date else 'N/A' }}</p>
                                     <small class="text-muted">{{ ticket.creation_date.strftime('%H:%M:%S') if
@@ -54,39 +68,40 @@
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                            <div class="card h-100 border-0 {% if ticket.state == 'Asignado' %}bg-primary text-white{% else %}bg-light{% endif %}">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Asignado</h6>
+                                    <h6 class="{% if ticket.state == 'Asignado' %}text-white{% else %}text-muted{% endif %} mb-2"><i class="fas fa-user-check me-1"></i> Asignado</h6>
                                     <p class="mb-0 fw-bold">{{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned
                                         else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned
+                                    <small class="{% if ticket.state == 'Asignado' %}text-white{% else %}text-muted{% endif %}">{{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned
                                         else '' }}</small>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                            <div class="card h-100 border-0 {% if ticket.state == 'En proceso' %}bg-primary text-white{% else %}bg-light{% endif %}">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">En Proceso</h6>
+                                    <h6 class="{% if ticket.state == 'En proceso' %}text-white{% else %}text-muted{% endif %} mb-2"><i class="fas fa-tools me-1"></i> En Proceso</h6>
                                     <p class="mb-0 fw-bold">{{ ticket.in_progress.strftime('%d/%m/%Y') if
                                         ticket.in_progress else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.in_progress.strftime('%H:%M:%S') if
+                                    <small class="{% if ticket.state == 'En proceso' %}text-white{% else %}text-muted{% endif %}">{{ ticket.in_progress.strftime('%H:%M:%S') if
                                         ticket.in_progress else '' }}</small>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <div class="card h-100 border-0 bg-light">
+                            <div class="card h-100 border-0 {% if ticket.state == 'En Revision' %}bg-primary text-white{% else %}bg-light{% endif %}">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">Terminado</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished
+                                    <h6 class="{% if ticket.state == 'En Revision' %}text-white{% else %}text-muted{% endif %} mb-2"><i class="fas fa-check-circle me-1"></i> En Revisión</h6>
+                                    <p class="mb-0 fw-bold">{{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review
                                         else 'N/A' }}</p>
-                                    <small class="text-muted">{{ ticket.finished.strftime('%H:%M:%S') if ticket.finished
+                                    <small class="{% if ticket.state == 'En Revision' %}text-white{% else %}text-muted{% endif %}">{{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review
                                         else '' }}</small>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Repuestos Utilizados -->

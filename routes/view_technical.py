@@ -120,6 +120,8 @@ def technician_ticket_detail(ticket_id):
                     response_data['images_success'] = success
                 if errors:
                     response_data['images_errors'] = errors
+                if comment_updated:
+                    response_data['comment_updated'] = True
                 return jsonify(response_data)
                 
             # De lo contrario, usar flash y redirigir
@@ -158,34 +160,78 @@ def technician_ticket_detail(ticket_id):
 # ----------------------------------------------------------------------
 # RUTA AJAX
 # ----------------------------------------------------------------------
-@view_technical_bp.route('/update_ticket_status_ajax', methods=['POST'])
+@view_technical_bp.route('/view_technical/update_ticket_status_ajax', methods=['POST'])
 @login_required
 @technician_required
 def update_ticket_status_ajax():
-    # Aceptar tanto 'ticket_id' como 'id' para compatibilidad
+    # Verificar si es una solicitud AJAX
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    print(f"Headers recibidos: {dict(request.headers)}")
+    print(f"Es solicitud AJAX: {is_ajax}")
+    print(f"Método de la solicitud: {request.method}")
+    print(f"Datos del formulario: {request.form}")
+    print(f"Datos JSON (si los hay): {request.get_json(silent=True)}")
+    print(f"Usuario actual: {current_user.nombre} ({current_user.cargo})")
+    
+    # Verificar los datos recibidos
     ticket_id = request.form.get('ticket_id')
-    # Aceptar tanto 'state' como 'status' para compatibilidad con todos los módulos
     new_status = request.form.get('state') or request.form.get('status')
+    print(f"Datos recibidos - ticket_id: {ticket_id}, state: {new_status}")
+    
+    # Si no es una solicitud AJAX, responder con un error JSON para que el cliente pueda manejarlo
+    if not is_ajax:
+        print("No es una solicitud AJAX, devolviendo error JSON")
+        return jsonify({
+            'success': False, 
+            'message': 'La solicitud debe ser realizada via AJAX. Por favor, recarga la página e intenta de nuevo.'
+        })
 
     if not ticket_id or not new_status:
-        return jsonify({'success': False, 'message': 'Faltan datos requeridos'})
+        return jsonify({'success': False, 'message': 'Faltan datos requeridos (ticket_id o state)'})
+
+    # Verificar que el técnico no esté intentando cambiar a estado 'Terminado'
+    if new_status == 'Terminado' and current_user.cargo == 'servicioTecnico':
+        return jsonify({'success': False, 'message': 'No tienes permisos para marcar tickets como Terminado'})
+
+    # Estados permitidos para técnicos
+    allowed_states = ['Asignado', 'En proceso', 'En Revision']
+    if current_user.cargo == 'servicioTecnico' and new_status not in allowed_states:
+        return jsonify({'success': False, 'message': f'Solo puedes cambiar a los estados: {", ".join(allowed_states)}'})
 
     try:
         ticket = Tickets.query.get(ticket_id)
         if not ticket:
             return jsonify({'success': False, 'message': 'Ticket no encontrado'})
 
+        print(f"Actualizando ticket #{ticket_id} de estado '{ticket.state}' a '{new_status}'")
         now = ticket.update_state(new_status)
         db.session.commit()
+        print(f"Ticket actualizado correctamente, timestamp: {now}")
 
         formatted_time = now.strftime("%d/%m/%Y %H:%M:%S")
-
-        return jsonify({
+        response_data = {
             'success': True,
             'message': 'Estado actualizado correctamente',
             'status': new_status,
             'timestamp': formatted_time
-        })
+        }
+        print(f"Enviando respuesta: {response_data}")
+        return jsonify(response_data)
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+        error_msg = f'Error: {str(e)}'
+        print(f"Error al actualizar el ticket: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': error_msg})
+
+
+# ----------------------------------------------------------------------
+# RUTA AJAX COMPATIBLE (para mantener compatibilidad con el código existente)
+# ----------------------------------------------------------------------
+@view_technical_bp.route('/update_ticket_status_ajax', methods=['POST'])
+@login_required
+def update_ticket_status_ajax_compat():
+    """Ruta para mantener compatibilidad con el código existente"""
+    print("Usando ruta compatible /update_ticket_status_ajax")
+    return update_ticket_status_ajax()

@@ -395,7 +395,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                      <i class="fas fa-times me-1 text-white"></i>Cancelar
+                    </button>
                     <form id="sendEmailForm"
                         action="{{ url_for('technical_service.send_email_notification', ticket_id=ticket.id_ticket) }}"
                         method="post">

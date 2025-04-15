@@ -172,18 +172,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Mostrar carga
                     $select.addClass('opacity-50').prop('disabled', true);
                     showToast('info', 'Actualizando estado...', 'top-end');
-                    // Petición AJAX
+                    // Obtener token CSRF si existe
+                    let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    
                     $.ajax({
-                        url: '/update_ticket_status_ajax',
+                        url: '/view_technical/update_ticket_status_ajax',
                         method: 'POST',
+                        dataType: 'json',
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                            'X-CSRFToken': csrfToken || ''
+                        },
                         data: {
                             ticket_id: ticketId,
-                            status: newStatus
+                            state: newStatus,
+                            csrf_token: csrfToken || ''
                         },
                         beforeSend: function() {
                             console.log("Enviando solicitud AJAX:", {
                                 ticket_id: ticketId,
-                                status: newStatus
+                                state: newStatus
                             });
                         },
                         success: function(response) {
@@ -209,6 +219,35 @@ document.addEventListener("DOMContentLoaded", function () {
                             console.error("Respuesta del servidor:", xhr.responseText);
                             $select.removeClass('opacity-50').prop('disabled', false);
                             $select.val(originalValue);
+                            
+                            // Verificar si el error es debido a redirección (sesión expirada)
+                            if (xhr.responseText && xhr.responseText.indexOf('<!DOCTYPE html>') === 0) {
+                                console.log("Detectada posible redirección o error de sesión");
+                                
+                                // Intentar extraer mensajes de error si es posible
+                                if (xhr.responseText.includes("La solicitud debe ser realizada via AJAX")) {
+                                    showToast('error', 'El servidor no reconoce esta como una solicitud AJAX válida', 'top-end');
+                                    return;
+                                }
+                                
+                                if (xhr.responseText.includes("No tienes permisos")) {
+                                    showToast('error', 'No tienes permisos para realizar esta acción', 'top-end');
+                                    return;
+                                }
+                                
+                                // Si no podemos identificar el error específico, asumimos error de sesión
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error de sesión',
+                                    text: 'Tu sesión ha expirado o no tienes permisos para realizar esta acción. Serás redirigido para iniciar sesión.',
+                                    confirmButtonText: 'Aceptar'
+                                }).then(() => {
+                                    window.location.href = '/login';
+                                });
+                                return;
+                            }
+                            
+                            // Manejar otros errores
                             let errorMsg = 'Error al actualizar el estado';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMsg = xhr.responseJSON.message;
@@ -614,12 +653,23 @@ document.addEventListener("DOMContentLoaded", function () {
                         updateStatusBtn.disabled = true;
                         updateStatusBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Actualizando...';
 
+                        // Obtener token CSRF si existe
+                        let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        
                         $.ajax({
-                            url: '/update_ticket_status_ajax',
+                            url: '/view_technical/update_ticket_status_ajax',
                             method: 'POST',
+                            dataType: 'json',
+                            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'X-CSRFToken': csrfToken || ''
+                            },
                             data: {
                                 ticket_id: ticketId,
-                                status: newStatus
+                                state: newStatus,
+                                csrf_token: csrfToken || ''
                             },
                             success: function(response) {
                                 updateStatusBtn.disabled = false;
@@ -662,10 +712,39 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                             error: function(xhr, status, error) {
                                 console.error("Error en la solicitud AJAX:", status, error);
+                                console.error("Respuesta del servidor:", xhr.responseText);
                                 updateStatusBtn.disabled = false;
                                 updateStatusBtn.innerHTML = '<i class="fas fa-save me-2"></i> Actualizar Estado';
                                 ticketStatus.value = originalValue;
-
+                                
+                                // Verificar si el error es debido a redirección (sesión expirada)
+                                if (xhr.responseText && xhr.responseText.indexOf('<!DOCTYPE html>') === 0) {
+                                    console.log("Detectada posible redirección o error de sesión");
+                                    
+                                    // Intentar extraer mensajes de error si es posible
+                                    if (xhr.responseText.includes("La solicitud debe ser realizada via AJAX")) {
+                                        showToast('error', 'El servidor no reconoce esta como una solicitud AJAX válida', 'top-end');
+                                        return;
+                                    }
+                                    
+                                    if (xhr.responseText.includes("No tienes permisos")) {
+                                        showToast('error', 'No tienes permisos para realizar esta acción', 'top-end');
+                                        return;
+                                    }
+                                    
+                                    // Si no podemos identificar el error específico, asumimos error de sesión
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error de sesión',
+                                        text: 'Tu sesión ha expirado o no tienes permisos para realizar esta acción. Serás redirigido para iniciar sesión.',
+                                        confirmButtonText: 'Aceptar'
+                                    }).then(() => {
+                                        window.location.href = '/login';
+                                    });
+                                    return;
+                                }
+                                
+                                // Manejar otros errores
                                 let errorMsg = 'Error al actualizar el estado';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMsg = xhr.responseJSON.message;
