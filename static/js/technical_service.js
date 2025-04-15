@@ -157,11 +157,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 return false;
             }
 
+            // Texto de confirmación
+            let confirmText = `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`;
+            
+            // Si el estado es "Terminado", agregar advertencia
+            if (newStatus === "Terminado") {
+                confirmText += `\n\nIMPORTANTE: Una vez que el ticket esté en estado "Terminado", ya no podrá ser editado.`;
+            }
+
             // Si no es retroceso, continuar con el flujo normal
             // Preguntar al usuario
             Swal.fire({
                 title: '¿Cambiar estado?',
-                text: `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
+                text: confirmText,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -195,21 +203,43 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $select.attr('data-original-state', newStatus);
                                 
                                 // Actualizar el atributo data-status de la fila para los filtros
-                                $select.closest('tr').attr('data-status', newStatus);
+                                const $row = $select.closest('tr');
+                                $row.attr('data-status', newStatus);
+                                
+                                console.log("Estado actualizado a:", newStatus);
+                                console.log("Atributo data-status:", $row.attr('data-status'));
+
+                                // Si el estado cambia a Terminado, deshabilitar el botón de edición
+                                if (newStatus === "Terminado") {
+                                    const editButton = $row.find('button.btn-outline-secondary');
+                                    editButton.addClass('disabled');
+                                    editButton.attr('title', 'No se puede editar un ticket en estado Terminado');
+                                    editButton.attr('disabled', true);
+                                }
 
                                 // Actualizar el timestamp si está disponible
                                 if (response.timestamp) {
                                     const timestampField = stateTimestampMap[newStatus];
                                     if (timestampField) {
-                                        const $timestamp = $select.closest('tr').find(`.${timestampField}-timestamp`);
+                                        console.log(`Estado actualizado a: ${newStatus}, campo timestamp: ${timestampField}`);
+                                        const $timestamp = $row.find(`.${timestampField}-timestamp`);
+                                        console.log(`Selector de timestamp: .${timestampField}-timestamp, encontrados: ${$timestamp.length}`);
+                                        
                                         if ($timestamp.length) {
+                                            console.log(`Actualizando timestamp con valor: ${response.timestamp}`);
                                             $timestamp.text(response.timestamp);
+                                            $timestamp.addClass('active-timestamp');
+                                        } else {
+                                            console.log(`No se encontró elemento para mostrar el timestamp de ${newStatus}`);
                                         }
+                                    } else {
+                                        console.log(`No se encontró mapeo de timestamp para el estado ${newStatus}`);
                                     }
+                                } else {
+                                    console.log('No se recibió información de timestamp en la respuesta');
                                 }
                             
                                 // Mover la fila al principio de la tabla
-                                const $row = $select.closest('tr');
                                 $row.css('background-color', '#fffde7');
                                 const $table = $('#ticketsTable tbody');
                                 setTimeout(function() {
@@ -221,6 +251,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // Actualizar contador y paginación
                                             updateTicketCounter();
                                             updatePaginationAfterFilter();
+                                            
+                                            // Reaplica el filtro activo para que se muestre correctamente
+                                            const activeFilter = $('input[name="filterStatus"]:checked').next('label').text().trim();
+                                            if (activeFilter === newStatus || activeFilter === 'Todos' || 
+                                                (activeFilter === 'Activos' && newStatus !== 'Terminado')) {
+                                                $row.show();
+                                            } else {
+                                                $row.hide();
+                                                // Mostrar notificación informativa de que el ticket ya no es visible
+                                                showToast('info', `El ticket #${ticketId} se ha movido al filtro "${newStatus}"`, 'top-end', 5000);
+                                            }
                                         }, 1500);
                                     });
                                 }, 300);
@@ -274,6 +315,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Filtrar por el estado específico seleccionado
                 $('#ticketsTable tbody tr').each(function () {
                     const ticketState = $(this).attr('data-status');
+                    // Comparación exacta de cadenas para evitar problemas con mayúsculas/minúsculas o espacios
                     $(this).toggle(ticketState === status);
                 });
             }
@@ -478,6 +520,18 @@ document.addEventListener("DOMContentLoaded", function () {
     // Ordenar por ID descendente al cargar la página
     $(document).ready(function() {
         sortTickets('id-desc');
+    });
+
+    // Deshabilitar botones de edición para tickets terminados
+    $('#ticketsTable tbody tr').each(function() {
+        const ticketState = $(this).attr('data-status');
+        if (ticketState === 'Terminado') {
+            // Buscar y desactivar el botón de edición
+            const editButton = $(this).find('button.btn-outline-secondary');
+            editButton.addClass('disabled');
+            editButton.attr('title', 'No se puede editar un ticket en estado Terminado');
+            editButton.attr('disabled', true);
+        }
     });
 });
 

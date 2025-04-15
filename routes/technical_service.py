@@ -309,6 +309,12 @@ def list_tickets():
 def edit_ticket(ticket_id):
     # Obtener el ticket y cliente
     ticket = Tickets.query.get_or_404(ticket_id)
+    
+    # No permitir editar tickets en estado "Terminado"
+    if ticket.state == "Terminado":
+        flash("No se puede editar un ticket en estado Terminado", "warning")
+        return redirect(url_for("technical_service.view_detail_ticket", ticket_id=ticket_id))
+        
     client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
 
     # Obtener repuestos del ticket
@@ -452,10 +458,22 @@ def update_ticket_status_ajax():
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
         
+        # Verificar el estado actual y el nuevo estado
+        print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
+        
         # Actualizar el estado y obtener el timestamp
         timestamp = ticket.update_state(new_status)
         
+        # Verificar si el timestamp under_review se actualizó correctamente
+        if new_status == "En Revision":
+            print(f"Timestamp under_review después de actualizar: {ticket.under_review}")
+        
         db.session.commit()
+        
+        # Después del commit, verificar de nuevo para asegurarnos que se guardó en la BD
+        if new_status == "En Revision":
+            ticket_verificado = Tickets.query.get(ticket_id)
+            print(f"Timestamp under_review después del commit: {ticket_verificado.under_review}")
         
         # Formatear la hora para mostrarla en la UI
         formatted_time = timestamp.strftime("%d/%m/%Y %H:%M:%S")

@@ -122,7 +122,8 @@
                 <!-- Botón para Editar Ticket con formulario -->
                 <form action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}" method="get"
                   style="display:inline-block;">
-                  <button type="submit" class="btn btn-sm btn-outline-secondary">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" 
+                          {% if ticket.state == 'Terminado' %}disabled title="No se puede editar un ticket en estado Terminado"{% endif %}>
                     <i class="fas fa-edit"></i>
                   </button>
                 </form>

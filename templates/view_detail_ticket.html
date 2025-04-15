@@ -173,10 +173,10 @@
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center p-2">
                                     <h6 class="text-muted mb-1">En Revisión</h6>
-                                    <p class="mb-0 fw-bold">
+                                    <p class="mb-0 fw-bold under_review-timestamp">
                                         {{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}
                                     </p>
-                                    <small class="text-muted">
+                                    <small class="text-muted under_review-timestamp">
                                         {{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}
                                     </small>
                                 </div>
