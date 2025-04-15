@@ -79,33 +79,32 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="ticketsTable">
-        <thead class="table-light text-nowrap">
+      <table class="table table-hover align-middle mb-0 table-optimized" id="ticketsTable">
+        <thead class="table-light">
           <tr>
-            <th class="ps-2">#</th>
-            <th style="width: 10%">Referencia</th>
-            <!--<th>Imei</th>-->
-            <th>Ciudad</th>
-            <th>Técnico</th>
-            <th>Estado</th>
-            <!--<th>Fecha de Ingreso</th>-->
-            <th>Prioridad</th>
-            <th class="text-end">Valor Servicio</th>
-            <th class="text-end">Valor Repuestos</th>
-            <th class="text-end">Total</th>
-            <th class="text-center">Acciones</th>
+            <th class="ps-2" style="width: 5%">#</th>
+            <th style="width: 12%">Referencia</th>
+            <th style="width: 18%">Técnico</th>
+            <th style="width: 18%">Estado</th>
+            <th style="width: 8%">Prioridad</th>
+            <th style="width: 12%" class="text-end">Valor Serv.</th>
+            <th style="width: 12%" class="text-end">Valor Rep.</th>
+            <th style="width: 10%" class="text-end">Total</th>
+            <th style="width: 9%" class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
           <tr class="align-middle" data-status="{{ ticket.state }}">
             <td class="ps-2 fw-bold">#{{ ticket.id_ticket }}</td>
-            <td>{{ ticket.reference }}</td>
-            <!--<td>{{ ticket.IMEI }}</td>-->
-            <td>{{ ticket.city }}</td>
-            <td>
+            <td class="multiline-cell" title="{{ ticket.reference }}">
+              {{ ticket.reference | replace("SEMINUEVO", "") | replace("Seminuevo", "") | replace("seminuevo", "") | trim }}
+            </td>
+            <td class="multiline-cell">
               {% if ticket.technical_name %}
-              {{ ticket.technical_name.replace('.', ' ') | title }}
+              <span title="{{ ticket.technical_name.replace('.', ' ') | title }}">
+                {{ ticket.technical_name.replace('.', ' ') | title }}
+              </span>
               {% else %}
               <span class="badge bg-secondary">Sin asignar</span>
               {% endif %}
@@ -120,14 +119,6 @@
                 {% endfor %}
               </select>
             </td>
-            <!--<td>
-              {% if ticket.creation_date %}
-              <div>{{ ticket.creation_date.strftime("%d/%m/%Y") if ticket.creation_date else "Fecha no disponible" }}</div>
-              <small class="text-muted">{{ ticket.creation_date.strftime("%H:%M:%S") if ticket.creation_date else "" }}</small>
-              {% else %}
-              <span class="badge bg-secondary">No registrada</span>
-              {% endif %}
-            </td>-->
             <td>
               <span class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
                 {{ ticket.priority }}
@@ -146,15 +137,12 @@
                   class="btn btn-sm btn-outline-info">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="mailto:tu_correo@dominio.com" class="btn btn-sm btn-outline-danger">
-                  <i class="fas fa-envelope"></i>
-                </a>
               </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="12" class="text-center py-5">
+            <td colspan="9" class="text-center py-5">
               <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
               <p class="text-muted">No hay tickets de reparación interna registrados actualmente.</p>
               <a href="{{ url_for('internal_repair.create_ticketsRI') }}" class="btn btn-secondary">

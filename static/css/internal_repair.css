@@ -24,6 +24,55 @@
     font-size: 14px;
     color: #343a40; /* Color oscuro */
 }
+
+/* Estilos para la tabla */
+.table th, .table td {
+    padding: 0.5rem;
+}
+
+.table {
+    margin-bottom: 0;
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Estilo para celdas con texto multilínea */
+.multiline-cell {
+    white-space: normal;
+    word-wrap: break-word;
+    min-height: 45px;
+    overflow: visible;
+    line-height: 1.2;
+}
+
+.form-select-sm {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.compact-select {
+    font-size: 0.8rem;
+    padding-left: 0.5rem;
+    padding-right: 1.5rem;
+    min-width: auto;
+    width: 100%;
+    background-position: right 0.3rem center;
+}
+
+.btn-group-sm>.btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.table-responsive {
+    overflow-x: visible;
+}
+
+@media (max-width: 1200px) {
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+
 /* Colores para los diferentes estados de tickets */
 tr[data-status="Sin asignar"] {
     background-color: #f8f9fa;
