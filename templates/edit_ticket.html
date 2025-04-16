@@ -361,6 +361,22 @@
                 <!-- Campos para subir imágenes -->
                 <div class="mb-4">
                     <h6 class="mb-3 border-bottom pb-2">Subir Imágenes</h6>
+                    
+                    <!-- Authentication status indicator -->
+                    {% if not ms_authenticated %}
+                    <div class="alert alert-warning mt-2 mb-3">
+                        <p><i class="fas fa-exclamation-triangle me-2"></i> Para subir imágenes, primero debes 
+                           <a href="{{ url_for('onedrive.login_ms') }}" class="btn btn-primary btn-sm ms-2">
+                               <i class="fab fa-microsoft me-1"></i> Iniciar sesión con OneDrive
+                           </a>
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success mt-2 mb-3">
+                        <p><i class="fas fa-check-circle me-2"></i> Conectado a OneDrive. Puedes subir imágenes.</p>
+                    </div>
+                    {% endif %}
+                    
                     <div class="row">
                         <!-- Campo para subir fotos desde galería -->
                         <div class="col-md-6 mb-3">
@@ -368,37 +384,66 @@
                             <input type="file" id="uploadImages" name="images" class="form-control" multiple
                                 accept="image/*">
                         </div>
+                        
                         <!-- Campo para tomar foto con la cámara -->
                         <div class="col-md-6 mb-3">
                             <label for="takePhoto" class="form-label">Tomar Foto</label>
                             <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*"
                                 capture="environment">
                         </div>
+                        
+                        <!-- Campo oculto para referencias de imágenes -->
+                        <input type="hidden" id="imageReferences" name="image_references" value="[]">
                     </div>
                 </div>
 
                 <!-- Área de previsualización de imágenes -->
                 <div id="previewContainer" class="row mt-4">
-                    <!-- Aquí se mostrarán las imágenes seleccionadas o tomadas -->
                     {% if ticket_images %}
-                    {% for image in ticket_images %}
-                    <div class="col-6 col-md-3 mb-3 preview-image-container">
-                        <div class="position-relative">
-                            <img src="{{ image.url }}" class="img-fluid rounded" alt="Imagen del ticket">
-                            <button type="button"
-                                class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-image"
-                                data-image-id="{{ image.id }}">
-                                <i class="fas fa-times"></i>
-                            </button>
+                        {% for image in ticket_images %}
+                        <div class="col-6 col-md-3 mb-3 preview-image-container" data-image-id="{{ image.id }}">
+                            <div class="card h-100 position-relative">
+                                <!-- Botón X para eliminar en esquina superior derecha -->
+                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-1 m-1 remove-image" 
+                                        data-image-id="{{ image.id }}" style="width: 25px; height: 25px; z-index: 100;">
+                                    <i class="fas fa-times" style="font-size: 0.8rem;"></i>
+                                </button>
+                                
+                                <img src="{{ image.url }}" 
+                                     class="card-img-top img-thumbnail preview-image" 
+                                     alt="Imagen del ticket"
+                                     style="cursor: zoom-in;"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#imageModal" 
+                                     data-image-url="{{ image.url }}"
+                                     data-image-name="{{ image.name }}"
+                                     onerror="this.onerror=null; this.src='/static/img/error.png';">
+                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
                     {% endif %}
                 </div>
 
+                <!-- Modal para ampliar imágenes -->
+                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="imageModalLabel">Vista ampliada</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center p-0">
+                                <img id="modalImage" src="" class="img-fluid" alt="Imagen ampliada">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Campo oculto para almacenar referencias a las imágenes -->
-                <input type="hidden" id="imageReferences" name="image_references"
-                    value="{{ ticket_images_json|default('[]') }}">
+                <input type="hidden" id="imageReferences" name="image_references" value="{{ ticket_images_json|default('[]') }}">
                 <!-- Campo oculto para almacenar IDs de imágenes a eliminar -->
                 <input type="hidden" id="imagesToDelete" name="images_to_delete" value="[]">
             </div>
@@ -436,7 +481,7 @@
             <input type="text" class="form-control part-unit-value" name="part_unit_value[]" required>
         </td>
         <td>
-            <input type="text" class="form-control part-total-value" name="part_total_value[]" readonly>
+            <input type="text" class="form-control part-total-value" name="part_total-value[]" readonly>
         </td>
         <td>
             <button type="button" class="btn btn-sm btn-danger remove-part">

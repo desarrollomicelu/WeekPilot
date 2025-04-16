@@ -7,6 +7,7 @@ from .technical_service import technical_service_bp
 from .upload_images import upload_images_bp
 from .warranty import warranty_bp
 from .view_technical import view_technical_bp
+from .onedrive import onedrive_bp
 
 def register_blueprints(app):
     """
@@ -19,4 +20,5 @@ def register_blueprints(app):
     app.register_blueprint(upload_images_bp)
     app.register_blueprint(warranty_bp)
     app.register_blueprint(view_technical_bp)
+    app.register_blueprint(onedrive_bp)
     
