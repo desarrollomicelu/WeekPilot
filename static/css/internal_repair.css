@@ -86,6 +86,10 @@ tr[data-status="En proceso"] {
     background-color: #d1e7ff;
 }
 
+tr[data-status="En Revision"] {
+    background-color: #e1d4f9;
+}
+
 tr[data-status="Terminado"] {
     background-color: #d1e7dd;
 }
