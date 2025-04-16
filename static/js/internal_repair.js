@@ -1,6 +1,22 @@
 // El archivo toast-notifications.js ahora maneja todas las notificaciones
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Definir el orden de los estados (de menor a mayor progreso)
+    const stateOrder = {
+        "Sin asignar": 1,
+        "Asignado": 2,
+        "En proceso": 3,
+        "En Revision": 4,
+        "Terminado": 5,
+        "Cancelado": 5 // Mismo nivel que Terminado para no permitir retroceder
+    };
+
     // ===== GESTIÓN DE REPUESTOS =====
     const partsTable = document.getElementById('partsTable');
     if (partsTable) {
@@ -756,82 +772,75 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===== FUNCIONALIDAD PARA ACTUALIZAR ESTADO DE TICKETS =====
-    // Cuando cambia el estado de un ticket
-    $('.status-select').on('change', function () {
-        // Obtener elementos y valores
-        const $select = $(this);
-        const ticketId = $select.data('ticket-id');
-        const newStatus = $select.val();
-        const originalValue = $select.data('original-value') || $select.find('option:selected').val();
-
-        // Guardar el valor original por si hay error
-        $select.data('original-value', originalValue);
-
-        // Mostrar confirmación antes de cambiar el estado
-        confirmAction(
-            '¿Cambiar estado?',
-            `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
-            'Sí, cambiar',
-            'Cancelar',
-            () => {
-                // Mostrar indicador de carga
-                $select.addClass('opacity-50');
-                $select.prop('disabled', true);
-
-                // Mostrar toast de carga
-                showInfoToast('Actualizando estado...', 'top-end');
-
-                // Enviar solicitud AJAX
-                $.ajax({
-                    url: '/update_ticket_status_ajax',
-                    method: 'POST',
-                    data: {
-                        ticket_id: ticketId,
-                        state: newStatus
-                    },
-                    success: function (response) {
-                        // Quitar indicador de carga
-                        $select.removeClass('opacity-50');
-                        $select.prop('disabled', false);
-
-                        if (response.success) {
-                            // Actualizar el timestamp mostrado
-                            if (response.timestamp) {
-                                const $timestamp = $select.closest('tr').find('.timestamp');
-                                if ($timestamp.length) {
-                                    $timestamp.text(response.timestamp);
-                                }
-                            }
-                            
-                            // Actualizar el estado del data-status de la fila
-                            $select.closest('tr').attr('data-status', newStatus);
-
-                            // Mostrar notificación de éxito
-                            showSuccessToast('Estado actualizado correctamente', 'top-end');
-                        } else {
-                            // Mostrar error y restaurar valor original
-                            showErrorToast(response.message || 'Error al actualizar el estado', 'top-end');
-                            $select.val(originalValue);
-                        }
-                    },
-                    error: function (xhr) {
-                        // Quitar indicador de carga
-                        $select.removeClass('opacity-50');
-                        $select.prop('disabled', false);
-
-                        // Restaurar valor original
-                        $select.val(originalValue);
-
-                        // Mostrar mensaje de error
-                        let errorMsg = 'Error al actualizar el estado';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMsg = xhr.responseJSON.message;
-                        }
-                        showErrorToast(errorMsg, 'top-end');
-                    }
-                });
+    // Deshabilitar selects de estado para tickets en estado "Terminado" o "Cancelado"
+    document.querySelectorAll('.status-select').forEach(function(select) {
+        const currentStatus = select.value;
+        
+        // Guardar el estado original como atributo de datos (para validar retrocesos)
+        if (!select.getAttribute('data-original-state')) {
+            select.setAttribute('data-original-state', currentStatus);
+        }
+        
+        if (currentStatus === "Terminado" || currentStatus === "Cancelado") {
+            // Deshabilitar el select para evitar cambios de estado
+            select.disabled = true;
+            
+            // Añadir tooltip para mostrar mensaje informativo
+            select.setAttribute('data-bs-toggle', 'tooltip');
+            select.setAttribute('data-bs-placement', 'top');
+            select.setAttribute('title', `Los tickets en estado "${currentStatus}" no pueden ser modificados.`);
+        }
+    });
+    
+    // Escuchar los cambios en el select de estado
+    document.querySelectorAll('.status-select').forEach(function(select) {
+        select.addEventListener('change', function() {
+            const ticketId = this.getAttribute('data-ticket-id');
+            const newStatus = this.value;
+            const previousStatus = this.getAttribute('data-previous-status');
+            const originalState = this.getAttribute('data-original-state');
+            
+            // Si el estado no ha cambiado, no hacer nada
+            if (newStatus === previousStatus) {
+                return;
             }
-        );
+            
+            // Validar si es un retroceso de estado según la jerarquía definida
+            if (stateOrder[newStatus] < stateOrder[originalState]) {
+                // Es un retroceso, mostrar error y revertir
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Operación no permitida',
+                    text: `No se puede cambiar el estado de "${originalState}" a "${newStatus}". No se permite retroceder en el flujo de estados.`,
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Entendido'
+                });
+                
+                // Restaurar el valor previo
+                this.value = previousStatus;
+                return;
+            }
+            
+            // Texto de confirmación
+            let confirmText = `¿Está seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`;
+            
+            // Si el estado es "Terminado" o "Cancelado", agregar advertencia
+            if (newStatus === "Terminado" || newStatus === "Cancelado") {
+                confirmText += `\n\nIMPORTANTE: Una vez que el ticket esté en estado "${newStatus}", ya no podrá ser editado.`;
+            }
+            
+            // Confirmar con SweetAlert2
+            confirmAction(
+                '¿Cambiar estado?',
+                confirmText,
+                'Sí, cambiar',
+                'Cancelar',
+                () => {
+                    // Hacer la petición AJAX
+                    updateTicketStatus(ticketId, newStatus, select);
+                }
+            );
+        });
     });
 });
 
@@ -984,5 +993,78 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+// Configuración para actualizar el estado de los tickets
+document.addEventListener('DOMContentLoaded', function() {
+    // La configuración de los event listeners para .status-select se maneja 
+    // en la sección anterior del código, por lo que se elimina la duplicación aquí.
+    
+    // Dejamos solamente la función updateTicketStatus para que sea accesible globalmente
+});
+
+// Función para hacer la petición AJAX (definida globalmente para que sea accesible desde cualquier lugar)
+function updateTicketStatus(ticketId, newStatus, selectElement) {
+    // Mostrar un indicador de carga
+    showInfoToast('Actualizando...', 'top-end');
+    
+    // Usar la URL correcta para la ruta de actualización de estado
+    fetch('/update_ticket_status_ajax', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `ticket_id=${ticketId}&state=${newStatus}`
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.message || `Error HTTP: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Actualizar el atributo de estado anterior
+            selectElement.setAttribute('data-previous-status', newStatus);
+            
+            // Cambiar el color de la fila según el nuevo estado
+            const row = selectElement.closest('tr');
+            if (row) {
+                row.setAttribute('data-status', newStatus);
+            }
+            
+            // Si el nuevo estado es Terminado o Cancelado, deshabilitar el select
+            if (newStatus === "Terminado" || newStatus === "Cancelado") {
+                selectElement.disabled = true;
+                
+                // Añadir tooltip para mostrar mensaje informativo
+                selectElement.setAttribute('data-bs-toggle', 'tooltip');
+                selectElement.setAttribute('data-bs-placement', 'top');
+                selectElement.setAttribute('title', `Los tickets en estado "${newStatus}" no pueden ser modificados.`);
+                
+                // Reinicializar el tooltip
+                new bootstrap.Tooltip(selectElement);
+            }
+            
+            // Mostrar confirmación
+            showSuccessToast(data.message || 'Estado actualizado correctamente', 'top-end');
+        } else {
+            // Si hay error, mostrar alerta y restaurar valor anterior
+            showErrorToast(data.message || 'Error al actualizar el estado', 'top-end');
+            selectElement.value = selectElement.getAttribute('data-previous-status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        // Mostrar toast de error
+        showErrorToast('Error al actualizar el estado: ' + error.message, 'top-end');
+        
+        // Restaurar el valor anterior
+        selectElement.value = selectElement.getAttribute('data-previous-status');
+    });
+}
 
 

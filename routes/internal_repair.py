@@ -259,6 +259,12 @@ def edit_tickets_RI(ticket_id):
     """
     # Obtener el ticket a editar
     ticket = Tickets.query.get_or_404(ticket_id)
+    
+    # Verificar que el ticket no esté en estado "Terminado" o "Cancelado"
+    if ticket.state in ["Terminado", "Cancelado"]:
+        flash(f"No se puede editar un ticket en estado '{ticket.state}'", "warning")
+        return redirect(url_for("internal_repair.detail_RI", ticket_id=ticket_id))
+    
     selected_problem_ids = [problem.id for problem in ticket.problems]
     ticket_spares = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
     
@@ -274,9 +280,6 @@ def edit_tickets_RI(ticket_id):
     product_code = get_product_information()
     sertec = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
-    
-    # Obtener los IDs de los problemas asociados al ticket
-    selected_problem_ids = [problem.id for problem in ticket.problems]
     
     if request.method == "POST":
         try:
@@ -472,6 +475,23 @@ def update_ticket_status_ajax():
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
         print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
+        
+        # Definir el orden de los estados (de menor a mayor progreso)
+        state_order = {
+            "Sin asignar": 1,
+            "Asignado": 2,
+            "En proceso": 3,
+            "En Revision": 4,
+            "Terminado": 5,
+            "Cancelado": 5  # Mismo nivel que Terminado
+        }
+        
+        # Validar que no sea un retroceso de estado
+        if state_order.get(new_status, 0) < state_order.get(previous_status, 0):
+            return jsonify({
+                'success': False, 
+                'message': f'No se permite cambiar el estado de "{previous_status}" a "{new_status}". No se permite retroceder en el flujo de estados.'
+            }), 400
         
         # Actualizar estado y obtener timestamp usando el método del modelo
         timestamp = ticket.update_state(new_status)
