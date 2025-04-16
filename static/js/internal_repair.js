@@ -1,23 +1,4 @@
-// Función global para mostrar toast con SweetAlert
-
-function showToast(icon, title, position = 'top-end', timer = 3000) {
-    const Toast = Swal.mixin({
-        toast: true,
-        position: position,
-        showConfirmButton: false,
-        timer: timer,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer)
-            toast.addEventListener('mouseleave', Swal.resumeTimer)
-        }
-    });
-
-    Toast.fire({
-        icon: icon,
-        title: title
-    });
-}
+// El archivo toast-notifications.js ahora maneja todas las notificaciones
 
 document.addEventListener('DOMContentLoaded', function () {
     // ===== GESTIÓN DE REPUESTOS =====
@@ -93,17 +74,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
                 newRow.querySelector('.remove-part').addEventListener('click', () => {
                     // Pedir confirmación antes de eliminar
-                    Swal.fire({
-                        title: '¿Eliminar repuesto?',
-                        text: '¿Estás seguro de eliminar este repuesto?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+                    confirmAction(
+                        '¿Eliminar repuesto?',
+                        '¿Estás seguro de eliminar este repuesto?',
+                        'Sí, eliminar',
+                        'Cancelar',
+                        () => {
                             newRow.remove();
                             editRowIndices();
                             editTotals();
@@ -116,15 +92,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
 
                             // Mostrar toast de confirmación
-                            showToast('success', 'Repuesto eliminado correctamente');
+                            showSuccessToast('Repuesto eliminado correctamente');
                         }
-                    });
+                    );
                 });
 
                 editRowIndices();
 
                 // Mostrar toast de confirmación
-                showToast('success', 'Repuesto agregado correctamente');
+                showSuccessToast('Repuesto agregado correctamente');
             });
         }
 
@@ -149,17 +125,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Configurar evento para eliminar
                 row.querySelector('.remove-part').addEventListener('click', () => {
                     // Pedir confirmación antes de eliminar
-                    Swal.fire({
-                        title: '¿Eliminar repuesto?',
-                        text: '¿Estás seguro de eliminar este repuesto?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+                    confirmAction(
+                        '¿Eliminar repuesto?',
+                        '¿Estás seguro de eliminar este repuesto?',
+                        'Sí, eliminar',
+                        'Cancelar',
+                        () => {
                             row.remove();
                             editRowIndices();
                             editTotals();
@@ -172,9 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
 
                             // Mostrar toast de confirmación
-                            showToast('success', 'Repuesto eliminado correctamente');
+                            showSuccessToast('Repuesto eliminado correctamente');
                         }
-                    });
+                    );
                 });
             });
 
@@ -358,22 +329,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Si la referencia es diferente a la original, pedir confirmación
             if (newReference !== originalReference && originalReference !== '') {
-                Swal.fire({
-                    title: 'Cambiar referencia',
-                    text: `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, cambiar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
+                confirmAction(
+                    'Cambiar referencia',
+                    `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
+                    'Sí, cambiar',
+                    'Cancelar',
+                    () => {
                         // Actualizar el valor original
                         originalReference = newReference;
                         originalReferenceText = newReferenceText;
 
-                        // Actualizar el código
                         // Actualizar el código del producto
                         if (productCodeInput) {
                             productCodeInput.value = selectedOption && selectedOption.getAttribute('data-code') ?
@@ -381,12 +346,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
 
                         // Mostrar toast de confirmación
-                        showToast('success', `Referencia cambiada a "${newReferenceText}"`);
-                    } else {
-                        // Restaurar el valor original
-                        this.value = originalReference;
+                        showSuccessToast(`Referencia cambiada a "${newReferenceText}"`);
                     }
-                });
+                );
             } else {
                 // Actualizar el código del producto sin confirmación si es la misma referencia
                 if (productCodeInput) {
@@ -425,7 +387,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ===== VALIDACIÓN DE FORMULARIO =====
     // ===== VALIDACIÓN DE FORMULARIO =====
     const ticketForm = document.getElementById('ticketForm');
 
@@ -503,32 +464,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // Si todo está bien, mostrar confirmación
-            Swal.fire({
-                title: '¿Guardar cambios?',
-                text: '¿Estás seguro de guardar los cambios en este ticket?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, guardar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
+            confirmAction(
+                '¿Guardar cambios?',
+                '¿Estás seguro de guardar los cambios en este ticket?',
+                'Sí, guardar',
+                'Cancelar',
+                () => {
                     // Mostrar indicador de carga
-                    Swal.fire({
-                        title: 'Guardando...',
-                        html: 'Por favor espera mientras se guardan los cambios.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    showLoading('Guardando...');
 
                     // Enviar el formulario
                     ticketForm.removeEventListener('submit', arguments.callee);
                     ticketForm.submit();
                 }
-            });
+            );
         });
     }
 
@@ -590,9 +539,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     $('#nextPage').before(`<li class="page-item ${currentPage === totalPages ? 'active' : ''}" data-page="${totalPages}"><a class="page-link" href="#">${totalPages}</a></li>`);
                 }
             }
-
-            // Actualizar estado de botones Anterior/Siguiente (se llama desde showPage)
-            // updatePrevNextButtons(); // No need to call here, showPage does it
         }
 
         // Función para mostrar una página específica
@@ -822,23 +768,18 @@ document.addEventListener('DOMContentLoaded', function () {
         $select.data('original-value', originalValue);
 
         // Mostrar confirmación antes de cambiar el estado
-        Swal.fire({
-            title: '¿Cambiar estado?',
-            text: `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, cambiar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
+        confirmAction(
+            '¿Cambiar estado?',
+            `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
+            'Sí, cambiar',
+            'Cancelar',
+            () => {
                 // Mostrar indicador de carga
                 $select.addClass('opacity-50');
                 $select.prop('disabled', true);
 
                 // Mostrar toast de carga
-                showToast('info', 'Actualizando estado...', 'top-end');
+                showInfoToast('Actualizando estado...', 'top-end');
 
                 // Enviar solicitud AJAX
                 $.ajax({
@@ -861,12 +802,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                     $timestamp.text(response.timestamp);
                                 }
                             }
+                            
+                            // Actualizar el estado del data-status de la fila
+                            $select.closest('tr').attr('data-status', newStatus);
 
                             // Mostrar notificación de éxito
-                            showToast('success', 'Estado actualizado correctamente', 'top-end');
+                            showSuccessToast('Estado actualizado correctamente', 'top-end');
                         } else {
                             // Mostrar error y restaurar valor original
-                            showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
+                            showErrorToast(response.message || 'Error al actualizar el estado', 'top-end');
                             $select.val(originalValue);
                         }
                     },
@@ -883,14 +827,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         }
-                        showToast('error', errorMsg, 'top-end');
+                        showErrorToast(errorMsg, 'top-end');
                     }
                 });
-            } else {
-                // Si el usuario cancela, restaurar el valor original
-                $select.val(originalValue);
             }
-        });
+        );
     });
 });
 
@@ -908,7 +849,7 @@ $(document).ready(function () {
         this.dispatchEvent(new Event('change'));
     });
 });
-// Función para formatear números como moneda (separador de miles)
+
 // Función para formatear números como moneda (separador de miles sin decimales)
 function formatCurrency(value) {
     // Convertir a número entero y luego a string con formato

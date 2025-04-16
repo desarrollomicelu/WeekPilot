@@ -8,20 +8,7 @@
 
 {% block content %}
 
-<!-- Contenedor de alertas con posición fija y separado del navbar -->
-<div class="alert-container">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-          {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                  {{ message }}
-                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-          {% endfor %}
-      {% endif %}
-  {% endwith %}
-</div>
-
+<!-- Contenido principal -->
 <div class="container-fluid py-2 px-2">
   <!-- Fila del título -->
   <div class="row mb-2 align-items-center">
@@ -114,7 +101,7 @@
                       data-ticket-id="{{ ticket.id_ticket }}" 
                       data-previous-status="{{ ticket.state }}" 
                       name="status">
-                {% for status in ['Sin asignar', 'Asignado', 'En proceso', 'Terminado', 'Cancelado'] %}
+                {% for status in ['Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado', 'Cancelado'] %}
                 <option value="{{ status }}" {% if ticket.state == status %}selected{% endif %}>{{ status }}</option>
                 {% endfor %}
               </select>
@@ -159,7 +146,7 @@
     <div class="d-flex align-items-center">
       <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
         <option value="9999">Todas las filas</option>
-        <option value="10">10 filas</option>
+        <option value="10" selected>10 filas</option>
         <option value="25">25 filas</option>
         <option value="50">50 filas</option>
         <option value="100">100 filas</option>
@@ -313,11 +300,21 @@
   </div>
 </div>
 
+<!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+<div class="d-none">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{url_for('static', filename='js/internal_repair.js')}}"></script>
-<script src="{{url_for('static', filename='js/edit_ri.js')}}"></script>
-<script src="{{url_for('static', filename='js/state.js')}}"></script>
-
+<script src="{{ url_for('static', filename='js/toast-notifications.js') }}"></script>
+<script src="{{ url_for('static', filename='js/internal_repair.js') }}"></script>
+<script src="{{ url_for('static', filename='js/edit_ri.js') }}"></script>
 {% endblock %}

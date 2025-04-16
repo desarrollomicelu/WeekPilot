@@ -70,6 +70,8 @@
               <select id="state" name="state" class="form-control">
                 <option value="Sin asignar" selected>Sin asignar</option>
                 <option value="Asignado">Asignado</option>
+                <option value="En proceso">En proceso</option>
+                <option value="En Revision">En Revisión</option>
               </select>
             </div>
           </div>
@@ -279,9 +281,22 @@
   </tr>
 </template>
 
-<!-- Scripts permanecen sin cambios -->
+<!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+<div class="d-none">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='js/toast-notifications.js') }}"></script>
 <script src="{{ url_for('static', filename=('js/internal_repair.js')) }}"></script>
 
 {% endblock %}

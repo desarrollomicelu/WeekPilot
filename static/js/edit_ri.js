@@ -191,71 +191,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// funciones de las alertas 
-function mostrarToast(mensaje, tipo = 'success') {
-    // Eliminar cualquier toast existente
-    const toastExistentes = document.querySelectorAll('.toast');
-    toastExistentes.forEach(toast => toast.remove());
-
-    // Crear contenedor de toast si no existe
-    let contenedorToast = document.getElementById('contenedor-toast');
-    if (!contenedorToast) {
-        contenedorToast = document.createElement('div');
-        contenedorToast.id = 'contenedor-toast';
-        contenedorToast.className = 'position-fixed top-0 end-0 p-3';
-        contenedorToast.style.zIndex = '11';
-        document.body.appendChild(contenedorToast);
-    }
-
-    // Crear elemento toast
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${tipo === 'success' ? 'success' : 'danger'} border-0`;
-    toast.role = 'alert';
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${mensaje}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-        </div>
-    `;
-
-    // Agregar al contenedor
-    contenedorToast.appendChild(toast);
-
-    // Inicializar y mostrar toast usando el método de Bootstrap
-    const toastBootstrap = new bootstrap.Toast(toast, {
-        delay: 5000 // 5 segundos
-    });
-    toastBootstrap.show();
-}
-
 // Función para manejar mensajes flash del servidor
-function manejarMensajesFlash() {
-    const mensajesFlash = document.querySelectorAll('.alert');
-    mensajesFlash.forEach(mensaje => {
-        const esExito = mensaje.classList.contains('alert-success');
-        const esError = mensaje.classList.contains('alert-danger');
-        
-        if (esExito) {
-            mostrarToast(mensaje.textContent, 'success');
-        } else if (esError) {
-            mostrarToast(mensaje.textContent, 'error');
-        }
-        
-        // Eliminar el mensaje flash original
-        mensaje.remove();
-    });
-}
+// Esta función es reemplazada por handleFlashMessages del archivo toast-notifications.js
 
-// Llamar cuando el DOM está cargado
-document.addEventListener('DOMContentLoaded', manejarMensajesFlash);
-
- // Script mínimo para actualizar el textarea cuando cambian las selecciones
- document.addEventListener("DOMContentLoaded", function() {
+// Script mínimo para actualizar el textarea cuando cambian las selecciones
+document.addEventListener("DOMContentLoaded", function() {
     const checkboxes = document.querySelectorAll('.problem-checkbox');
     const textarea = document.getElementById('selected_problems');
     
@@ -337,15 +277,6 @@ document.addEventListener('DOMContentLoaded', manejarMensajesFlash);
   // actualizar estados 
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Inicializar toasts
-  var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-  var toastList = toastElList.map(function(toastEl) {
-      return new bootstrap.Toast(toastEl, {
-          autohide: true,
-          delay: 3000
-      });
-  });
-  
   // Escuchar los cambios en el select de estado
   document.querySelectorAll('.status-select').forEach(function(select) {
       select.addEventListener('change', function() {
@@ -359,31 +290,23 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           // Confirmar con SweetAlert2
-          Swal.fire({
-              title: '¿Cambiar estado?',
-              text: `¿Está seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
-              icon: 'question',
-              showCancelButton: true,
-              confirmButtonColor: '#3085d6',
-              cancelButtonColor: '#d33',
-              confirmButtonText: 'Sí, cambiar',
-              cancelButtonText: 'Cancelar'
-          }).then((result) => {
-              if (result.isConfirmed) {
+          confirmAction(
+              '¿Cambiar estado?',
+              `¿Está seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`,
+              'Sí, cambiar',
+              'Cancelar',
+              () => {
                   // Hacer la petición AJAX
                   updateTicketStatus(ticketId, newStatus, select);
-              } else {
-                  // Restaurar el valor anterior si se cancela
-                  select.value = previousStatus;
               }
-          });
+          );
       });
   });
   
   // Función para hacer la petición AJAX
   function updateTicketStatus(ticketId, newStatus, selectElement) {
       // Mostrar un indicador de carga
-      const loadingToast = showToast('Actualizando...', 'info');
+      showInfoToast('Actualizando...', 'top-end');
       
       fetch('/update_ticket_status', {
           method: 'POST',
@@ -398,11 +321,6 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(response => response.json())
       .then(data => {
-          // Ocultar el toast de carga
-          if (loadingToast) {
-              loadingToast.hide();
-          }
-          
           if (data.success) {
               // Actualizar el atributo de estado anterior
               selectElement.setAttribute('data-previous-status', newStatus);
@@ -421,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
               });
               
               // Mostrar toast de éxito
-              showToast(data.message, 'success');
+              showSuccessToast(data.message, 'top-end');
           } else {
               // Si hay error, mostrar alerta y restaurar valor anterior
               Swal.fire({
@@ -434,15 +352,10 @@ document.addEventListener('DOMContentLoaded', function() {
               selectElement.value = selectElement.getAttribute('data-previous-status');
               
               // Mostrar toast de error
-              showToast(data.message, 'danger');
+              showErrorToast(data.message, 'top-end');
           }
       })
       .catch(error => {
-          // Ocultar el toast de carga
-          if (loadingToast) {
-              loadingToast.hide();
-          }
-          
           console.error('Error:', error);
           
           // Mostrar alerta de error
@@ -456,44 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
           selectElement.value = selectElement.getAttribute('data-previous-status');
           
           // Mostrar toast de error
-          showToast('Error al actualizar el estado', 'danger');
+          showErrorToast('Error al actualizar el estado', 'top-end');
       });
-  }
-  
-  // Función para mostrar un toast
-  function showToast(message, type) {
-      const toastContainer = document.getElementById('toast-container');
-      if (!toastContainer) {
-          console.error('Contenedor de toast no encontrado');
-          return null;
-      }
-      
-      const toastId = 'toast-' + Date.now();
-      const toastHTML = `
-          <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-              <div class="d-flex">
-                  <div class="toast-body">
-                      ${message}
-                  </div>
-                  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-              </div>
-          </div>
-      `;
-      
-      toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-      const toastElement = document.getElementById(toastId);
-      const toast = new bootstrap.Toast(toastElement, {
-          autohide: true,
-          delay: 3000
-      });
-      
-      toast.show();
-      
-      // Eliminar el toast del DOM después de ocultarse
-      toastElement.addEventListener('hidden.bs.toast', function() {
-          toastElement.remove();
-      });
-      
-      return toast;
   }
 });
