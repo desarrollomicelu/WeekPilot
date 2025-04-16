@@ -26,7 +26,7 @@ class Tickets(db.Model, UserMixin):
     assigned = db.Column(db.DateTime, nullable=True)
     received = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
-    under_review = db.Column(db.DateTime, nullable=True)
+    in_revision = db.Column(db.DateTime, nullable=True)
     finished = db.Column(db.DateTime, nullable=True)
     spare_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
@@ -47,26 +47,19 @@ class Tickets(db.Model, UserMixin):
 
     def update_state(self, new_state):
         """Actualiza el estado del ticket y registra la hora del cambio"""
-        # Normalización del estado para evitar problemas con mayúsculas/minúsculas
         self.state = new_state
-
-        # Registrar la hora según el estado
         now = datetime.utcnow()
+        
         if new_state == "Asignado":
             self.assigned = now
         elif new_state == "En proceso":
             self.in_progress = now
+        elif new_state == "En Revision":
+            self.in_revision = now
+            print(f"Actualizando in_revision con timestamp: {now}")
         elif new_state == "Terminado":
             self.finished = now
         elif new_state == "Recibido":
             self.received = now
-        elif new_state == "En Revision":
-            print(f"Actualizando under_review con timestamp: {now}")
-            self.under_review = now
-            # Para debugging
-            from sqlalchemy import inspect
-            state = inspect(self)
-            print(f"Estado de la instancia: {'transient' if state.transient else 'persistent' if state.persistent else 'detached'}")
-            print(f"Under_review después de asignar: {self.under_review}")
-
-        return now  # Devolver la hora para usarla en la respuesta
+            
+        return now

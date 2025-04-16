@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 from decimal import Decimal
 from datetime import datetime
+from sqlalchemy.orm.attributes import flag_modified
 # Importa las funciones desde el módulo de servicios
 from models.problemsTickets import Problems_tickets
 from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts
@@ -45,6 +46,8 @@ def get_common_data():
     }
 
 # Crear Ticket
+
+
 @technical_service_bp.route("/create_ticket", methods=["GET", "POST"])
 @login_required
 @role_required("Admin")
@@ -89,7 +92,7 @@ def create_ticket():
         assigned = None
         received = None
         in_progress = None
-        under_review = None
+        in_revision = None
         finished = None
 
         # Si el estado es "Asignado", registrar la fecha de asignación
@@ -103,7 +106,7 @@ def create_ticket():
             in_progress = datetime.now()
 
         if state == "En Revision":
-            under_review = datetime.now()
+            in_revision = datetime.now()
 
         if state == "Terminado":
             finished = datetime.now()
@@ -192,7 +195,7 @@ def create_ticket():
             assigned=assigned,
             received=received,
             in_progress=in_progress,
-            under_review=under_review,
+            in_revision=in_revision,
             finished=finished,
         )
 
@@ -303,18 +306,20 @@ def list_tickets():
     )
 
 # Editar Ticket
+
+
 @technical_service_bp.route("/edit_ticket/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 @role_required("Admin")
 def edit_ticket(ticket_id):
     # Obtener el ticket y cliente
     ticket = Tickets.query.get_or_404(ticket_id)
-    
+
     # No permitir editar tickets en estado "Terminado"
     if ticket.state == "Terminado":
         flash("No se puede editar un ticket en estado Terminado", "warning")
         return redirect(url_for("technical_service.view_detail_ticket", ticket_id=ticket_id))
-        
+
     client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
 
     # Obtener repuestos del ticket
@@ -455,27 +460,33 @@ def update_ticket_status_ajax():
             
         ticket = Tickets.query.get_or_404(ticket_id)
         
-        # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
-        
-        # Verificar el estado actual y el nuevo estado
         print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
         
-        # Actualizar el estado y obtener el timestamp
-        timestamp = ticket.update_state(new_status)
+        # Actualizar estado y obtener timestamp
+        timestamp = ticket.update_state(new_status) 
         
-        # Verificar si el timestamp under_review se actualizó correctamente
-        if new_status == "En Revision":
-            print(f"Timestamp under_review después de actualizar: {ticket.under_review}")
-        
+        # Marcar explícitamente el campo modificado según el estado
+        if new_status == "Asignado":
+            flag_modified(ticket, "assigned")
+        elif new_status == "En proceso":
+            flag_modified(ticket, "in_progress")
+        elif new_status == "En Revision":
+            flag_modified(ticket, "in_revision")
+            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+        elif new_status == "Terminado":
+            flag_modified(ticket, "finished")
+        elif new_status == "Recibido":
+            flag_modified(ticket, "received")
+            
+        # Guardar cambios en la base de datos
         db.session.commit()
         
-        # Después del commit, verificar de nuevo para asegurarnos que se guardó en la BD
+        # Verificar después del commit (para depuración)
         if new_status == "En Revision":
             ticket_verificado = Tickets.query.get(ticket_id)
-            print(f"Timestamp under_review después del commit: {ticket_verificado.under_review}")
+            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
         
-        # Formatear la hora para mostrarla en la UI
         formatted_time = timestamp.strftime("%d/%m/%Y %H:%M:%S")
         
         return jsonify({
@@ -487,7 +498,8 @@ def update_ticket_status_ajax():
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        current_app.logger.error(f"Error en update_ticket_status_ajax: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error interno al actualizar estado: {str(e)}'}), 500
 
 
 @technical_service_bp.route('/send_email_notification/<int:ticket_id>', methods=['POST'])
@@ -496,22 +508,24 @@ def update_ticket_status_ajax():
 def send_email_notification(ticket_id):
     """Envía una notificación por correo electrónico al cliente sobre el ticket Terminado"""
     ticket = Tickets.query.get_or_404(ticket_id)
-    
+
     # Verificar que el ticket esté Terminado
     if ticket.state != "Terminado" and ticket.state != "Terminado":
         flash("El ticket debe estar Terminado para enviar la notificación", "warning")
         return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))
-    
+
     # Obtener información necesaria
     cliente = Clients_tickets.query.get(ticket.client)
-    tecnico = Empleados.query.filter_by(cedula=ticket.technical_document).first()
+    tecnico = Empleados.query.filter_by(
+        cedula=ticket.technical_document).first()
     problemas = ticket.problems
-    
+
     # Verificar que el cliente tenga correo
     if not cliente.mail:
-        flash("El cliente no tiene una dirección de correo electrónico registrada", "warning")
+        flash(
+            "El cliente no tiene una dirección de correo electrónico registrada", "warning")
         return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id))
-    
+
     # Enviar correo
     email_service = current_app.ticket_email_service
     success, error = email_service.enviar_notificacion_reparacion(
@@ -520,7 +534,7 @@ def send_email_notification(ticket_id):
         problemas=problemas,
         tecnico=tecnico
     )
-    
+
     if success:
         # Redirigir a la página de detalle con parámetro de éxito
         return redirect(url_for('technical_service.view_detail_ticket', ticket_id=ticket_id, email_sent='success'))

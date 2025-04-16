@@ -50,10 +50,7 @@ def internal_repair():
     Ruta principal que muestra los datos de reparaciones internas en tablas.
     """
     # Obtener todos los tickets de reparación interna ordenados por fecha de creación (más recientes primero)
-    repairs = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
-    tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
-
-
+    tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.desc()).all()
     
     # Obtener datos adicionales que puedan ser necesarios para mostrar en la vista
     technicians = get_technicians()
@@ -61,7 +58,7 @@ def internal_repair():
     
     return render_template(
         "internal_repair.html",
-        repairs=repairs,
+        repairs=tickets,  # Usar la misma lista para consistencia
         technicians=technicians,
         sertec=sertec,
         tickets=tickets
@@ -90,7 +87,7 @@ def create_ticketsRI():
     if request.method == "POST":
         try:
             # Obtener datos del formulario
-            sede = request.form.get("sede")
+            city = request.form.get("city")
             technical_name = request.form.get("technical_name")
             technical_document = request.form.get("documento")
             state = request.form.get("state")
@@ -121,7 +118,7 @@ def create_ticketsRI():
                     )
             
             # Validar campos obligatorios
-            if not all([sede, technical_name, technical_document, state, priority, 
+            if not all([city, technical_name, technical_document, state, priority, 
                         reference_selected, product_code_selected]):
                 
             
@@ -184,7 +181,7 @@ def create_ticketsRI():
                 IMEI=IMEI,
                 reference=reference_selected,
                 type_of_service="1",
-                city=sede,
+                city=city,
                 creation_date=creation_date,
                 assigned=assigned,
                 received=received,
@@ -474,25 +471,35 @@ def update_ticket_status_ajax():
         
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
+        print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
         
-        # Actualizar el estado
-        ticket.state = new_status
+        # Actualizar estado y obtener timestamp usando el método del modelo
+        timestamp = ticket.update_state(new_status)
         
-        # Actualizar fechas según el estado
-        current_time = datetime.now()
-        if new_status == "Asignado" and not ticket.assigned:
-            ticket.assigned = current_time
-        elif new_status == "En proceso" and not ticket.in_progress:
-            ticket.in_progress = current_time
-        elif new_status == "Terminado" and not ticket.finished:
-            ticket.finished = current_time
-        elif new_status == "Cancelado":
-            ticket.finished = current_time
+        # Marcar explícitamente el campo modificado según el estado
+        from sqlalchemy.orm.attributes import flag_modified
+        if new_status == "Asignado":
+            flag_modified(ticket, "assigned")
+        elif new_status == "En proceso":
+            flag_modified(ticket, "in_progress")
+        elif new_status == "En Revision":
+            flag_modified(ticket, "in_revision")
+            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+        elif new_status == "Terminado":
+            flag_modified(ticket, "finished")
+        elif new_status == "Recibido":
+            flag_modified(ticket, "received")
         
+        # Guardar cambios en la base de datos
         db.session.commit()
         
+        # Verificar después del commit (para depuración)
+        if new_status == "En Revision":
+            ticket_verificado = Tickets.query.get(ticket_id)
+            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
+        
         # Formatear la hora para mostrarla en la UI
-        formatted_time = current_time.strftime("%d/%m/%Y %H:%M:%S")
+        formatted_time = timestamp.strftime("%d/%m/%Y %H:%M:%S")
         
         return jsonify({
             'success': True, 
@@ -546,21 +553,32 @@ def update_ticket_progress():
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
         
-        # Actualizar el estado
-        ticket.state = new_status
+        # Actualizar estado y obtener timestamp usando el método del modelo
+        timestamp = ticket.update_state(new_status)
         
-        # Actualizar fechas según el estado
-        current_time = datetime.now()
-        if new_status == "Asignado" and not ticket.assigned:
-            ticket.assigned = current_time
-        elif new_status == "En proceso" and not ticket.in_progress:
-            ticket.in_progress = current_time
-        elif new_status == "Terminado" and not ticket.finished:
-            ticket.finished = current_time
+        # Marcar explícitamente el campo modificado según el estado
+        from sqlalchemy.orm.attributes import flag_modified
+        if new_status == "Asignado":
+            flag_modified(ticket, "assigned")
+        elif new_status == "En proceso":
+            flag_modified(ticket, "in_progress")
+        elif new_status == "En Revision":
+            flag_modified(ticket, "in_revision")
+            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+        elif new_status == "Terminado":
+            flag_modified(ticket, "finished")
+        elif new_status == "Recibido":
+            flag_modified(ticket, "received")
         
         # Aquí podrías guardar las notas en una tabla de historial si lo necesitas
         
+        # Guardar cambios en la base de datos
         db.session.commit()
+        
+        # Verificar después del commit (para depuración)
+        if new_status == "En Revision":
+            ticket_verificado = Tickets.query.get(ticket_id)
+            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
         
         return jsonify({
             'success': True, 

@@ -16,7 +16,7 @@
             </a>
             <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
                 class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i> Editar Ticket
+                <i class="fas fa-edit me-2 text-white"></i> Editar Ticket
             </a>
         </div>
     </div>
@@ -25,7 +25,7 @@
     <div class="row mb-2">
         <!-- Información del Cliente -->
         <div class="col-md-6">
-            <div class="card shadow-sm mb-2">
+            <div class="card shadow-sm mb-2 h-100">
                 <div class="card-header bg-light">
                     <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
                 </div>
@@ -67,7 +67,7 @@
         </div>
         <!-- Detalles del Ticket -->
         <div class="col-md-6">
-            <div class="card shadow-sm mb-2">
+            <div class="card shadow-sm mb-2 h-100">
                 <div class="card-header bg-light">
                     <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket</h5>
                 </div>
@@ -172,12 +172,12 @@
                         <div class="date-card mb-3">
                             <div class="card h-100 border-0 bg-light">
                                 <div class="card-body text-center p-2">
-                                    <h6 class="text-muted mb-1">En Revisión</h6>
-                                    <p class="mb-0 fw-bold under_review-timestamp">
-                                        {{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}
+                                    <h6 class="text-muted mb-1">En Revision</h6>
+                                    <p class="mb-0 fw-bold in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%d/%m/%Y') if ticket.in_revision else 'N/A' }}
                                     </p>
-                                    <small class="text-muted under_review-timestamp">
-                                        {{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}
+                                    <small class="text-muted in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%H:%M:%S') if ticket.in_revision else '' }}
                                     </small>
                                 </div>
                             </div>
@@ -362,7 +362,7 @@
         <div>
             <a href="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
                 class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i>Editar Ticket
+                <i class="fas fa-edit me-2 text-white"></i>Editar Ticket
             </a>
             <!-- Botón para enviar correo -->
             {% if ticket.state == "Terminado" and client.mail %}

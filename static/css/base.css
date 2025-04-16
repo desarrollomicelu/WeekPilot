@@ -421,13 +421,7 @@ h3 {
     color: #fff !important;
 }
 
-/* Cambiar iconos y elementos con clase text-primary a gris */
-.text-primary {
-    color: #6c757d !important;
-}
-
 /* Cambiar iconos dentro de botones y elementos */
-.btn-primary i, 
 .btn i.text-primary,
 .fas.text-primary, 
 .far.text-primary, 

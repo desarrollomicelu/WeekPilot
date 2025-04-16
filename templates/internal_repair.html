@@ -158,12 +158,13 @@
   <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center">
     <div class="d-flex align-items-center">
       <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
+        <option value="9999">Todas las filas</option>
         <option value="10">10 filas</option>
         <option value="25">25 filas</option>
         <option value="50">50 filas</option>
         <option value="100">100 filas</option>
       </select>
-      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ repairs|length }}</strong> reparaciones</small>
+      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong id="totalRowsCount">{{ repairs|length }}</strong> reparaciones</small>
     </div>
     <nav aria-label="Paginación de reparaciones">
       <ul class="pagination pagination-sm mb-0" id="pagination">

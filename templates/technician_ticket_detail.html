@@ -90,13 +90,15 @@
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <div class="card h-100 border-0 {% if ticket.state == 'En Revision' %}bg-primary text-white{% else %}bg-light{% endif %}">
-                                <div class="card-body text-center">
-                                    <h6 class="{% if ticket.state == 'En Revision' %}text-white{% else %}text-muted{% endif %} mb-2"><i class="fas fa-check-circle me-1"></i> En Revisión</h6>
-                                    <p class="mb-0 fw-bold">{{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review
-                                        else 'N/A' }}</p>
-                                    <small class="{% if ticket.state == 'En Revision' %}text-white{% else %}text-muted{% endif %}">{{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review
-                                        else '' }}</small>
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">En Revision</h6>
+                                    <p class="mb-0 fw-bold in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%d/%m/%Y') if ticket.in_revision else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%H:%M:%S') if ticket.in_revision else '' }}
+                                    </small>
                                 </div>
                             </div>
                         </div>

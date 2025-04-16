@@ -364,7 +364,7 @@ i.text-primary,
 
 /* Colores específicos para cada estado */
 .assigned-timestamp.active-timestamp { border-left-color: #007bff; }
-.under_review-timestamp.active-timestamp { border-left-color: #ffc107; }
+.in_revision-timestamp.active-timestamp { border-left-color: #ffc107; }
 .in_progress-timestamp.active-timestamp { border-left-color: #17a2b8; }
 .finished-timestamp.active-timestamp { border-left-color: #28a745; }
 .received-timestamp.active-timestamp { border-left-color: #6f42c1; }

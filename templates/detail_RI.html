@@ -17,7 +17,7 @@
             </a>
             <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
                 class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i> Editar Ticket
+                <i class="fas fa-edit me-2 text-white"></i> Editar Ticket
             </a>
         </div>
     </div>
@@ -160,12 +160,12 @@
                         <div class="col mb-3">
                             <div class="card border-0 bg-light">
                                 <div class="card-body text-center">
-                                    <h6 class="text-muted mb-2">En Revisión</h6>
-                                    <p class="mb-0 fw-bold">
-                                        {{ ticket.under_review.strftime('%d/%m/%Y') if ticket.under_review else 'N/A' }}
+                                    <h6 class="text-muted mb-2">En Revision</h6>
+                                    <p class="mb-0 fw-bold in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%d/%m/%Y') if ticket.in_revision else 'N/A' }}
                                     </p>
-                                    <small class="text-muted">
-                                        {{ ticket.under_review.strftime('%H:%M:%S') if ticket.under_review else '' }}
+                                    <small class="text-muted in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%H:%M:%S') if ticket.in_revision else '' }}
                                     </small>
                                 </div>
                             </div>
@@ -274,7 +274,7 @@
         <div>
             <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
                 class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i>Editar Ticket
+                <i class="fas fa-edit me-2 text-white"></i>Editar Ticket
             </a>
             <button type="button" class="btn btn-success ms-2" onclick="window.print()">
                 <i class="fas fa-print me-2"></i>Imprimir

@@ -50,7 +50,7 @@
     <div class="row">
       <div class="col-md-8">
         <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Asignado', 'En proceso','En revisión'] %}
+          {% for status in ['Todos', 'Asignado', 'En proceso','En Revision'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
           <label class="btn btn-outline-primary" for="btn{{ status }}">
@@ -120,7 +120,7 @@
               <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}">
                 <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
                 <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
-                <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En revisión</option>
+                <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En Revision</option>
               </select>
             </td>
             <td>

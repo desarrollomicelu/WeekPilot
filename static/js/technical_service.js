@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const stateTimestampMap = {
             "Asignado": "assigned",
             "En proceso": "in_progress",
-            "En Revision": "under_review",
+            "En Revision": "in_revision",
             "Terminado": "finished",
             "Recibido": "received"
         };
@@ -223,7 +223,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (timestampField) {
                                         console.log(`Estado actualizado a: ${newStatus}, campo timestamp: ${timestampField}`);
                                         const $timestamp = $row.find(`.${timestampField}-timestamp`);
-                                        console.log(`Selector de timestamp: .${timestampField}-timestamp, encontrados: ${$timestamp.length}`);
                                         
                                         if ($timestamp.length) {
                                             console.log(`Actualizando timestamp con valor: ${response.timestamp}`);
@@ -533,7 +532,21 @@ document.addEventListener("DOMContentLoaded", function () {
             editButton.attr('disabled', true);
         }
     });
-});
+
+    // Lógica para mostrar el toast de éxito si viene de una creación
+    // ESTE BLOQUE SE MUEVE FUERA DEL $(document).ready()
+    // document.addEventListener('DOMContentLoaded', function() {
+    //     const urlParams = new URLSearchParams(window.location.search);
+    //     if (urlParams.get('ticket_created') === 'success') {
+    //         showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
+    //         window.history.replaceState({}, document.title, window.location.pathname);
+    //     }
+    //     if (urlParams.get('ticket_updated') === 'success') {
+    //         showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
+    //         window.history.replaceState({}, document.title, window.location.pathname);
+    //     }
+    // });
+}); // Fin del $(document).ready()
 
 /**
  * Función para actualizar el contador de tickets visibles.
@@ -571,4 +584,22 @@ window.updatePaginationAfterFilter = function() {
         }
     }
 };
+
+// Lógica para mostrar el toast de éxito/actualización (movido aquí fuera del ready)
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('ticket_created') === 'success') {
+        // Usar la función global showToast definida al inicio del archivo
+        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
+        // Limpiar el parámetro de la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    if (urlParams.get('ticket_updated') === 'success') {
+        // Usar la función global showToast
+        showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
+        // Limpiar el parámetro de la URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
 

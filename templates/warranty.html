@@ -41,12 +41,12 @@
     <div class="row">
       <div class="col-md-8">
         <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Pendientes', 'En Revisión', 'Aprobadas', 'Rechazadas'] %}
+          {% for status in ['Todos', 'Pendientes', 'En Revision', 'Aprobadas', 'Rechazadas'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
           <label class="btn btn-outline-primary" for="btn{{ status }}">
             <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Pendientes' %}clock{% elif status == 'En Revisión' %}search{% elif status == 'Aprobadas' %}check-circle{% else %}times-circle{% endif %} me-1"></i>
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Pendientes' %}clock{% elif status == 'En Revision' %}search{% elif status == 'Aprobadas' %}check-circle{% else %}times-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
@@ -115,7 +115,7 @@
             <td>{{ warranty.invoice_number }}</td>
             <td>
               <select class="form-select form-select-sm" data-warranty-id="{{ warranty.id }}" name="status">
-                {% for status in ['Pendiente', 'En Revisión', 'Aprobada', 'Rechazada'] %}
+                {% for status in ['Pendiente', 'En Revision', 'Aprobada', 'Rechazada'] %}
                 <option value="{{ status }}" {% if warranty.status==status %}selected{% endif %}>{{ status }}</option>
                 {% endfor %}
               </select>

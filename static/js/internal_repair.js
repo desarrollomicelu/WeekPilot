@@ -536,41 +536,24 @@ document.addEventListener('DOMContentLoaded', function () {
     if (ticketsTable) {
         // Variables para la paginación
         let currentPage = 1;
-        let rowsPerPage = 10;
+        let rowsPerPage = 10; // Default
         let totalPages = 1;
-        let filteredRows = [];
-        
-        // Función para inicializar la paginación
-        function initPagination() {
-            // Obtener todas las filas de la tabla (excepto la cabecera)
-            const allRows = $('#ticketsTable tbody tr').not('.no-results');
-            
-            // Guardar referencia a las filas filtradas (inicialmente todas)
-            filteredRows = allRows;
-            
-            // Configurar filas por página según el selector
-            if ($('#rowsPerPage').length) {
-                rowsPerPage = parseInt($('#rowsPerPage').val());
-            }
-            
-            // Calcular el número total de páginas
-            totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-            
-            // Generar los botones de paginación
-            generatePaginationButtons();
-            
-            // Mostrar la primera página
-            showPage(1);
-        }
-        
+        let filteredRows = $(); // jQuery object to store rows matching filters
+
         // Función para generar los botones de paginación
         function generatePaginationButtons() {
-            // Verificar si existe el contenedor de paginación
-            if (!$('#pagination').length) return;
-            
+            const paginationElement = $('#pagination');
+            if (!paginationElement.length) return;
+
             // Limpiar botones existentes (excepto Anterior y Siguiente)
-            $('#pagination li').not('#prevPage, #nextPage').remove();
-            
+            paginationElement.find('li').not('#prevPage, #nextPage').remove();
+
+            if (totalPages === 0) {
+                $('#prevPage').addClass('disabled');
+                $('#nextPage').addClass('disabled');
+                return; // No buttons if no pages
+            }
+
             // Si hay pocas páginas, mostrar todas
             if (totalPages <= 7) {
                 for (let i = 1; i <= totalPages; i++) {
@@ -581,147 +564,248 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Para muchas páginas, mostrar un subconjunto con elipsis
                 // Siempre mostrar primera página
                 $('#nextPage').before(`<li class="page-item ${currentPage === 1 ? 'active' : ''}" data-page="1"><a class="page-link" href="#">1</a></li>`);
-                
+
                 // Determinar rango de páginas a mostrar
                 let startPage = Math.max(2, currentPage - 2);
                 let endPage = Math.min(totalPages - 1, currentPage + 2);
-                
+
                 // Mostrar elipsis antes si es necesario
                 if (startPage > 2) {
                     $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
                 }
-                
+
                 // Mostrar páginas intermedias
                 for (let i = startPage; i <= endPage; i++) {
                     const isActive = i === currentPage ? 'active' : '';
                     $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
                 }
-                
+
                 // Mostrar elipsis después si es necesario
                 if (endPage < totalPages - 1) {
                     $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
                 }
-                
-                // Siempre mostrar última página
-                $('#nextPage').before(`<li class="page-item ${currentPage === totalPages ? 'active' : ''}" data-page="${totalPages}"><a class="page-link" href="#">${totalPages}</a></li>`);
+
+                // Siempre mostrar última página (si no está ya incluida en el rango)
+                if (totalPages > 1) {
+                    $('#nextPage').before(`<li class="page-item ${currentPage === totalPages ? 'active' : ''}" data-page="${totalPages}"><a class="page-link" href="#">${totalPages}</a></li>`);
+                }
             }
-            
-            // Actualizar estado de botones Anterior/Siguiente
-            updatePrevNextButtons();
+
+            // Actualizar estado de botones Anterior/Siguiente (se llama desde showPage)
+            // updatePrevNextButtons(); // No need to call here, showPage does it
         }
-        
+
         // Función para mostrar una página específica
         function showPage(pageNum) {
-            // Validar número de página
-            if (pageNum < 1 || pageNum > totalPages) return;
-            
-            // Actualizar página actual
+            // Recalculate totalPages based on the current filteredRows count and rowsPerPage
+            totalPages = (filteredRows.length > 0) ? Math.ceil(filteredRows.length / rowsPerPage) : 0;
+
+            // Validate page number
+            if (pageNum < 1) pageNum = 1;
+            if (pageNum > totalPages) pageNum = totalPages;
+            if (totalPages === 0) pageNum = 0; // Indicate no page if no results
+
             currentPage = pageNum;
-            
-            // Ocultar todas las filas
-            filteredRows.hide();
-            
-            // Calcular índices de filas a mostrar
-            const startIndex = (pageNum - 1) * rowsPerPage;
-            const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
-            
-            // Mostrar filas de la página actual
-            filteredRows.slice(startIndex, endIndex).show();
-            
-            // Actualizar contador de filas mostradas
-            if ($('#currentRowsCount').length) {
-                $('#currentRowsCount').text(Math.min(endIndex - startIndex, filteredRows.length));
+
+            // Ocultar todas las filas filtradas primero
+            if (filteredRows) filteredRows.hide();
+
+            let rowsToShowOnPage = $();
+            let countOnPage = 0;
+
+            // Calcular y mostrar filas para la página actual si hay una página válida
+            if (currentPage > 0 && filteredRows && filteredRows.length > 0) {
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                // Ensure endIndex does not exceed filteredRows length
+                const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
+
+                rowsToShowOnPage = filteredRows.slice(startIndex, endIndex);
+                rowsToShowOnPage.show();
+                countOnPage = rowsToShowOnPage.length;
             }
-            
-            // Actualizar botones de paginación
+
+            // Actualizar contador de filas mostradas en la página actual
+            if ($('#currentRowsCount').length) {
+                $('#currentRowsCount').text(countOnPage);
+            }
+            // Actualizar contador total de filas filtradas
+            if ($('#totalRowsCount').length) {
+                $('#totalRowsCount').text(filteredRows ? filteredRows.length : 0);
+            }
+
+
+            // Actualizar botones de paginación (highlight active page)
             $('#pagination li').removeClass('active');
-            $(`#pagination li[data-page="${pageNum}"]`).addClass('active');
-            
+            if (currentPage > 0) {
+                $(`#pagination li[data-page="${currentPage}"]`).addClass('active');
+            }
+
             // Actualizar estado de botones Anterior/Siguiente
             updatePrevNextButtons();
+
+            // Show/Hide "No results" message (handled in updateAndPaginateResults)
         }
-        
+
         // Función para actualizar estado de botones Anterior/Siguiente
         function updatePrevNextButtons() {
-            if (!$('#prevPage').length || !$('#nextPage').length) return;
-            
+            const prevPage = $('#prevPage');
+            const nextPage = $('#nextPage');
+
+            if (!prevPage.length || !nextPage.length) return;
+
             // Botón Anterior
-            if (currentPage === 1) {
-                $('#prevPage').addClass('disabled');
+            if (currentPage <= 1) { // Disable if on page 1 or if there are no pages (currentPage=0)
+                prevPage.addClass('disabled');
             } else {
-                $('#prevPage').removeClass('disabled');
+                prevPage.removeClass('disabled');
             }
-            
+
             // Botón Siguiente
-            if (currentPage === totalPages || totalPages === 0) {
-                $('#nextPage').addClass('disabled');
+            if (currentPage === totalPages || totalPages === 0) { // Disable if on last page or no pages
+                nextPage.addClass('disabled');
             } else {
-                $('#nextPage').removeClass('disabled');
+                nextPage.removeClass('disabled');
             }
         }
-        
-        // Función para actualizar la paginación después de filtrar
-        function updatePaginationAfterFilter() {
-            // Obtener filas visibles después del filtrado
-            filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-            
-            // Recalcular número total de páginas
-            totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-            
-            // Si la página actual es mayor que el total de páginas, ir a la última página
+
+        // Función principal que filtra, busca y actualiza la paginación
+        function updateAndPaginateResults() {
+            const searchTerm = ($('#searchRepairs').val() || '').toLowerCase();
+            const selectedStatusLabel = $('input[name="filterStatus"]:checked').next('label').text().trim() || 'Todos'; // Get the label text
+            rowsPerPage = parseInt($('#rowsPerPage').val()); // Get current rows per page setting
+
+            // 1. Obtener todas las filas originales (excluyendo la de "sin resultados")
+            const allRows = $('#ticketsTable tbody tr').not('.no-results');
+
+            // 2. Filtrar por estado
+            let statusFilteredRows = allRows.filter(function () {
+                const $row = $(this);
+                const ticketStatus = $row.data('status'); // e.g., 'En proceso', 'Terminado'
+
+                // Explicitly handle 'Todos'
+                if (selectedStatusLabel === 'Todos') {
+                    return true; // Include all rows if 'Todos' is selected
+                }
+
+                // Handle specific status filters based on the label text
+                switch (selectedStatusLabel) {
+                    case 'Sin asignar':
+                        return !ticketStatus || ticketStatus === 'Sin asignar';
+                    case 'Asignados':
+                        return ticketStatus === 'Asignado';
+                    case 'En Proceso':
+                        // Compare case-insensitively
+                        return ticketStatus && ticketStatus.toLowerCase() === 'en proceso';
+                    case 'Terminados':
+                        return ticketStatus === 'Terminado';
+                    case 'Cancelados':
+                        return ticketStatus === 'Cancelado';
+                    default:
+                        return false; // Default case, should not be reached
+                }
+            });
+
+            // 3. Filtrar por término de búsqueda sobre las filas ya filtradas por estado
+            filteredRows = statusFilteredRows.filter(function () {
+                if (!searchTerm) return true; // Si no hay búsqueda, mantener todas las filas filtradas por estado
+                const rowText = $(this).text().toLowerCase();
+                return rowText.includes(searchTerm);
+            });
+
+            // Ocultar todas las filas antes de mostrar las de la página correcta
+            allRows.hide();
+
+            // Recalcular total de páginas basado en las filas filtradas finales
+            totalPages = (filteredRows.length > 0) ? Math.ceil(filteredRows.length / rowsPerPage) : 0;
+
+            // Resetear a la página 1 si es necesario
             if (currentPage > totalPages) {
                 currentPage = Math.max(1, totalPages);
             }
-            
-            // Regenerar botones de paginación
+            if (currentPage === 0 && totalPages > 0) {
+                currentPage = 1;
+            }
+
+            // Generar botones de paginación ANTES de llamar a showPage
             generatePaginationButtons();
-            
-            // Mostrar la página actual
+
+            // Mostrar la página correcta (que actualizará contadores y botones prev/next)
             showPage(currentPage);
+
+            // Mostrar/Ocultar mensaje "Sin resultados"
+            const noResultsRow = $('#ticketsTable tbody .no-results');
+            if (filteredRows.length === 0) {
+                if (noResultsRow.length === 0) {
+                    $('#ticketsTable tbody').append('<tr class="no-results"><td colspan="9" class="text-center py-5 text-muted">No hay tickets que coincidan con los filtros aplicados.</td></tr>');
+                }
+                $('#ticketsTable tbody .no-results').show();
+            } else {
+                if (noResultsRow.length > 0) {
+                    noResultsRow.hide();
+                }
+            }
         }
-        
+
         // Inicializar paginación al cargar la página si existe el contenedor
         if ($('#pagination').length) {
-            initPagination();
-            
+
             // Evento para cambiar número de filas por página
-            $('#rowsPerPage').on('change', function() {
-                rowsPerPage = parseInt($(this).val());
-                totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-                currentPage = 1; // Volver a la primera página
-                generatePaginationButtons();
-                showPage(1);
+            $('#rowsPerPage').on('change', function () {
+                currentPage = 1; // Volver a la página 1 al cambiar filas por página
+                updateAndPaginateResults();
             });
-            
-            // Evento para navegar entre páginas
-            $('#pagination').on('click', 'li:not(.disabled)', function(e) {
+
+            // Evento para navegar entre páginas usando los botones generados
+            $('#pagination').on('click', 'li[data-page]', function (e) {
                 e.preventDefault();
-                
                 const $this = $(this);
-                
-                // Manejar botones Anterior/Siguiente
+                if ($this.hasClass('disabled') || $this.hasClass('active')) {
+                    return; // No hacer nada si está deshabilitado o ya activo
+                }
+                const pageNum = parseInt($this.data('page'));
+                if (!isNaN(pageNum)) {
+                    showPage(pageNum); // Solo mostrar la página, no recalcular todo
+                }
+            });
+
+            // Evento para botones Anterior/Siguiente
+            $('#pagination').on('click', '#prevPage, #nextPage', function (e) {
+                e.preventDefault();
+                const $this = $(this);
+                if ($this.hasClass('disabled')) {
+                    return;
+                }
                 if ($this.attr('id') === 'prevPage') {
                     showPage(currentPage - 1);
                 } else if ($this.attr('id') === 'nextPage') {
                     showPage(currentPage + 1);
-                } else {
-                    // Manejar clic en número de página
-                    const pageNum = parseInt($this.data('page'));
-                    if (!isNaN(pageNum)) {
-                        showPage(pageNum);
-                    }
                 }
             });
-            
-            // Integrar con búsqueda existente
-            $('#searchRepairs').on('input', function() {
-                setTimeout(updatePaginationAfterFilter, 100);
+
+
+            // Event listener para búsqueda
+            $('#searchRepairs').on('input', function () {
+                // Podrías usar debounce aquí para no ejecutar en cada tecla
+                setTimeout(() => {
+                    currentPage = 1; // Volver a la página 1 al buscar
+                    updateAndPaginateResults();
+                }, 200); // Pequeño retraso
             });
-            
-            // Integrar con filtros de estado existentes
-            $('input[name="filterStatus"]').on('change', function() {
-                setTimeout(updatePaginationAfterFilter, 100);
+
+            // Event listeners para botones de filtro de estado
+            $('input[name="filterStatus"]').on('change', function () {
+                currentPage = 1; // Volver a la página 1 al cambiar filtro
+                updateAndPaginateResults();
+                // Actualizar estilo visual del filtro activo
+                $('input[name="filterStatus"]').next('label').removeClass('btn-secondary').addClass('btn-outline-secondary'); // Reset all
+                $(this).next('label').removeClass('btn-outline-secondary').addClass('btn-secondary'); // Activate clicked
             });
+
+            // Establecer estilo inicial del filtro activo
+            $('input[name="filterStatus"]:checked').next('label').removeClass('btn-outline-secondary').addClass('btn-secondary');
+
+            // Llamada inicial para configurar la tabla al cargar
+            updateAndPaginateResults();
         }
     }
 

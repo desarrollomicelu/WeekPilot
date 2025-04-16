@@ -28,7 +28,7 @@
   <div class="row mb-2">
     <!-- Columna Izquierda: Detalles de Reparación Interna -->
     <div class="col-md-6">
-      <div class="card shadow-sm mb-2">
+      <div class="card shadow-sm mb-2 h-100">
         <div class="card-header bg-light">
           <h5 class="mb-0">
             <i class="fas fa-info-circle me-2 text-primary"></i>Detalles de Reparación Interna
@@ -36,12 +36,12 @@
         </div>
         <div class="card-body">
           <div class="mb-3 row">
-            <label for="sede" class="col-sm-3 col-form-label">Sede:</label>
+            <label for="city" class="col-sm-3 col-form-label">Ciudad:</label>
             <div class="col-sm-8">
-              <select id="sede" name="sede" class="form-select">
-                <option value="">Seleccione una Sede</option>
-                <option value="Medellin">Tienda Medellín</option>
-                <option value="Bogota">Tienda Bogotá</option>
+              <select id="city" name="city" class="form-select">
+                <option value="">Seleccione una ciudad</option>
+                <option value="Medellin">Medellín</option>
+                <option value="Bogota">Bogotá</option>
               </select>
             </div>
           </div>
@@ -73,13 +73,7 @@
               </select>
             </div>
           </div>
-          <div class="mb-3 row">
-            <label for="assigned" class="col-sm-3 col-form-label">Fecha asignación:</label>
-            <div class="col-sm-8">
-              <input type="hidden" id="assigned" name="assigned" value="{{ current_date }}">
-              <input type="text" class="form-control" value="{{ current_date }}" readonly>
-            </div>
-          </div>
+          
           <div class="mb-3 row">
             <label for="priority" class="col-sm-3 col-form-label">Prioridad:</label>
             <div class="col-sm-8">

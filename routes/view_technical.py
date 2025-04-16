@@ -205,9 +205,28 @@ def update_ticket_status_ajax():
 
         print(f"Actualizando ticket #{ticket_id} de estado '{ticket.state}' a '{new_status}'")
         now = ticket.update_state(new_status)
+        
+        # Marcar explícitamente el campo modificado según el estado
+        from sqlalchemy.orm.attributes import flag_modified
+        if new_status == "Asignado":
+            flag_modified(ticket, "assigned")
+        elif new_status == "En proceso":
+            flag_modified(ticket, "in_progress")
+        elif new_status == "En Revision":
+            flag_modified(ticket, "in_revision")
+            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+        elif new_status == "Terminado":
+            flag_modified(ticket, "finished")
+        elif new_status == "Recibido":
+            flag_modified(ticket, "received")
+            
         db.session.commit()
-        print(f"Ticket actualizado correctamente, timestamp: {now}")
-
+        
+        # Verificar después del commit (para depuración)
+        if new_status == "En Revision":
+            ticket_verificado = Tickets.query.get(ticket_id)
+            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
+        
         formatted_time = now.strftime("%d/%m/%Y %H:%M:%S")
         response_data = {
             'success': True,
