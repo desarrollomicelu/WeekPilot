@@ -1,10 +1,10 @@
 # routes/technical_service.py
-
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session
 from flask_login import login_required
 from decimal import Decimal
 from datetime import datetime
 from sqlalchemy.orm.attributes import flag_modified
+import json
 # Importa las funciones desde el módulo de servicios
 from models.problemsTickets import Problems_tickets
 from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts
@@ -17,6 +17,7 @@ from extensions import db
 from models.problems import Problems
 from models.sparesTickets import Spares_tickets
 from utils.access_control import role_required
+from routes.onedrive import refresh_token, get_ticket_images, delete_onedrive_images
 
 technical_service_bp = Blueprint(
     "technical_service", __name__, template_folder="templates")
@@ -312,6 +313,8 @@ def list_tickets():
 @login_required
 @role_required("Admin")
 def edit_ticket(ticket_id):
+    ms_authenticated = "ms_token" in session and refresh_token()
+
     # Obtener el ticket y cliente
     ticket = Tickets.query.get_or_404(ticket_id)
 
@@ -406,10 +409,30 @@ def edit_ticket(ticket_id):
                 except (ValueError, IndexError) as e:
                     flash(f"Error al procesar repuesto: {str(e)}", "warning")
                     return redirect(url_for("technical_service.create_ticket"))
+
+        # Procesar imágenes a eliminar
+        images_to_delete = request.form.get("images_to_delete", "[]")
+        try:
+            image_ids = json.loads(images_to_delete)
+            if image_ids:
+                success, message = delete_onedrive_images(image_ids)
+                if not success:
+                    flash(message, "warning")
+        except Exception as e:
+            flash(f"Error procesando eliminación de imágenes: {str(e)}", "danger")
+
         db.session.commit()
         # Una vez procesados todos los repuestos
         flash("Ticket actualizado correctamente", "success")
         return redirect(url_for("technical_service.list_tickets") + "?ticket_updated=success")
+
+    # Obtener imágenes del ticket desde OneDrive
+    ticket_images = []
+    if ms_authenticated:
+        ticket_images = get_ticket_images(ticket_id) or []
+
+    # Convertir las imágenes a JSON para pasarlas al template
+    ticket_images_json = json.dumps(ticket_images)
 
     # Renderizar la plantilla con los datos
     return render_template(
@@ -420,7 +443,10 @@ def edit_ticket(ticket_id):
         product_info=product_info,
         spare_parts=spare_parts,
         problems=problems_list,
-        current_spare_tickets=current_spare_tickets
+        current_spare_tickets=current_spare_tickets,
+        ms_authenticated=ms_authenticated,
+        ticket_images=ticket_images,
+        ticket_images_json=ticket_images_json
     )
 
 

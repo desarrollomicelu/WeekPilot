@@ -14,6 +14,7 @@ from flask import Flask, request, redirect, url_for, flash
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 from services.ticket_email_service import TicketEmailService 
+from datetime import timedelta
 
 # Cargar variables de entorno
 load_dotenv()
@@ -25,7 +26,18 @@ app.config.from_object(Config)
 app.config['AZURE_CONNECTION_STRING'] = os.environ.get('AZURE_CONNECTION_STRING', '')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@micelu.com')
 
+client_id = os.environ.get("CLIENT_ID")
+client_secret = os.environ.get("CLIENT_SECRET")
+redirect_uri = os.environ.get("REDIRECT_URI")
+
 db.init_app(app)
+
+# Update these settings to ensure session persistence
+app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem sessions
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Session lasts 1 hour
+app.config['SESSION_COOKIE_SECURE'] = False  # Change to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Inicializa extensiones
 bcrypt.init_app(app)

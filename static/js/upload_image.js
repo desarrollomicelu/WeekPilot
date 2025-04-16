@@ -312,8 +312,333 @@ class ImageUploadManager {
     }
 }
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    // Crear instancia del gestor de imágenes
-    window.imageUploadManager = new ImageUploadManager();
+    console.log('Debug: upload_image.js cargada');
+    
+    const form = document.querySelector('form[action*="edit_ticket"]');
+    
+    if (form) {
+        console.log('Debug: Found edit ticket form');
+        
+        if (form.getAttribute('enctype') !== 'multipart/form-data') {
+            console.error('Debug: Form missing enctype="multipart/form-data"');
+            form.setAttribute('enctype', 'multipart/form-data');
+            console.log('Debug: Added missing enctype attribute');
+        }
+        
+        const debugField = document.createElement('input');
+        debugField.type = 'hidden';
+        debugField.name = 'debug_js_loaded';
+        debugField.value = 'true';
+        form.appendChild(debugField);
+        
+        const fileInputs = [
+            document.getElementById('uploadImages'),
+            document.getElementById('takePhoto')
+        ];
+        
+        fileInputs.forEach(input => {
+            if (input) {
+                console.log(`Debug: Found input: ${input.id}`);
+            } else {
+                console.error(`Debug: Input not found: ${input ? input.id : 'undefined'}`);
+            }
+        });
+        
+        fetch('/check_auth_status')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Debug: OneDrive auth status:', data);
+            })
+            .catch(error => {
+                console.error('Debug: Error checking auth status:', error);
+            });
+        
+        form.addEventListener('submit', function(e) {
+            console.log('Debug: Form submit intercepted');
+            
+            let hasFiles = false;
+            let fileCount = 0;
+            
+            for (const input of fileInputs) {
+                if (input && input.files && input.files.length > 0) {
+                    hasFiles = true;
+                    fileCount += input.files.length;
+                    console.log(`Debug: Found ${input.files.length} files in ${input.id}`);
+                    
+                    for (let i = 0; i < input.files.length; i++) {
+                        const file = input.files[i];
+                        console.log(`Debug: File ${i+1}: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+                    }
+                }
+            }
+            
+            if (!hasFiles) {
+                console.log('Debug: No files to upload, submitting form normally');
+                return true;
+            }
+            
+            e.preventDefault();
+            console.log(`Debug: Uploading ${fileCount} files to OneDrive`);
+            
+            const pathParts = window.location.pathname.split('/');
+            const ticketId = pathParts[pathParts.length - 1];
+            console.log('Debug: Ticket ID from path:', ticketId);
+            
+            if (!ticketId || isNaN(parseInt(ticketId))) {
+                console.error('Debug: Invalid ticket ID');
+                alert('Error: No se pudo determinar el ID del ticket');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('ticket_id', ticketId);
+            
+            for (const input of fileInputs) {
+                if (input && input.files) {
+                    for (const file of input.files) {
+                        formData.append('images', file);
+                        console.log(`Debug: Added file to FormData: ${file.name}`);
+                    }
+                }
+            }
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'alert alert-info mt-3';
+            loadingDiv.id = 'uploadLoadingAlert';
+            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Subiendo imágenes a OneDrive...';
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.insertAdjacentElement('beforebegin', loadingDiv);
+            } else {
+                form.appendChild(loadingDiv);
+            }
+            
+            console.log('Debug: Sending request to /upload_ticket_image');
+            
+            fetch('/upload_ticket_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Debug: Response status:', response.status);
+                console.log('Debug: Response headers:', response.headers);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Debug: Upload response data:', data);
+                
+                document.getElementById('uploadLoadingAlert')?.remove();
+                if (submitBtn) submitBtn.disabled = false;
+                
+                if (data.success) {
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'alert alert-success mt-3';
+                    successDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i> imágenes subidas correctamente`;
+                    
+                    if (submitBtn) {
+                        submitBtn.insertAdjacentElement('beforebegin', successDiv);
+                    } else {
+                        form.appendChild(successDiv);
+                    }
+                    
+                    const imageReferencesInput = document.getElementById('imageReferences');
+                    if (imageReferencesInput) {
+                        const currentRefs = imageReferencesInput.value ? JSON.parse(imageReferencesInput.value) : [];
+                        const newRefs = [...currentRefs, ...data.images];
+                        imageReferencesInput.value = JSON.stringify(newRefs);
+                        console.log('Debug: Updated image references:', newRefs);
+                    }
+                    
+                    setTimeout(() => {
+                        console.log('Debug: Submitting form after successful upload');
+                        form.submit();
+                    }, 1000);
+                } else {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger mt-3';
+                    errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> Error: ${data.error}`;
+                    
+                    if (submitBtn) {
+                        submitBtn.insertAdjacentElement('beforebegin', errorDiv);
+                    } else {
+                        form.appendChild(errorDiv);
+                    }
+                    
+                    console.error('Debug: Upload failed:', data.error);
+                }
+            })
+            .catch(error => {
+                document.getElementById('uploadLoadingAlert')?.remove();
+                if (submitBtn) submitBtn.disabled = false;
+                
+                console.error('Debug: Upload error:', error);
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-3';
+                errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> Error de conexión: ${error.message}`;
+                
+                if (submitBtn) {
+                    submitBtn.insertAdjacentElement('beforebegin', errorDiv);
+                } else {
+                    form.appendChild(errorDiv);
+                }
+            });
+        });
+    } else {
+        console.warn('Debug: Edit ticket form not found');
+    }
+    
+    const uploadImagesInput = document.getElementById('uploadImages');
+    const takePhotoInput = document.getElementById('takePhoto');
+    const previewContainer = document.getElementById('previewContainer');
+    
+    if (uploadImagesInput && previewContainer) {
+        uploadImagesInput.addEventListener('change', function() {
+            handleFileSelection(this.files);
+        });
+    }
+    
+    if (takePhotoInput && previewContainer) {
+        takePhotoInput.addEventListener('change', function() {
+            handleFileSelection(this.files);
+        });
+    }
+    
+    function handleFileSelection(files) {
+        if (!files || !files.length) return;
+        
+        // Contar cuántas imágenes ya hay en el preview
+        const currentImages = document.querySelectorAll('.preview-image-container').length;
+        const maxImages = 10;
+        
+        // Verificar si excedería el límite
+        if (currentImages + files.length > maxImages) {
+            alert(`Solo puedes subir un máximo de ${maxImages} imágenes. Ya tienes ${currentImages}.`);
+            return;
+        }
+        
+        Array.from(files).forEach(file => {
+            if (!file.type.includes('image/')) {
+                console.warn('Debug: Non-image file selected:', file.name);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addPreview(e.target.result, file.name);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function addPreview(src, fileName) {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-3 mb-3 preview-image-container';
+        col.innerHTML = `
+            <div class="card h-100 position-relative">
+                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-1 m-1 remove-preview" 
+                        style="width: 25px; height: 25px; z-index: 100;">
+                    <i class="fas fa-times" style="font-size: 0.8rem;"></i>
+                </button>
+                <img src="${src}" 
+                     class="card-img-top img-thumbnail preview-image" 
+                     alt="${fileName}"
+                     style="cursor: zoom-in;"
+                     data-bs-toggle="modal" 
+                     data-bs-target="#imageModal" 
+                     data-image-url="${src}"
+                     data-image-name="${fileName}">
+            </div>
+        `;
+        
+        const removeBtn = col.querySelector('.remove-preview');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                col.style.transition = "opacity 0.3s";
+                col.style.opacity = "0";
+                
+                setTimeout(() => {
+                    col.remove();
+                }, 300);
+            });
+        }
+        
+        previewContainer.appendChild(col);
+    }
+    
+    const imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        imageModal.addEventListener('show.bs.modal', function (event) {
+            const img = event.relatedTarget;
+            
+            const imageUrl = img.getAttribute('data-image-url');
+            const imageName = img.getAttribute('data-image-name');
+            
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('imageModalLabel');
+            
+            if (modalImage) modalImage.src = imageUrl;
+            if (modalTitle && imageName) modalTitle.textContent = imageName;
+            
+            console.log('Debug: Showing image in modal:', imageUrl);
+        });
+    } else {
+        console.warn('Debug: Image modal not found in the DOM');
+    }
+    
+    const removeButtons = document.querySelectorAll('.remove-image[data-image-id]');
+    removeButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const imageId = this.getAttribute('data-image-id');
+            console.log('Debug: Removing image with ID:', imageId);
+            
+            // Añadir el ID a la lista de imágenes a eliminar
+            const imagesToDeleteInput = document.getElementById('imagesToDelete');
+            const imagesToDelete = imagesToDeleteInput ? 
+                JSON.parse(imagesToDeleteInput.value || '[]') : [];
+            
+            imagesToDelete.push(imageId);
+            
+            if (imagesToDeleteInput) {
+                imagesToDeleteInput.value = JSON.stringify(imagesToDelete);
+                console.log('Debug: Updated images to delete:', imagesToDeleteInput.value);
+            }
+            
+            const container = this.closest('.preview-image-container');
+            if (container) {
+                container.style.transition = "opacity 0.3s";
+                container.style.opacity = "0";
+                
+                setTimeout(() => {
+                    container.remove();
+                    console.log('Debug: Removed container from DOM');
+                }, 300);
+            }
+        });
+    });
+    
+    if (form) {
+        const originalSubmit = form.onsubmit;
+        
+        form.onsubmit = function(e) {
+            const imagesToDeleteInput = document.getElementById('imagesToDelete');
+            const imagesToDelete = imagesToDeleteInput ? 
+                JSON.parse(imagesToDeleteInput.value || '[]') : [];
+            
+            if (imagesToDelete.length > 0) {
+                console.log(`Debug: Will delete ${imagesToDelete.length} images from OneDrive`);
+            }
+            
+            if (originalSubmit) {
+                return originalSubmit.call(this, e);
+            }
+        };
+    }
 });
