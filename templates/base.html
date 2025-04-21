@@ -31,15 +31,13 @@
       </button>
       <div class="collapse navbar-collapse" id="topbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          {% if current_user.cargo == "Admin" %}
+          {% if current_user.cargo == "servicioTecnico" %}
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('view_technical.view_technical') }}"><i class="fas fa-headset"></i> Servicio Técnico</a></li>
+          {% else %}
             <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('technical_service.list_tickets') }}"><i class="fas fa-tools"></i> Servicio Técnico</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('warranty.warranty') }}"><i class="fas fa-gift"></i> Garantía</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('internal_repair.internal_repair') }}"><i class="fas fa-wrench"></i> Reparación interna</a></li>
-          {% elif current_user.cargo == "servicioTecnico" %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('view_technical.view_technical') }}"><i class="fas fa-headset"></i> Servicio Técnico</a></li>
-          {% else %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
           {% endif %}
         </ul>
         <ul class="navbar-nav">
