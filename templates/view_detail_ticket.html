@@ -228,8 +228,8 @@
                                     <td>{{ loop.index }}</td>
                                     <td>{{ spare.spare_code }}</td>
                                     <td>{{ spare.quantity }}</td>
-                                    <td>${{ "{:,.0f}".format(spare.unit_price) }}</td>
-                                    <td>${{ "{:,.0f}".format(spare.total_price) }}</td>
+                                    <td>${{ "{:,.0f}".format(spare.unit_price).replace(',', '.') }}</td>
+                                    <td>${{ "{:,.0f}".format(spare.total_price).replace(',', '.') }}</td>
                                 </tr>
                                 {% endfor %}
                                 {% else %}
@@ -242,7 +242,7 @@
                             <tfoot class="table-light">
                                 <tr>
                                     <td colspan="4" class="text-end fw-bold">Total Repuestos:</td>
-                                    <td class="fw-bold">${{ "{:,.0f}".format(ticket.spare_value) }}</td>
+                                    <td class="fw-bold">${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -332,21 +332,21 @@
                     <div class="mb-3 row">
                         <label class="col-sm-6 col-form-label fw-bold">Valor del Servicio:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.service_value) }}</p>
+                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</p>
                         </div>
                     </div>
 
                     <div class="mb-3 row">
                         <label class="col-sm-6 col-form-label fw-bold">Valor de Repuestos:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.spare_value) }}</p>
+                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</p>
                         </div>
                     </div>
 
                     <div class="row bg-light py-2 rounded">
                         <label class="col-sm-6 col-form-label fw-bold">TOTAL:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext fw-bold fs-5">${{ "{:,.0f}".format(ticket.total) }}</p>
+                            <p class="form-control-plaintext fw-bold fs-5">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</p>
                         </div>
                     </div>
                 </div>

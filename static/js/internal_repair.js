@@ -658,6 +658,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     case 'En Proceso':
                         // Compare case-insensitively
                         return ticketStatus && ticketStatus.toLowerCase() === 'en proceso';
+                    case 'En Revision':
+                        // Compare case-insensitively
+                        return ticketStatus && ticketStatus.toLowerCase() === 'en revision';
                     case 'Terminados':
                         return ticketStatus === 'Terminado';
                     case 'Cancelados':

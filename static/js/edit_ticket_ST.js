@@ -920,6 +920,7 @@ function setupFormSubmission() {
 
     ticketForm.addEventListener('submit', function (e) {
         e.preventDefault();
+        console.log("Formulario enviado - Inicio de validación");
         let isValid = true;
         let errorMessage = '';
 
@@ -989,6 +990,7 @@ function setupFormSubmission() {
 
         // Mostrar errores si los hay
         if (!isValid) {
+            console.log("Validación fallida:", errorMessage);
             Swal.fire({
                 icon: 'error',
                 title: 'Error de validación',
@@ -998,6 +1000,7 @@ function setupFormSubmission() {
             return;
         }
 
+        console.log("Validación exitosa - Mostrando confirmación");
         // Confirmar envío del formulario
         Swal.fire({
             title: '¿Guardar cambios?',
@@ -1010,39 +1013,42 @@ function setupFormSubmission() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Mostrar primero la alerta de éxito
-                showSuccessUpdateAlert();
-                
-                // Luego mostrar la pantalla de carga
-                setTimeout(() => {
-                    Swal.fire({
-                        title: 'Guardando...',
-                        html: 'Por favor espera mientras se guardan los cambios.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
+                console.log("Confirmación aceptada - Preparando envío");
+                // Mostrar pantalla de carga
+                Swal.fire({
+                    title: 'Guardando...',
+                    html: 'Por favor espera mientras se guardan los cambios.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Desformatear los campos numéricos antes de enviar
+                console.log("Desformateando campos numéricos");
+                document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
+                    .forEach(input => {
+                        const originalValue = input.value;
+                        input.value = unformatNumber(input.value);
+                        console.log(`Campo ${input.name || input.id}: ${originalValue} → ${input.value}`);
                     });
 
-                    // Desformatear los campos numéricos antes de enviar
-                    document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
-                        .forEach(input => {
-                            input.value = unformatNumber(input.value);
-                        });
+                // Agregar campo oculto para indicar redirección
+                const redirectInput = document.createElement('input');
+                redirectInput.type = 'hidden';
+                redirectInput.name = 'redirect_after_save';
+                redirectInput.value = 'true';
+                ticketForm.appendChild(redirectInput);
 
-                    // Agregar campo oculto para indicar redirección
-                    const redirectInput = document.createElement('input');
-                    redirectInput.type = 'hidden';
-                    redirectInput.name = 'redirect_after_save';
-                    redirectInput.value = 'true';
-                    ticketForm.appendChild(redirectInput);
-
-                    // Enviar el formulario
-                    ticketForm.removeEventListener('submit', arguments.callee);
-                    setTimeout(() => {
-                        ticketForm.submit();
-                    }, 1000);
-                }, 1500);
+                // Información sobre la acción del formulario
+                console.log("Formulario listo para enviar a:", ticketForm.action);
+                
+                // Remover listener para evitar múltiples envíos
+                ticketForm.removeEventListener('submit', arguments.callee);
+                
+                // Enviar el formulario
+                console.log("Enviando formulario...");
+                ticketForm.submit();
             }
         });
     });
