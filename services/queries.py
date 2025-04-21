@@ -78,7 +78,7 @@ def get_sertec():
 
 def get_technicians():
     query = """
-       SELECT NOMBRE, CODVEN
+    SELECT NOMBRE, CODVEN
     FROM Venden 
     WHERE COMENTARIO LIKE '%TECNICO%' 
     """

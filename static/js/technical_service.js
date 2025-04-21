@@ -49,8 +49,8 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
 function showSuccessTicketAlert(callback) {
     Swal.fire({
         icon: 'success',
-        title: '¡Ticket creado con éxito!',
-        text: 'El ticket se ha generado correctamente.',
+        title: '¡Operación exitosa!',
+        text: 'El ticket ha sido procesado correctamente.',
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -73,7 +73,15 @@ function showSuccessTicketAlert(callback) {
 document.addEventListener("DOMContentLoaded", function () {
     // Verificar si venimos de una actualización exitosa
     const urlParams = new URLSearchParams(window.location.search);
+    console.log("URL Params:", Object.fromEntries(urlParams.entries()));
+    
     if (urlParams.get('ticket_updated') === 'success') {
+        console.log("Ticket actualizado con éxito - Mostrando alerta");
+        showSuccessTicketAlert();
+        // Limpiar la URL para evitar que se muestre la alerta al refrescar
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('ticket_created') === 'success') {
+        console.log("Ticket creado con éxito - Mostrando alerta");
         showSuccessTicketAlert();
         // Limpiar la URL para evitar que se muestre la alerta al refrescar
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -532,20 +540,6 @@ document.addEventListener("DOMContentLoaded", function () {
             editButton.attr('disabled', true);
         }
     });
-
-    // Lógica para mostrar el toast de éxito si viene de una creación
-    // ESTE BLOQUE SE MUEVE FUERA DEL $(document).ready()
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     const urlParams = new URLSearchParams(window.location.search);
-    //     if (urlParams.get('ticket_created') === 'success') {
-    //         showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-    //         window.history.replaceState({}, document.title, window.location.pathname);
-    //     }
-    //     if (urlParams.get('ticket_updated') === 'success') {
-    //         showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
-    //         window.history.replaceState({}, document.title, window.location.pathname);
-    //     }
-    // });
 }); // Fin del $(document).ready()
 
 /**
@@ -584,22 +578,4 @@ window.updatePaginationAfterFilter = function() {
         }
     }
 };
-
-// Lógica para mostrar el toast de éxito/actualización (movido aquí fuera del ready)
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_created') === 'success') {
-        // Usar la función global showToast definida al inicio del archivo
-        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-        // Limpiar el parámetro de la URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    if (urlParams.get('ticket_updated') === 'success') {
-        // Usar la función global showToast
-        showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
-        // Limpiar el parámetro de la URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-});
 

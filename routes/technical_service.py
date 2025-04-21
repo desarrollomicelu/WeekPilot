@@ -407,8 +407,10 @@ def edit_ticket(ticket_id):
                     )
                     db.session.add(spare_ticket)
                 except (ValueError, IndexError) as e:
-                    flash(f"Error al procesar repuesto: {str(e)}", "warning")
-                    return redirect(url_for("technical_service.create_ticket"))
+                    db.session.rollback()  # Revertir cambios parciales
+                    flash(f"Error al procesar repuesto: {str(e)}", "danger")
+                    print(f"Error procesando repuesto {i}: {str(e)}")
+                    return redirect(url_for("technical_service.edit_ticket", ticket_id=ticket.id_ticket))
 
         # Procesar imágenes a eliminar
         images_to_delete = request.form.get("images_to_delete", "[]")
