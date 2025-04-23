@@ -166,23 +166,45 @@ body {
         right: 0;
     }
 
-    .topbar .nav-link {
-        text-align: left;
+    .topbar .navbar-nav {
         width: 100%;
-        padding: 12px;
-        font-size: 1rem;
+        display: flex;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin: 0;
+    }
+    
+    .topbar .nav-item {
+        width: auto;
+        margin-bottom: 8px;
+    }
+
+    .topbar .nav-link {
+        text-align: center;
+        width: auto;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        background-color: var(--color-secundario);
+        margin: 0;
+    }
+    
+    .topbar .nav-link i {
+        margin-right: 5px;
     }
 
     .logout-btn {
-        width: 100%;
+        width: auto;
         justify-content: center;
         margin-top: 0.5rem;
         margin-bottom: 0.5rem;
-    }
-
-    .topbar .navbar-nav {
-        width: 100%;
-        margin: 0;
+        border-radius: 20px;
     }
     
     /* Mejorar espaciado en tablas para móviles */
@@ -213,14 +235,31 @@ body {
         padding: 1rem;
         border-top: 1px solid var(--color-secundario);
     }
+    
+    .topbar .navbar-nav {
+        display: flex;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .topbar .nav-item {
+        width: auto;
+        margin-bottom: 10px;
+    }
 
     .topbar .nav-link {
         font-size: 0.9rem;
-        padding: 10px 8px;
+        padding: 8px 12px;
+        text-align: center;
+        border-radius: 20px;
+        background-color: var(--color-secundario);
+        white-space: nowrap;
     }
     
     .navbar-nav.me-auto .nav-item {
-        margin: 0 2px;
+        margin: 0 5px;
     }
     
     .topbar .navbar-brand {
@@ -237,40 +276,64 @@ body {
 /* Estilos generales responsive */
 @media (max-width: 991px) {
     .topbar .navbar-collapse {
-        background-color: var(--color-primario);
-        padding: 1rem;
-        border-top: 1px solid var(--color-secundario);  
-    }
-
-    .topbar .nav-link {
-        text-align: left;
-        width: 100%;
-        padding: 12px;
-    }
-
-    .logout-btn {
-        width: 100%;
-        justify-content: center;
-        margin-top: 1rem;
-    }
-
-    .topbar .navbar-nav {
-        width: 100%;
-    }
-    
-    /* Añadir espacio para el contenido principal */
-    #content {
         padding-top: 1rem;
+        padding-bottom: 1rem;
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        border-radius: 0 0 10px 10px;
     }
     
-    /* Botones adaptables */
-    .btn-group {
+    .navbar-nav-horizontal {
         display: flex;
+        flex-direction: row !important;
         flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 0.5rem;
     }
     
-    .btn-group .btn {
-        margin-bottom: 0.25rem;
+    .navbar-nav-horizontal .nav-item {
+        margin: 4px;
+    }
+    
+    .navbar-nav-horizontal .nav-link {
+        border-radius: 20px;
+        padding: 8px 15px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--color-secundario);
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+    
+    .navbar-nav-horizontal .nav-link:active {
+        transform: scale(0.95);
+    }
+    
+    /* Mejora del botón hamburguesa */
+    .navbar-toggler {
+        border: none;
+        background-color: transparent;
+        width: 40px;
+        height: 40px;
+        position: relative;
+        transition: all 0.3s;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    
+    .navbar-toggler:focus {
+        box-shadow: none;
+        outline: none;
+    }
+    
+    /* Mostrar ícono más visible en el menú */
+    .topbar .nav-link i {
+        font-size: 1rem;
+        margin-right: 6px;
+        width: 20px;
+        text-align: center;
     }
 }
 
@@ -457,4 +520,24 @@ i.text-primary {
     background-color: #e9ecef !important;
     border-color: #dee2e6 !important;
     color: #5a6268 !important;
+}
+
+/* Estilos para mejorar la experiencia táctil en el menú */
+.topbar .nav-link.active-touch {
+    transform: scale(0.95);
+    opacity: 0.9;
+    transition: transform 0.1s, opacity 0.1s;
+}
+
+/* Estilos para filtros activos */
+.filter-active {
+    background-color: var(--color-secundario) !important;
+    color: var(--color-blanco) !important;
+    border-color: var(--color-secundario) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1);
+}
+
+/* Animación suave para el menú desplegable */
+.navbar-collapse {
+    transition: all 0.3s ease;
 }

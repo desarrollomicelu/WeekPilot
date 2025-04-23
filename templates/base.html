@@ -30,17 +30,17 @@
         <span class="navbar-toggler-icon bg-white"></span>
       </button>
       <div class="collapse navbar-collapse" id="topbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <ul class="navbar-nav navbar-nav-horizontal me-auto mb-2 mb-lg-0">
           {% if current_user.cargo == "servicioTecnico" %}
             <li class="nav-item"><a class="nav-link" href="{{ url_for('view_technical.view_technical') }}"><i class="fas fa-headset"></i> Servicio Técnico</a></li>
           {% else %}
             <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('technical_service.list_tickets') }}"><i class="fas fa-tools"></i> Servicio Técnico</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('warranty.warranty') }}"><i class="fas fa-gift"></i> Garantía</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('warranty.list_warranties') }}"><i class="fas fa-shield-alt"></i> Garantía</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('internal_repair.internal_repair') }}"><i class="fas fa-wrench"></i> Reparación interna</a></li>
           {% endif %}
         </ul>
-        <ul class="navbar-nav">
+        <ul class="navbar-nav navbar-nav-horizontal">
           <li class="nav-item">
             <a class="nav-link text-white logout-btn" href="{{ url_for('auth.logout') }}">
               <i class="fas fa-sign-out-alt"></i> Cerrar Sesión

@@ -33,6 +33,34 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleBodyScroll(false);
     }
     
+    // Configuración especial para el menú en dispositivos móviles
+    function setupMobileMenu() {
+        if (isMobile()) {
+            // Asegurarse de que los elementos del menú tengan la clase correcta
+            const navLists = document.querySelectorAll('.navbar-nav');
+            navLists.forEach(navList => {
+                navList.classList.add('navbar-nav-horizontal');
+            });
+            
+            // Ajustar altura máxima del menú desplegable para que se ajuste mejor a la pantalla
+            if (navbarCollapse) {
+                navbarCollapse.style.maxHeight = (window.innerHeight * 0.8) + 'px';
+            }
+            
+            // Mejorar la respuesta táctil del menú
+            const menuItems = document.querySelectorAll('.navbar-nav .nav-link');
+            menuItems.forEach(item => {
+                item.addEventListener('touchstart', function() {
+                    this.classList.add('active-touch');
+                }, { passive: true });
+                
+                item.addEventListener('touchend', function() {
+                    this.classList.remove('active-touch');
+                }, { passive: true });
+            });
+        }
+    }
+    
     // Manejar clic en el botón de toggle
     navbarToggler.addEventListener('click', function() {
         const isExpanded = navbarCollapse.classList.contains('show');
@@ -81,8 +109,13 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         if (!isMobile()) {
             closeNavMenu();
+        } else {
+            setupMobileMenu();
         }
     });
+    
+    // Inicializar configuración del menú móvil
+    setupMobileMenu();
     
     // Optimizar imágenes para dispositivos móviles con carga diferida
     if ('loading' in HTMLImageElement.prototype) {

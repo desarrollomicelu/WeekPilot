@@ -1,0 +1,56 @@
+/* Estilos para la tabla de tickets */
+@media (max-width: 768px) {
+  #ticketsTable th:nth-child(5),
+  #ticketsTable td:nth-child(5),
+  #ticketsTable th:nth-child(8),
+  #ticketsTable td:nth-child(8) {
+    display: none;
+  }
+  
+  /* Ajustar ancho de columnas */
+  #ticketsTable th:first-child,
+  #ticketsTable td:first-child {
+    width: 5% !important;
+    white-space: nowrap;
+  }
+  
+  /* Mejor visualización de la razón/motivo en pantallas pequeñas */
+  #ticketsTable td:nth-child(7) .badge {
+    display: inline-block;
+    margin-bottom: 2px;
+  }
+  
+  /* Reducir el tamaño de letra */
+  #ticketsTable {
+    font-size: 0.9rem;
+  }
+}
+
+/* Para dispositivos muy pequeños */
+@media (max-width: 576px) {
+  #ticketsTable th:nth-child(3),
+  #ticketsTable td:nth-child(3),
+  #ticketsTable th:nth-child(6),
+  #ticketsTable td:nth-child(6) {
+    display: none;
+  }
+  
+  /* Hacer que las celdas ocupen menos espacio */
+  #ticketsTable td, 
+  #ticketsTable th {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Reducir el tamaño de los selectores de estado */
+  .status-select {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Dar prioridad a la visualización de acciones */
+  #ticketsTable th:last-child,
+  #ticketsTable td:last-child {
+    width: auto !important;
+    white-space: nowrap;
+  }
+} 
