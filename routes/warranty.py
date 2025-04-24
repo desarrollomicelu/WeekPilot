@@ -7,7 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 import json
 # Importa las funciones desde el módulo de servicios
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts
+from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts, get_client_by_document, get_client_invoices, format_document
 from services.ticket_email_service import TicketEmailService
 # Importa los modelos
 from models.employees import Empleados
@@ -62,6 +62,11 @@ def create_warranty():
         client_names = request.form.get("client_names")
         client_lastnames = request.form.get("client_lastnames")
         document = request.form.get("document")
+        
+        # Formatear el documento (solo primeros 10 dígitos)
+        formatted_document = format_document(document)
+        print(f"Documento formateado para guardar: {document} -> {formatted_document}")
+        
         mail = request.form.get("mail")
         phone = request.form.get("phone")
 
@@ -160,10 +165,10 @@ def create_warranty():
             return redirect(url_for("technical_service.create_ticket"))
 
         # Buscar o crear el cliente
-        client = Clients_tickets.query.filter_by(document=document).first()
+        client = Clients_tickets.query.filter_by(document=formatted_document).first()
         if not client:
             client = Clients_tickets(
-                document=document,
+                document=formatted_document,
                 name=client_names,
                 lastname=client_lastnames,
                 mail=mail,
@@ -340,7 +345,13 @@ def edit_warranty(ticket_id):
         # Actualizamos los datos del cliente
         client.name = request.form.get("client_names")
         client.lastname = request.form.get("client_lastnames")
-        client.document = request.form.get("document")
+        
+        # Formatear el documento antes de guardarlo
+        document = request.form.get("document")
+        formatted_document = format_document(document)
+        print(f"Documento formateado en edición: {document} -> {formatted_document}")
+        client.document = formatted_document
+        
         client.mail = request.form.get("mail")
         client.phone = request.form.get("phone")
 
@@ -570,3 +581,41 @@ def send_email_notification(ticket_id):
         # Redirigir con parámetro de error
         current_app.logger.error(f"Error al enviar el correo: {error}")
         return redirect(url_for('warranty.view_detail_warranty', ticket_id=ticket_id, email_sent='error'))
+
+@warranty_bp.route("/")
+def index():
+    return redirect(url_for("warranty.list_warranties"))
+
+# Ruta para buscar cliente por documento
+@warranty_bp.route("/search_client", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_client():
+    document = request.form.get("document")
+    if not document:
+        return jsonify({"success": False, "message": "Documento requerido"}), 400
+    
+    print(f"Buscando cliente con documento: {document}")
+    
+    try:
+        # Buscar cliente en SQL Server
+        client_data = get_client_by_document(document)
+        
+        print(f"Resultado búsqueda cliente: {client_data}")
+        
+        if not client_data:
+            return jsonify({"success": False, "message": "Cliente no encontrado en la base de datos"}), 404
+        
+        # Obtener facturas del cliente
+        invoices = get_client_invoices(document)
+        
+        print(f"Facturas encontradas: {len(invoices)}")
+        
+        return jsonify({
+            "success": True,
+            "client": client_data,
+            "invoices": invoices
+        })
+    except Exception as e:
+        print(f"Error al buscar cliente: {str(e)}")
+        return jsonify({"success": False, "message": f"Error al buscar cliente: {str(e)}"}), 500

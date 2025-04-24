@@ -447,7 +447,22 @@ document.addEventListener("DOMContentLoaded", function () {
             allowClear: true
         });
     }
-    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2({
+    
+    // Inicializar Select2 para el selector de facturas
+    if (document.getElementById('invoice_selector')) {
+        $('#invoice_selector').select2({
+            width: '100%',
+            placeholder: "Seleccione una factura",
+            allowClear: true
+        });
+        
+        // Cuando cambia mediante Select2, disparar el evento change nativo
+        $('#invoice_selector').on('select2:select', function (e) {
+            this.dispatchEvent(new Event('change'));
+        });
+    }
+    
+    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code, #invoice_selector').select2({
         width: '100%',
         placeholder: "Seleccione una opción",
         allowClear: true
@@ -854,6 +869,68 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+
+    // Manejador para la selección de factura
+    function handleInvoiceSelection() {
+        const selectedIndex = parseInt($("#invoiceSelector").val());
+        
+        if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || clientInvoices.length === 0) {
+            $("#selectedInvoiceDetails").hide();
+            return;
+        }
+        
+        const selectedInvoice = clientInvoices[selectedIndex];
+        
+        // Mostrar los detalles de la factura seleccionada
+        $("#invoiceDetailCode").text(selectedInvoice.numero || '-');
+        $("#invoiceDetailSerie").text(selectedInvoice.serie || '-');
+        $("#invoiceDetailDate").text(selectedInvoice.fecha || '-');
+        $("#invoiceDetailReference").text(selectedInvoice.referencia || '-');
+        $("#invoiceDetailStatus").text(selectedInvoice.estado || '-');
+        $("#invoiceDetailValue").text(selectedInvoice.valor_total || '-');
+        $("#invoiceDetailOrigin").text(selectedInvoice.origen || '-');
+        
+        // Mostrar el panel de detalles
+        $("#selectedInvoiceDetails").show();
+    }
+
+    // Manejador para el botón de usar datos de factura
+    $(document).on("click", "#useInvoiceDataBtn", function() {
+        const selectedIndex = parseInt($("#invoiceSelector").val());
+        
+        if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || clientInvoices.length === 0) {
+            return;
+        }
+        
+        const selectedInvoice = clientInvoices[selectedIndex];
+        
+        // Rellenar los campos del formulario con datos de la factura
+        $("#product_code").val(selectedInvoice.producto || '');
+        $("#reference").val(selectedInvoice.referencia || '');
+        $("#serial").val(selectedInvoice.serie || '');
+        
+        if (selectedInvoice.fecha) {
+            try {
+                // Intentar convertir la fecha de la factura al formato requerido por el input date
+                const dateParts = selectedInvoice.fecha.split('/');
+                if (dateParts.length === 3) {
+                    const formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+                    $("#initial_date").val(formattedDate);
+                }
+            } catch (e) {
+                console.error("Error al formatear la fecha:", e);
+            }
+        }
+        
+        // Mostrar notificación de éxito
+        Swal.fire({
+            title: '¡Datos aplicados!',
+            text: 'Los datos de la factura han sido aplicados al formulario',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
 });
 
 // Asegurarse de que, al seleccionar con Select2, se dispare el evento change en el select de referencia
@@ -861,4 +938,554 @@ $(document).ready(function () {
     $('#reference').on('select2:select', function (e) {
         this.dispatchEvent(new Event('change'));
     });
+});
+
+// Funcionalidad para búsqueda de clientes por documento
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del DOM
+    const searchClientBtn = document.getElementById('searchClientBtn');
+    const documentInput = document.getElementById('document');
+    const documentFeedback = document.getElementById('documentFeedback');
+    const clientNamesInput = document.getElementById('client_names');
+    const clientLastnamesInput = document.getElementById('client_lastnames');
+    const phoneInput = document.getElementById('phone');
+    const mailInput = document.getElementById('mail');
+    const invoicesSection = document.getElementById('invoicesSection');
+    const invoicesTable = document.getElementById('invoicesTable');
+    
+    // Nuevos elementos para dropdown de facturas
+    const invoiceDropdownSection = document.getElementById('invoiceDropdownSection');
+    const invoiceSelector = document.getElementById('invoice_selector');
+    const selectedInvoiceDetails = document.getElementById('selectedInvoiceDetails');
+    const invoiceDetailSerie = document.getElementById('invoiceDetailSerie');
+    const invoiceDetailDate = document.getElementById('invoiceDetailDate');
+    const invoiceDetailCode = document.getElementById('invoiceDetailCode');
+    const invoiceDetailReference = document.getElementById('invoiceDetailReference');
+    const useInvoiceDataBtn = document.getElementById('useInvoiceDataBtn');
+    
+    // Elementos para la tabla de facturas
+    const showAllInvoicesBtn = document.getElementById('showAllInvoicesBtn');
+    const hideAllInvoicesBtn = document.getElementById('hideAllInvoicesBtn');
+    const invoicesTableSection = document.getElementById('invoicesTableSection');
+    
+    // Inicializar eventos para la tabla de facturas
+    if (showAllInvoicesBtn) {
+        showAllInvoicesBtn.addEventListener('click', toggleInvoicesTable);
+    }
+    
+    if (hideAllInvoicesBtn) {
+        hideAllInvoicesBtn.addEventListener('click', toggleInvoicesTable);
+    }
+    
+    // Agregar evento al botón "Usar para garantía"
+    if (useInvoiceDataBtn) {
+        useInvoiceDataBtn.addEventListener('click', function() {
+            if (!invoiceSelector) return;
+            
+            const selectedIndex = parseInt(invoiceSelector.value);
+            
+            if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || selectedIndex >= clientInvoices.length) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Selección inválida',
+                    text: 'Por favor, seleccione una factura válida',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            const invoice = clientInvoices[selectedIndex];
+            applyProductData(invoice.product_code, invoice.product_description);
+        });
+    }
+    
+    // También permitir buscar al presionar Enter en el campo de documento
+    if (documentInput) {
+        documentInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Evitar envío del formulario
+                if (searchClientBtn) searchClientBtn.click();
+            }
+        });
+    }
+
+    // Variable para almacenar las facturas del cliente
+    let clientInvoices = [];
+
+    // Función para mostrar error en el campo de documento
+    function showDocumentError(message) {
+        if (documentInput && documentFeedback) {
+            documentInput.classList.add('is-invalid');
+            documentFeedback.textContent = message;
+            documentFeedback.style.display = 'block';
+        }
+    }
+    
+    // Función para limpiar errores
+    function clearDocumentError() {
+        if (documentInput && documentFeedback) {
+            documentInput.classList.remove('is-invalid');
+            documentFeedback.textContent = '';
+            documentFeedback.style.display = 'none';
+        }
+    }
+    
+    // Agregar evento para limpiar espacios y caracteres no válidos al perder el foco
+    if (documentInput) {
+        documentInput.addEventListener('blur', function() {
+            // Guardar la posición del cursor
+            const cursorPos = this.selectionStart;
+            
+            // Eliminar espacios al inicio y final
+            this.value = this.value.trim();
+            
+            // Restaurar cursor si es necesario
+            if (document.activeElement === this) {
+                this.setSelectionRange(cursorPos, cursorPos);
+            }
+        });
+        
+        // Limpiar errores cuando el usuario comienza a escribir de nuevo
+        documentInput.addEventListener('input', clearDocumentError);
+    }
+    
+    // Función para buscar cliente por documento
+    if (searchClientBtn) {
+        searchClientBtn.addEventListener('click', function() {
+            const document = documentInput.value.trim();
+            
+            clearDocumentError(); // Limpiar errores anteriores
+            
+            if (!document) {
+                showDocumentError('Por favor, ingrese un número de documento para buscar');
+                return;
+            }
+            
+            // Extraer solo dígitos para validación básica
+            const digitsOnly = document.replace(/\D/g, '');
+            
+            if (digitsOnly.length < 5) {
+                showDocumentError('El documento debe tener al menos 5 dígitos');
+                return;
+            }
+            
+            console.log(`Buscando cliente. Documento original: ${document}, Dígitos: ${digitsOnly}`);
+            
+            // Crear FormData para enviar en la petición
+            const formData = new FormData();
+            formData.append('document', document);
+            
+            // Mostrar indicador de carga
+            searchClientBtn.disabled = true;
+            searchClientBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            // Enviar petición AJAX
+            fetch('/search_client', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Restaurar botón
+                searchClientBtn.disabled = false;
+                searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+                
+                console.log('Respuesta del servidor:', data);
+                
+                if (data.success) {
+                    // Mostrar datos del cliente
+                    fillClientData(data.client);
+                    
+                    // Mostrar facturas
+                    showInvoices(data.invoices);
+                    
+                    // Actualizar el campo de documento con el formato correcto si es diferente
+                    if (data.client.document && data.client.document !== document) {
+                        documentInput.value = data.client.document;
+                    }
+                    
+                    // Mostrar notificación
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cliente encontrado',
+                        text: `Se ha cargado la información de ${data.client.name} y sus facturas`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    showDocumentError(data.message || 'No se encontró ningún cliente con ese documento. Verifique el documento e intente nuevamente.');
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cliente no encontrado',
+                        text: data.message || 'No se encontró ningún cliente con ese documento. Verifique el documento e intente nuevamente.',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            })
+            .catch(error => {
+                // Restaurar botón
+                searchClientBtn.disabled = false;
+                searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+                
+                console.error('Error en la búsqueda:', error);
+                
+                showDocumentError(`Error: ${error.message}`);
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error en la búsqueda',
+                    text: `Ocurrió un error al buscar el cliente: ${error.message}`,
+                    confirmButtonText: 'Entendido'
+                });
+            });
+        });
+    }
+    
+    // Función para llenar datos del cliente
+    function fillClientData(client) {
+        // Usar los campos nombre1, nombre2, apellido1 y apellido2
+        if (clientNamesInput) {
+            // Combinar nombre1 y nombre2 en el campo nombres
+            const nombre1 = client.nombre1 || '';
+            const nombre2 = client.nombre2 || '';
+            clientNamesInput.value = `${nombre1} ${nombre2}`.trim();
+            // Aplicar estilos para campos solo lectura
+            clientNamesInput.classList.add('bg-light');
+            clientNamesInput.readOnly = true;
+        }
+        
+        if (clientLastnamesInput) {
+            // Combinar apellido1 y apellido2 en el campo apellidos
+            const apellido1 = client.apellido1 || '';
+            const apellido2 = client.apellido2 || '';
+            clientLastnamesInput.value = `${apellido1} ${apellido2}`.trim();
+            // Aplicar estilos para campos solo lectura
+            clientLastnamesInput.classList.add('bg-light');
+            clientLastnamesInput.readOnly = true;
+        }
+        
+        // Llenar otros campos
+        if (phoneInput) {
+            phoneInput.value = client.phone || '';
+            // Aplicar estilos para campos solo lectura
+            phoneInput.classList.add('bg-light');
+            phoneInput.readOnly = true;
+        }
+        
+        if (mailInput) {
+            mailInput.value = client.email || '';
+            // Aplicar estilos para campos solo lectura
+            mailInput.classList.add('bg-light');
+            mailInput.readOnly = true;
+        }
+        
+        // Actualizar el documento con el valor formateado de la base de datos
+        if (client.document && documentInput) {
+            documentInput.value = client.document;
+        }
+    }
+    
+    // Función para mostrar facturas
+    function showInvoices(invoices) {
+        console.log("Mostrando facturas:", invoices);
+        
+        // Guardar las facturas en variable global para acceso posterior
+        clientInvoices = invoices || [];
+        
+        // Acceder al selector de facturas
+        let invoiceSelector = document.getElementById('invoice_selector');
+        let dropdownSection = document.getElementById('invoiceDropdownSection');
+        let showAllSection = document.getElementById('showAllInvoicesSection');
+        
+        // Hacer visible las secciones si hay facturas
+        if (invoiceSelector && dropdownSection) {
+            dropdownSection.style.display = 'block';
+        }
+        
+        if (showAllSection) {
+            showAllSection.style.display = 'block';
+        }
+        
+        // Verificar si hay facturas para mostrar
+        if (clientInvoices.length > 0) {
+            console.log(`Se encontraron ${clientInvoices.length} facturas`);
+            
+            // Preparar el selector de facturas
+            if (invoiceSelector) {
+                // Limpiar opciones previas
+                invoiceSelector.innerHTML = '<option value="">Seleccione una factura</option>';
+                
+                // Añadir cada factura como una opción
+                clientInvoices.forEach((invoice, index) => {
+                    let option = document.createElement('option');
+                    option.value = index; // Usar el índice como valor
+                    
+                    // Construir texto descriptivo para la opción usando los nuevos campos
+                    let optionText = `${invoice.invoice_number || 'Sin serie'} - ${invoice.formatted_date || 'Sin fecha'}`;
+                    
+                    // Añadir valor formateado si está disponible
+                    if (invoice.formatted_value && invoice.formatted_value !== 'N/A') {
+                        optionText += ` - ${invoice.formatted_value}`;
+                    }
+                    
+                    option.textContent = optionText;
+                    invoiceSelector.appendChild(option);
+                });
+                
+                // Inicializar Select2 si está disponible
+                if (typeof $.fn.select2 === 'function') {
+                    try {
+                        // Primero destruir si ya está inicializado
+                        if ($('#invoice_selector').data('select2')) {
+                            $('#invoice_selector').select2('destroy');
+                        }
+                        
+                        // Inicializar Select2
+                        $('#invoice_selector').select2({
+                            placeholder: 'Seleccione una factura',
+                            width: '100%',
+                            allowClear: true
+                        });
+                        
+                        console.log('Select2 inicializado para el dropdown de facturas');
+                    } catch (e) {
+                        console.error('Error al inicializar Select2:', e);
+                    }
+                }
+                
+                // Agregar evento para detectar cambios en la selección
+                invoiceSelector.removeEventListener('change', handleInvoiceSelection);
+                invoiceSelector.addEventListener('change', handleInvoiceSelection);
+            }
+            
+            // Preparar también los datos para la tabla detallada
+            prepareDetailedInvoicesTable();
+        } else {
+            console.log('No hay facturas para mostrar');
+            
+            // Añadir mensaje de no facturas al selector
+            if (invoiceSelector) {
+                invoiceSelector.innerHTML = '<option value="">No hay facturas disponibles</option>';
+                invoiceSelector.disabled = true;
+            }
+            
+            // Ocultar el botón para mostrar todas las facturas
+            if (showAllSection) {
+                showAllSection.style.display = 'none';
+            }
+        }
+        
+        // Ocultar sección de detalles de factura si estaba visible
+        let detailsSection = document.getElementById('selectedInvoiceDetails');
+        if (detailsSection) {
+            detailsSection.style.display = 'none';
+        }
+        
+        // Ocultar también la tabla de facturas detallada
+        let tableSection = document.getElementById('invoicesTableSection');
+        if (tableSection) {
+            tableSection.style.display = 'none';
+        }
+    }
+    
+    // Función para preparar la tabla detallada de facturas
+    function prepareDetailedInvoicesTable() {
+        const tableSection = document.getElementById('invoicesTableSection');
+        const table = document.getElementById('detailedInvoicesTable');
+        
+        if (!table || !tableSection) {
+            console.error('No se encontró la tabla o su contenedor');
+            return;
+        }
+        
+        // Obtener el tbody donde agregaremos las filas
+        const tbody = table.querySelector('tbody');
+        if (!tbody) {
+            console.error('No se encontró el tbody de la tabla');
+            return;
+        }
+        
+        // Limpiar contenido previo
+        tbody.innerHTML = '';
+        
+        // Si no hay facturas, mostrar mensaje
+        if (!clientInvoices || clientInvoices.length === 0) {
+            const emptyRow = document.createElement('tr');
+            emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se encontraron facturas para este cliente.</td>';
+            tbody.appendChild(emptyRow);
+            return;
+        }
+        
+        // Añadir una fila por cada factura
+        clientInvoices.forEach((invoice, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><span class="badge bg-secondary">${invoice.product_code || 'N/A'}</span></td>
+                <td>${invoice.product_description || 'N/A'}</td>
+                <td>${invoice.origin || 'N/A'}</td>
+                <td>${invoice.invoice_number || 'N/A'}</td>
+                <td>${invoice.formatted_date || 'N/A'}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-primary select-invoice" data-index="${index}">
+                        <i class="fas fa-check me-1"></i>Seleccionar
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        // Añadir eventos a los botones de selección
+        const selectButtons = tbody.querySelectorAll('.select-invoice');
+        selectButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const index = this.getAttribute('data-index');
+                selectInvoiceFromTable(index);
+            });
+        });
+    }
+
+    // Función para mostrar/ocultar la tabla de facturas
+    function toggleInvoicesTable() {
+        const tableSection = document.getElementById('invoicesTableSection');
+        const showAllBtn = document.getElementById('showAllInvoicesBtn');
+        
+        if (!tableSection) return;
+        
+        if (tableSection.style.display === 'none') {
+            // Mostrar tabla
+            tableSection.style.display = 'block';
+            if (showAllBtn) showAllBtn.style.display = 'none';
+        } else {
+            // Ocultar tabla
+            tableSection.style.display = 'none';
+            if (showAllBtn) showAllBtn.style.display = 'block';
+        }
+    }
+
+    // Función para seleccionar una factura desde la tabla
+    function selectInvoiceFromTable(index) {
+        // Convertir a número
+        index = parseInt(index);
+        
+        if (isNaN(index) || index < 0 || !clientInvoices || index >= clientInvoices.length) {
+            console.error('Índice de factura inválido');
+            return;
+        }
+        
+        console.log(`Seleccionando factura del índice ${index} desde la tabla`);
+        
+        // Actualizar el selector de facturas si existe
+        const invoiceSelector = document.getElementById('invoice_selector');
+        if (invoiceSelector) {
+            invoiceSelector.value = index;
+            
+            // Si usa Select2, actualizar también la UI de Select2
+            if (typeof $.fn.select2 === 'function' && $('#invoice_selector').data('select2')) {
+                $('#invoice_selector').trigger('change.select2');
+            }
+            
+            // Disparar evento change para actualizar los detalles
+            invoiceSelector.dispatchEvent(new Event('change'));
+        } else {
+            // Si no existe el selector, mostrar directamente los detalles
+            displayInvoiceDetails(clientInvoices[index]);
+        }
+        
+        // Ocultar la tabla
+        toggleInvoicesTable();
+    }
+
+    // Función para mostrar los detalles de una factura directamente
+    function displayInvoiceDetails(invoice) {
+        if (!invoice) {
+            console.error('No se recibió una factura válida');
+            return;
+        }
+        
+        // Actualizar los detalles de la factura con los nuevos campos
+        const detailsSection = document.getElementById('selectedInvoiceDetails');
+        const invoiceDetailSerie = document.getElementById('invoiceDetailSerie');
+        const invoiceDetailDate = document.getElementById('invoiceDetailDate');
+        const invoiceDetailCode = document.getElementById('invoiceDetailCode');
+        const invoiceDetailReference = document.getElementById('invoiceDetailReference');
+        const invoiceDetailStatus = document.getElementById('invoiceDetailStatus');
+        
+        if (invoiceDetailSerie) invoiceDetailSerie.textContent = invoice.invoice_number || 'N/A';
+        if (invoiceDetailDate) invoiceDetailDate.textContent = invoice.formatted_date || 'N/A';
+        if (invoiceDetailCode) invoiceDetailCode.textContent = invoice.product_code || 'N/A';
+        if (invoiceDetailReference) invoiceDetailReference.textContent = invoice.product_description || 'N/A';
+        if (invoiceDetailStatus) invoiceDetailStatus.textContent = invoice.status || 'N/A';
+        
+        // Mostrar el valor formateado si existe
+        const invoiceDetailValue = document.getElementById('invoiceDetailValue');
+        if (invoiceDetailValue) {
+            invoiceDetailValue.textContent = invoice.formatted_value || 'N/A';
+        }
+        
+        // Mostrar origen si existe
+        const invoiceDetailOrigin = document.getElementById('invoiceDetailOrigin');
+        if (invoiceDetailOrigin) {
+            invoiceDetailOrigin.textContent = invoice.origin || 'N/A';
+        }
+        
+        // Mostrar la sección de detalles
+        if (detailsSection) {
+            detailsSection.style.display = 'block';
+        }
+    }
+
+    // Función para aplicar los datos del producto a los campos del formulario
+    function applyProductData(code, description) {
+        const referenceInput = document.getElementById('reference');
+        const productCodeInput = document.getElementById('product_code');
+        
+        if (referenceInput) {
+            // Si reference es un select, buscar la opción que coincida
+            if (referenceInput.tagName === 'SELECT') {
+                let optionFound = false;
+                for (let i = 0; i < referenceInput.options.length; i++) {
+                    if (referenceInput.options[i].text.includes(description)) {
+                        referenceInput.selectedIndex = i;
+                        optionFound = true;
+                        // Disparar el evento change para que se actualice el código
+                        referenceInput.dispatchEvent(new Event('change'));
+                        break;
+                    }
+                }
+                if (!optionFound) {
+                    // Si no se encuentra una opción similar, crear una nueva
+                    const option = new Option(description, description);
+                    option.setAttribute('data-code', code);
+                    referenceInput.add(option);
+                    referenceInput.value = description;
+                    // Disparar el evento change
+                    referenceInput.dispatchEvent(new Event('change'));
+                }
+            } else {
+                // Si es un input normal
+                referenceInput.value = description;
+            }
+        }
+        
+        if (productCodeInput) {
+            productCodeInput.value = code;
+        }
+        
+        // Notificar al usuario
+        Swal.fire({
+            icon: 'success',
+            title: 'Producto seleccionado',
+            text: 'Se ha seleccionado el producto para la garantía',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
 });

@@ -74,12 +74,10 @@
           <tr>
             <th class="text-start" style="width: 5%">#</th>
             <th class="text-start" >Referencia</th>
-            <th class="text-start" >Documento</th>
+            <th class="text-start" >Cliente</th>
             <th class="text-start" >Estado</th>
-            <th class="text-start" >Ingreso</th>
             <th class="text-start" >Prioridad</th>
             <th class="text-start" >Motivo</th>
-            <th class="text-start" >Técnico</th>
             <th class="text-center" >Acciones</th>
           </tr>
         </thead>
@@ -94,7 +92,7 @@
                 N/A
               {% endif %}
             </td>
-            <td class="text-nowrap">{{ ticket.client_info.document }}</td>
+            <td class="text-nowrap">{{ ticket.client_info.name }} {{ ticket.client_info.lastname }}</td>
             <td>
               <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}" data-original-state="{{ ticket.state }}">
                 <option value="Sin asignar" {% if ticket.state=='Sin asignar' %}selected{% endif %}>Sin asignar</option>
@@ -103,17 +101,6 @@
                 <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En Revision</option>
                 <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>
               </select>
-            </td>
-            <td class="text-nowrap">
-              {% if ticket.creation_date %}
-                {{ ticket.creation_date.strftime('%d/%m/%Y %H:%M') }}
-              {% elif ticket.created_date %}
-                {{ ticket.created_date.strftime('%d/%m/%Y %H:%M') }}
-              {% elif ticket.created_at %}
-                {{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}
-              {% else %}
-                N/A
-              {% endif %}
             </td>
             <td>
               <span
@@ -130,13 +117,6 @@
                 </div>
               {% else %}
                 <span class="text-muted">{{ ticket.reason or 'N/A' }}</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if ticket.technical_name %}
-              {{ ticket.technical_name.replace('.', ' ') | title }}
-              {% else %}
-              <span class="badge bg-secondary">Sin asignar</span>
               {% endif %}
             </td>
             <td class="text-center">
