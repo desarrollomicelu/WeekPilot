@@ -1,6 +1,6 @@
 /**
  * Utilidades JavaScript para mejorar la experiencia en dispositivos móviles
- * WeekPilot - responsive-utils.js
+ * MICELU - responsive-utils.js
  */
 
 (function() {

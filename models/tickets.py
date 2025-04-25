@@ -21,6 +21,7 @@ class Tickets(db.Model, UserMixin):
     reference = db.Column(db.String(100), nullable=False)
     type_of_service = db.Column(db.String(100), nullable=False)
     city = db.Column(db.String(15), nullable=False)
+    invoice_number = db.Column(db.String(25), nullable=True)
     creation_date = db.Column(
         db.DateTime, nullable=True, default=datetime.utcnow)
     assigned = db.Column(db.DateTime, nullable=True)

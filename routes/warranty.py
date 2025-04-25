@@ -7,7 +7,7 @@ from sqlalchemy.orm.attributes import flag_modified
 import json
 # Importa las funciones desde el módulo de servicios
 from models.problemsTickets import Problems_tickets
-from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts, get_client_by_document, get_client_invoices, format_document
+from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts, get_client_by_document, get_client_invoices, format_document, execute_query
 from services.ticket_email_service import TicketEmailService
 # Importa los modelos
 from models.employees import Empleados
@@ -58,35 +58,46 @@ def create_warranty():
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if request.method == "POST":
+        # Función para limpiar los valores de los campos
+        def clean_value(value):
+            if value is None:
+                return None
+            return str(value).strip()
+            
         # Datos del cliente
-        client_names = request.form.get("client_names")
-        client_lastnames = request.form.get("client_lastnames")
-        document = request.form.get("document")
+        client_names = clean_value(request.form.get("client_names"))
+        client_lastnames = clean_value(request.form.get("client_lastnames"))
+        document = clean_value(request.form.get("document"))
         
         # Formatear el documento (solo primeros 10 dígitos)
-        formatted_document = format_document(document)
+        formatted_document = format_document(document) if document else None
         print(f"Documento formateado para guardar: {document} -> {formatted_document}")
         
-        mail = request.form.get("mail")
-        phone = request.form.get("phone")
+        mail = clean_value(request.form.get("mail"))
+        phone = clean_value(request.form.get("phone"))
 
         # Datos del ticket
-        technical_name = request.form.get("technical_name")
-        technical_document = request.form.get("technical_document")
-        state = request.form.get("state")
-        priority = request.form.get("priority")
-        city = request.form.get("city")
-        type_of_service = request.form.get("type_of_service") or "2"
-        IMEI = request.form.get("IMEI")
-        reference = request.form.get("reference")
-        product_code = request.form.get("product_code")
-        comment = request.form.get("comment")
+        technical_name = clean_value(request.form.get("technical_name"))
+        technical_document = clean_value(request.form.get("technical_document"))
+        state = clean_value(request.form.get("state"))
+        priority = clean_value(request.form.get("priority"))
+        city = clean_value(request.form.get("city"))
+        type_of_service = clean_value(request.form.get("type_of_service")) or "2"
+        IMEI = clean_value(request.form.get("IMEI"))
+        reference = clean_value(request.form.get("reference"))
+        product_code = clean_value(request.form.get("product_code"))
+        invoice_number = clean_value(request.form.get("invoice_number"))
+        comment = clean_value(request.form.get("comment"))
         selected_problem_ids = request.form.getlist("device_problems[]")
 
         # Valores financieros
         try:
-            service_value = float(request.form.get("service_value") or 0)
-            spare_value = float(request.form.get("spare_value") or 0)
+            # Limpiar separadores de miles (puntos) antes de convertir a float
+            service_value_str = request.form.get("service_value", "0").replace(".", "")
+            spare_value_str = request.form.get("spare_value", "0").replace(".", "")
+            
+            service_value = float(service_value_str or 0)
+            spare_value = float(spare_value_str or 0)
             total = service_value + spare_value
         except ValueError:
             flash(
@@ -120,49 +131,44 @@ def create_warranty():
         # Validar datos del cliente
         if not document:
             flash("El documento del cliente es obligatorio", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         if not client_names or not client_lastnames:
             flash("El nombre y apellido del cliente son obligatorios", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         if mail and '@' not in mail:
             flash("El formato del correo electrónico no es válido", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         if phone and not phone.isdigit():
             flash("El teléfono debe contener solo números", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
 
-        # Validar datos del ticket
-        if not technical_name or not technical_document:
-            flash("El nombre y documento del técnico son obligatorios", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+        # Validar datos del ticket - ya no requiere técnico
         if not state:
             flash("El estado del ticket es obligatorio", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         if not priority:
             flash("La prioridad del ticket es obligatoria", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         if not city:
             flash("La ciudad es obligatoria", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
-        if not reference:
-            flash("La referencia del producto es obligatoria", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
+        # Referencia ya no es obligatoria
         # Validar IMEI (si está presente)
         if IMEI and (not IMEI.isdigit() or len(IMEI) != 15):
             flash("El IMEI debe ser un número de 15 dígitos", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         # Validar valores financieros
         if service_value < 0 or spare_value < 0:
             flash("Los valores no pueden ser negativos", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
         # Validar que se haya seleccionado al menos un problema
         if not selected_problem_ids:
             flash("Debe seleccionar al menos un problema", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
 
         if comment and len(comment) > 500:
             flash("El comentario no puede tener más de 250 caracteres", "danger")
-            return redirect(url_for("technical_service.create_ticket"))
+            return redirect(url_for("warranty.create_warranty"))
 
         # Buscar o crear el cliente
         client = Clients_tickets.query.filter_by(document=formatted_document).first()
@@ -193,6 +199,7 @@ def create_warranty():
             type_of_service=type_of_service,
             reference=reference,
             product_code=product_code,
+            invoice_number=invoice_number,
             service_value=service_value,
             spare_value=spare_value,
             total=total,
@@ -212,65 +219,55 @@ def create_warranty():
         db.session.add(new_ticket)
         db.session.commit()
 
-        # Procesar repuestos
+        # Procesar repuestos - solo procesarlos si hay alguno
         spare_codes = request.form.getlist("spare_part_code[]")
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")
         total_prices = request.form.getlist("part_total_value[]")
 
-        for i in range(len(spare_codes)):
-            if spare_codes[i]:  # Solo procesar si hay código de repuesto
-                # Verificar que haya cantidad
-                if i >= len(quantities) or not quantities[i]:
-                    flash(
-                        f"Falta la cantidad para el repuesto {spare_codes[i]}", "danger")
-                    return redirect(url_for("technical_service.create_ticket"))
+        total_spare_value = 0  # Valor por defecto si no hay repuestos
 
-                try:
-                    quantity = int(quantities[i])
-                    if quantity <= 0:
-                        flash(
-                            f"La cantidad del repuesto {spare_codes[i]} debe ser mayor a cero", "danger")
-                        return redirect(url_for("technical_service.create_ticket"))
-                except ValueError:
-                    flash(
-                        f"La cantidad del repuesto {spare_codes[i]} debe ser un número", "danger")
-                    return redirect(url_for("technical_service.create_ticket"))
+        # Solo procesar repuestos si hay códigos de repuestos enviados
+        if spare_codes and any(code.strip() for code in spare_codes):
+            for i in range(len(spare_codes)):
+                if spare_codes[i]:  # Solo procesar si hay código de repuesto
+                    try:
+                        # Limpiar formatos y convertir a números
+                        quantity = int(quantities[i]) if i < len(quantities) and quantities[i] else 1
+                        if quantity <= 0:
+                            quantity = 1  # Valor por defecto si es negativo o cero
+                            
+                        # Limpiar separadores de miles del valor unitario
+                        unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
+                        unit_price_val = float(unit_price_str or 0)
+                        if unit_price_val < 0:
+                            unit_price_val = 0  # No permitir valores negativos
+                        
+                        # Limpiar separadores de miles del valor total
+                        total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
+                        total_price_val = float(total_price_str or 0)
+                        if not total_price_val:
+                            total_price_val = quantity * unit_price_val
 
-                # Verificar precio unitario
-                try:
-                    unit_price_val = float(unit_prices[i])
-                    if unit_price_val < 0:
-                        flash(
-                            f"El precio unitario del repuesto {spare_codes[i]} no puede ser negativo", "danger")
-                        return redirect(url_for("technical_service.create_ticket"))
-                except (ValueError, IndexError):
-                    flash(
-                        f"El precio unitario del repuesto {spare_codes[i]} debe ser un número válido", "danger")
-                    return redirect(url_for("technical_service.create_ticket"))
+                        spare_ticket = Spares_tickets(
+                            id_ticket=new_ticket.id_ticket,
+                            spare_code=spare_codes[i],
+                            quantity=quantity,
+                            unit_price=unit_price_val,
+                            total_price=total_price_val
+                        )
+                        db.session.add(spare_ticket)
+                        
+                        # Sumar al total de repuestos
+                        total_spare_value += total_price_val
+                        
+                    except (ValueError, IndexError):
+                        # En lugar de mostrar error, simplemente continuar con el siguiente repuesto
+                        continue
 
-                try:
-                    total_price_val = float(total_prices[i])
-                except (ValueError, IndexError):
-                    flash(
-                        f"Error al procesar el total del repuesto {spare_codes[i]}", "warning")
-                    return redirect(url_for("technical_service.create_ticket"))
-
-                spare_ticket = Spares_tickets(
-                    id_ticket=new_ticket.id_ticket,
-                    spare_code=spare_codes[i],
-                    quantity=quantity,
-                    unit_price=unit_price_val,
-                    total_price=total_price_val
-                )
-                db.session.add(spare_ticket)
-
-        # Actualizar totales si es necesario
-        total_spare_value = sum(float(price)
-                                for price in total_prices if price)
+        # Actualizar totales
         new_ticket.spare_value = total_spare_value
-        new_ticket.total = new_ticket.service_value + \
-            Decimal(str(total_spare_value))
+        new_ticket.total = new_ticket.service_value + Decimal(str(total_spare_value))
         db.session.commit()
 
         flash("Ticket creado correctamente", "success")
@@ -342,38 +339,48 @@ def edit_warranty(ticket_id):
 
     # Procesamiento del formulario POST
     if request.method == "POST":
+        # Función para limpiar los valores de los campos
+        def clean_value(value):
+            if value is None:
+                return None
+            return str(value).strip()
+            
         # Actualizamos los datos del cliente
-        client.name = request.form.get("client_names")
-        client.lastname = request.form.get("client_lastnames")
+        client.name = clean_value(request.form.get("client_names"))
+        client.lastname = clean_value(request.form.get("client_lastnames"))
         
         # Formatear el documento antes de guardarlo
-        document = request.form.get("document")
-        formatted_document = format_document(document)
+        document = clean_value(request.form.get("document"))
+        formatted_document = format_document(document) if document else None
         print(f"Documento formateado en edición: {document} -> {formatted_document}")
         client.document = formatted_document
         
-        client.mail = request.form.get("mail")
-        client.phone = request.form.get("phone")
+        client.mail = clean_value(request.form.get("mail"))
+        client.phone = clean_value(request.form.get("phone"))
 
         # Actualizamos los datos del ticket
-        ticket.technical_name = request.form.get("technical_name")
-        ticket.technical_document = request.form.get("technical_document")
-        ticket.state = request.form.get("state")
-        ticket.priority = request.form.get("priority")
-        ticket.city = request.form.get("city")
+        ticket.technical_name = clean_value(request.form.get("technical_name"))
+        ticket.technical_document = clean_value(request.form.get("technical_document"))
+        ticket.state = clean_value(request.form.get("state"))
+        ticket.priority = clean_value(request.form.get("priority"))
+        ticket.city = clean_value(request.form.get("city"))
 
-        ticket.type_of_service = request.form.get("type_of_service") or "2"
-        ticket.IMEI = request.form.get("IMEI")
-        ticket.reference = request.form.get("reference")
-        ticket.product_code = request.form.get("product_code")
+        ticket.type_of_service = clean_value(request.form.get("type_of_service")) or "2"
+        ticket.IMEI = clean_value(request.form.get("IMEI"))
+        ticket.reference = clean_value(request.form.get("reference"))
+        ticket.product_code = clean_value(request.form.get("product_code"))
+        ticket.invoice_number = clean_value(request.form.get("invoice_number"))
 
         # Actualizar el comentario
-        ticket.comment = request.form.get("comment")
+        ticket.comment = clean_value(request.form.get("comment"))
 
         try:
-            ticket.service_value = float(
-                request.form.get("service_value") or 0)
-            ticket.spare_value = float(request.form.get("spare_value") or 0)
+            # Limpiar separadores de miles (puntos) antes de convertir a float
+            service_value_str = request.form.get("service_value", "0").replace(".", "")
+            spare_value_str = request.form.get("spare_value", "0").replace(".", "")
+            
+            ticket.service_value = float(service_value_str or 0)
+            ticket.spare_value = float(spare_value_str or 0)
             ticket.total = ticket.service_value + ticket.spare_value
         except ValueError:
             flash(
@@ -394,34 +401,56 @@ def edit_warranty(ticket_id):
         # Primero eliminamos los repuestos existentes
         Spares_tickets.query.filter_by(id_ticket=ticket.id_ticket).delete()
 
-        # Procesar repuestos
+        # Procesar repuestos - solo procesarlos si hay alguno
         spare_codes = request.form.getlist("spare_part_code[]")
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")
         total_prices = request.form.getlist("part_total_value[]")
 
-        # Validar datos de repuestos
-        for i in range(len(spare_codes)):
-            if spare_codes[i]:  # Solo validar si hay código de repuesto
-                # Verificar cantidad, precio, etc...
-                try:
-                    quantity = int(quantities[i])
-                    unit_price = float(unit_prices[i])
-                    total_price = float(total_prices[i])
+        total_spare_value = 0  # Valor por defecto si no hay repuestos
 
-                    spare_ticket = Spares_tickets(
-                        id_ticket=ticket.id_ticket,
-                        spare_code=spare_codes[i],
-                        quantity=quantity,
-                        unit_price=unit_price,
-                        total_price=total_price
-                    )
-                    db.session.add(spare_ticket)
-                except (ValueError, IndexError) as e:
-                    db.session.rollback()  # Revertir cambios parciales
-                    flash(f"Error al procesar repuesto: {str(e)}", "danger")
-                    print(f"Error procesando repuesto {i}: {str(e)}")
-                    return redirect(url_for("warranty.edit_warranty", ticket_id=ticket.id_ticket))
+        # Solo procesar repuestos si hay códigos de repuestos enviados
+        if spare_codes and any(code.strip() for code in spare_codes):
+            for i in range(len(spare_codes)):
+                if spare_codes[i]:  # Solo procesar si hay código de repuesto
+                    try:
+                        # Limpiar formatos y convertir a números
+                        quantity = int(quantities[i]) if i < len(quantities) and quantities[i] else 1
+                        if quantity <= 0:
+                            quantity = 1  # Valor por defecto si es negativo o cero
+                        
+                        # Limpiar separadores de miles del valor unitario
+                        unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
+                        unit_price_val = float(unit_price_str or 0)
+                        if unit_price_val < 0:
+                            unit_price_val = 0  # No permitir valores negativos
+                        
+                        # Limpiar separadores de miles del valor total
+                        total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
+                        total_price_val = float(total_price_str or 0)
+                        if not total_price_val:
+                            total_price_val = quantity * unit_price_val
+
+                        spare_ticket = Spares_tickets(
+                            id_ticket=ticket.id_ticket,
+                            spare_code=spare_codes[i],
+                            quantity=quantity,
+                            unit_price=unit_price_val,
+                            total_price=total_price_val
+                        )
+                        db.session.add(spare_ticket)
+                        
+                        # Sumar al total de repuestos
+                        total_spare_value += total_price_val
+                        
+                    except (ValueError, IndexError):
+                        # En lugar de mostrar error, simplemente continuar con el siguiente repuesto
+                        continue
+
+        # Actualizar totales
+        ticket.spare_value = total_spare_value
+        ticket.total = ticket.service_value + Decimal(str(total_spare_value))
+        db.session.commit()
 
         # Procesar imágenes a eliminar
         images_to_delete = request.form.get("images_to_delete", "[]")
@@ -604,12 +633,18 @@ def search_client():
         print(f"Resultado búsqueda cliente: {client_data}")
         
         if not client_data:
-            return jsonify({"success": False, "message": "Cliente no encontrado en la base de datos"}), 404
+            return jsonify({"success": False, "message": "Cliente no encontrado"})
         
         # Obtener facturas del cliente
         invoices = get_client_invoices(document)
         
         print(f"Facturas encontradas: {len(invoices)}")
+        
+        # Log detallado de las facturas
+        if invoices:
+            print("Detalle de la primera factura:")
+            for key, value in invoices[0].items():
+                print(f"  - {key}: {value}")
         
         return jsonify({
             "success": True,
@@ -619,3 +654,75 @@ def search_client():
     except Exception as e:
         print(f"Error al buscar cliente: {str(e)}")
         return jsonify({"success": False, "message": f"Error al buscar cliente: {str(e)}"}), 500
+
+# Ruta para buscar repuestos dinámicamente
+@warranty_bp.route("/search_spare_parts", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_spare_parts():
+    """
+    Busca repuestos según un término de búsqueda,
+    retornando sólo los resultados coincidentes, no todos los repuestos.
+    """
+    search_term = request.form.get("search", "").strip().lower()
+    
+    if not search_term or len(search_term) < 3:
+        return jsonify({
+            "success": False,
+            "message": "Ingrese al menos 3 caracteres para buscar"
+        }), 400
+    
+    try:
+        # Obtener los repuestos directamente de la fuente (base de datos)
+        # Esta función ahora solo traerá los resultados que coincidan con la búsqueda
+        # en lugar de traer todos los repuestos y filtrarlos después
+        query = f'''
+        SELECT CODIGO, DESCRIPCIO
+        FROM MTMERCIA
+        WHERE CODLINEA = 'ST' AND 
+        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
+        ORDER BY 
+            CASE 
+                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
+                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
+                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
+                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
+                ELSE 5
+            END
+        '''
+        
+        # Ejecutar la consulta usando la función execute_query importada
+        results = execute_query(query)
+        
+        # Procesar resultados
+        spare_parts = []
+        for row in results:
+            if len(spare_parts) >= 30:  # Limitar a 30 resultados
+                break
+                
+            spare_parts.append({
+                "code": row[0].strip() if row[0] else "",
+                "description": row[1].strip() if row[1] else ""
+            })
+        
+        # Verificar si hay resultados
+        if not spare_parts:
+            return jsonify({
+                "success": True,
+                "parts": [],
+                "count": 0,
+                "message": "No se encontraron repuestos con ese criterio"
+            })
+            
+        return jsonify({
+            "success": True,
+            "parts": spare_parts,
+            "count": len(spare_parts)
+        })
+    
+    except Exception as e:
+        print(f"Error al buscar repuestos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error al buscar repuestos: {str(e)}"
+        }), 500

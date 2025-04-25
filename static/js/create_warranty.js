@@ -1,539 +1,1184 @@
-/***************************************************
+/*****************************************************
  * create_warranty.js
- * Funciones y validaciones para la creación de garantías
- ***************************************************/
+ * Funciones para la creación de garantías de servicio
+ *****************************************************/
 
-/***** Funciones Globales *****/
+// Variables globales
+var clientInvoices = [];
 
 /**
- * Muestra un toast (notificación pequeña) usando SweetAlert2.
- * @param {string} icon - Tipo de ícono ('success', 'error', 'info', etc.).
- * @param {string} title - Texto a mostrar.
- * @param {string} [position='top-end'] - Posición en la pantalla.
- * @param {number} [timer=3000] - Tiempo en milisegundos.
+ * Muestra una notificación toast
+ * @param {string} icon - Tipo de icono ('success', 'error', 'warning', 'info')
+ * @param {string} title - Texto de la notificación
+ * @param {string} position - Posición ('top', 'top-start', 'top-end', etc.)
+ * @param {number} timer - Tiempo en ms que se mostrará la notificación
  */
 function showToast(icon, title, position = 'top-end', timer = 3000) {
-    const Toast = Swal.mixin({
-        toast: true,
-        position: position,
-        showConfirmButton: false,
-        timer: timer,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-    Toast.fire({ icon: icon, title: title });
-}
+    if (typeof Swal !== 'undefined') {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: position,
+            showConfirmButton: false,
+            timer: timer,
+            timerProgressBar: true
+        });
 
-
-/**
- * Muestra una alerta de éxito para la creación del ticket.
- */
-function showSuccessTicketAlert() {
-    Swal.fire({
-        icon: 'success',
-        title: '¡Ticket creado con éxito!',
-        text: 'El nuevo ticket se ha generado correctamente.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        iconColor: '#28a745',
-        customClass: {
-            popup: 'colored-toast'
-        }
-    });
+        Toast.fire({
+            icon: icon,
+            title: title
+        });
+    } else {
+        console.log(`${icon.toUpperCase()}: ${title}`);
+    }
 }
 
 /**
- * Valida el formato de un correo electrónico.
- * @param {string} email - Correo a validar.
- * @returns {boolean} - True si el email es válido.
+ * Muestra las facturas del cliente en el selector
+ * @param {Array} invoices - Lista de facturas asociadas al cliente
  */
+function showInvoices(invoices) {
+    console.log("Mostrando facturas:", invoices);
+
+    // Guardar las facturas en variable global
+    clientInvoices = invoices || [];
+
+    // Selector de facturas
+    const invoiceSelector = document.getElementById('invoice_selector');
+    const invoiceDropdownSection = document.getElementById('invoiceDropdownSection');
+
+    // Limpiar y configurar el selector de facturas
+    if (invoiceSelector) {
+        // Limpiar opciones previas
+        invoiceSelector.innerHTML = '<option value="">Seleccione una factura</option>';
+
+        // Si hay facturas, mostrar la sección y llenar el selector
+        if (clientInvoices.length > 0) {
+            invoiceDropdownSection.style.display = 'block';
+
+            // Crear una opción para cada factura
+            clientInvoices.forEach((invoice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+
+                // Formatear descripción de la factura
+                const serie = invoice.numero || 'S/N';
+                const referencia = invoice.referencia || 'Sin referencia';
+                const fecha = invoice.fecha_formateada || 'Sin fecha';
+
+                option.textContent = `${serie} - ${referencia} (${fecha})`;
+                invoiceSelector.appendChild(option);
+            });
+
+            // Eliminar manejadores previos y añadir el nuevo
+            invoiceSelector.removeEventListener('change', handleInvoiceSelection);
+            invoiceSelector.addEventListener('change', handleInvoiceSelection);
+
+            // Panel de detalles inicialmente oculto
+            const selectedInvoiceDetails = document.getElementById('selectedInvoiceDetails');
+            if (selectedInvoiceDetails) {
+                selectedInvoiceDetails.style.display = 'none';
+            }
+        } else {
+            // Ocultar sección si no hay facturas
+            invoiceDropdownSection.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Maneja la selección de una factura del selector
+ */
+function handleInvoiceSelection() {
+    const invoiceSelector = document.getElementById('invoice_selector');
+    if (!invoiceSelector) return;
+
+    const selectedIndex = parseInt(invoiceSelector.value);
+
+    if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || clientInvoices.length === 0) {
+        const detailsPanel = document.getElementById('selectedInvoiceDetails');
+        if (detailsPanel) detailsPanel.style.display = 'none';
+        return;
+    }
+
+    const selectedInvoice = clientInvoices[selectedIndex];
+    console.log("Factura seleccionada:", selectedInvoice);
+
+    // Mostrar el panel de detalles
+    const detailsPanel = document.getElementById('selectedInvoiceDetails');
+    if (detailsPanel) detailsPanel.style.display = 'block';
+
+    // Limpiar valores
+    const cleanValue = (value) => value ? value.toString().trim() : '-';
+
+    // Actualizar los inputs con los detalles
+    const codeInput = document.getElementById('invoiceDetailCode');
+    const serieInput = document.getElementById('invoiceDetailSerie');
+    const dateInput = document.getElementById('invoiceDetailDate');
+    const refInput = document.getElementById('invoiceDetailReference');
+    const documentInput = document.getElementById('invoiceDetailDocument');
+
+    if (codeInput) codeInput.value = cleanValue(selectedInvoice.codigo_producto);
+    if (serieInput) serieInput.value = cleanValue(selectedInvoice.numero);
+    if (dateInput) dateInput.value = cleanValue(selectedInvoice.fecha_formateada);
+    if (refInput) refInput.value = cleanValue(selectedInvoice.referencia);
+    if (documentInput) documentInput.value = cleanValue(selectedInvoice.documento);
+
+    // Configurar el botón "Usar para garantía"
+    const useDataBtn = document.getElementById('useInvoiceDataBtn');
+    if (useDataBtn) {
+        // Remover manejadores previos reemplazando el botón
+        const newUseDataBtn = useDataBtn.cloneNode(true);
+        useDataBtn.parentNode.replaceChild(newUseDataBtn, useDataBtn);
+
+        // Añadir nuevo manejador
+        newUseDataBtn.addEventListener('click', function () {
+            applyProductData(selectedInvoice);
+        });
+    }
+}
+
+/**
+ * Aplica los datos de la factura seleccionada al formulario
+ * @param {Object} invoice - Objeto factura seleccionada
+ */
+function applyProductData(invoice) {
+    if (!invoice) return;
+
+    // Función para limpiar valores
+    const cleanValue = (value) => value ? value.toString().trim() : '';
+
+    // Actualizar los campos del formulario
+    const referenceInput = document.getElementById('reference');
+    const productCodeInput = document.getElementById('product_code');
+    const imeiInput = document.getElementById('IMEI');
+    const invoiceNumberInput = document.getElementById('invoice_number');
+
+    // Procesar la referencia y código del producto
+    if (invoice.referencia) {
+        const referenciaCompleta = cleanValue(invoice.referencia);
+
+        // Asumimos que la referencia tiene formato "CÓDIGO    DESCRIPCIÓN"
+        // El patrón busca un espacio inicial seguido de múltiples espacios después del código
+        const partes = referenciaCompleta.split(/\s{2,}/);
+
+        console.log("Partes de la referencia:", partes);
+
+        if (partes.length >= 2) {
+            // El primer elemento es el código
+            const codigo = partes[0].trim();
+            // El resto es la descripción
+            const descripcion = partes.slice(1).join(' ').trim();
+
+            console.log("Código extraído:", codigo);
+            console.log("Descripción extraída:", descripcion);
+
+            // Actualizar código de producto
+            if (productCodeInput) {
+                productCodeInput.value = codigo;
+            }
+
+            // Actualizar campo de referencia (descripción)
+            if (referenceInput) {
+                // Si es un campo select, intentamos encontrar la opción que coincida
+                if (referenceInput.tagName.toLowerCase() === 'select') {
+                    let encontrado = false;
+                    const options = referenceInput.options;
+
+                    for (let i = 0; i < options.length; i++) {
+                        // Buscamos si la opción contiene la descripción
+                        if (options[i].text.trim().includes(descripcion)) {
+                            referenceInput.selectedIndex = i;
+                            // Disparar evento change para actualizar código de producto
+                            const event = new Event('change');
+                            referenceInput.dispatchEvent(event);
+                            encontrado = true;
+                            break;
+                        }
+                    }
+
+                    // Si no se encontró, seleccionamos la primera opción
+                    if (!encontrado && options.length > 0) {
+                        console.warn("No se encontró una opción exacta para la descripción:", descripcion);
+                        // Dejamos la selección como está o seleccionamos la primera opción no vacía
+                    }
+                } else {
+                    // Si es un input de texto, simplemente asignamos la descripción
+                    referenceInput.value = descripcion;
+                }
+            }
+        } else {
+            // Si no se pudo separar, usamos toda la referencia
+            console.warn("No se pudo separar el código de la descripción:", referenciaCompleta);
+
+            if (productCodeInput && invoice.codigo_producto) {
+                productCodeInput.value = cleanValue(invoice.codigo_producto);
+            }
+
+            if (referenceInput) {
+                if (referenceInput.tagName.toLowerCase() === 'select') {
+                    // Buscar en el select la opción que coincida
+                    const options = referenceInput.options;
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].value.trim() === referenciaCompleta) {
+                            referenceInput.selectedIndex = i;
+                            const event = new Event('change');
+                            referenceInput.dispatchEvent(event);
+                            break;
+                        }
+                    }
+                } else {
+                    referenceInput.value = referenciaCompleta;
+                }
+            }
+        }
+    } else if (productCodeInput && invoice.codigo_producto) {
+        // Si no hay referencia pero sí código de producto
+        productCodeInput.value = cleanValue(invoice.codigo_producto);
+    }
+
+    // Serie a IMEI
+    if (imeiInput && invoice.numero) {
+        imeiInput.value = cleanValue(invoice.numero);
+    }
+
+    // Documento a número de factura
+    if (invoiceNumberInput && invoice.documento) {
+        invoiceNumberInput.value = cleanValue(invoice.documento);
+    }
+
+    // Mostrar mensaje de confirmación
+    showToast('success', 'Datos aplicados al formulario');
+}
+
+// Utilidades y funciones de validación
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 }
 
 /**
- * Formatea un número con separadores de miles (punto).
- * @param {number|string} number - El número a formatear.
- * @returns {string} - El número formateado.
+ * Formatea un número con separadores de miles
+ * @param {number|string} number - Número a formatear
+ * @returns {string} Número formateado con separadores de miles
  */
 function formatNumberWithThousands(number) {
+    // Si no es un valor válido, devolver 0
+    if (number === undefined || number === null || isNaN(number)) return '0';
+    
+    // Si es string, convertir a número eliminando separadores existentes
     if (typeof number === 'string') {
-        number = parseFloat(number.replace(/\./g, '')) || 0;
+        // Eliminar todo excepto dígitos
+        number = parseInt(number.replace(/\./g, ''), 10) || 0;
+    } else {
+        // Si es número, asegurar que sea entero
+        number = Math.floor(number);
     }
+    
+    // Formatear usando el formato colombiano (punto como separador de miles)
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-/**
- * Elimina los separadores de miles de un número formateado.
- * @param {string} formattedNumber - El número con separadores.
- * @returns {number} - El número sin formato.
- */
 function unformatNumber(formattedNumber) {
     if (!formattedNumber) return 0;
-    return parseFloat(formattedNumber.replace(/\./g, "")) || 0;
+    
+    // Si no es string, convertirlo
+    const strValue = formattedNumber.toString();
+    
+    // Eliminar todos los puntos (separadores de miles)
+    return parseInt(strValue.replace(/\./g, ''), 10) || 0;
 }
 
 /**
- * Aplica formato de miles a un campo de entrada.
- * @param {HTMLElement} input - El elemento de entrada.
+ * Inicializa el manejo de valores monetarios en el formulario
  */
-function applyThousandsFormatting(input) {
-    if (!input) return;
-    if (input.value && !isNaN(parseFloat(input.value))) {
-        input.value = formatNumberWithThousands(input.value);
+function setupMoneyHandling() {
+    const serviceValueInput = document.getElementById('service_value');
+    
+    /**
+     * Aplica formato de moneda a un input
+     * @param {HTMLInputElement} input - Input a formatear
+     */
+    function applyFormatting(input) {
+        if (!input) return;
+        
+        // Añadir eventos para formateo de valores monetarios
+        input.addEventListener('input', function() {
+            // Guardar posición del cursor
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            const originalLength = this.value.length;
+            
+            // Formatear valor - asegurar que sea entero
+            let value = this.value.replace(/[^\d]/g, '');
+            // Convertir a entero para eliminar cualquier decimal
+            value = parseInt(value) || 0;
+            
+            if (value) {
+                this.value = formatNumberWithThousands(value);
+            } else {
+                this.value = '0';
+            }
+            
+            // Reposicionar cursor
+            const newLength = this.value.length;
+            const cursorAdjust = newLength - originalLength;
+            
+            if (document.activeElement === this) {
+                this.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+            }
+        });
+        
+        // Añadir evento para recalcular totales cuando cambie el valor
+        input.addEventListener('change', function() {
+            updatePartsTotals();
+        });
     }
-    input.addEventListener('input', function () {
-        const cursorPos = this.selectionStart;
-        const originalLength = this.value.length;
-        let value = this.value.replace(/[^\d]/g, '');
-        if (value) {
-            this.value = formatNumberWithThousands(value);
-        } else {
-            this.value = '';
-        }
-        const newLength = this.value.length;
-        const posDiff = newLength - originalLength;
-        this.setSelectionRange(cursorPos + posDiff, cursorPos + posDiff);
-    });
+    
+    // Aplicar formato al input de valor de servicio
+    if (serviceValueInput) {
+        applyFormatting(serviceValueInput);
+    }
 }
 
-/***** Validaciones en Tiempo Real *****/
+// Inicializar el manejo de valores monetarios al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    setupMoneyHandling();
+});
 
-/**
- * Adjunta validaciones en tiempo real a campos específicos.
- * Se agregan listeners "input" para mostrar o quitar la clase "is-invalid"
- * según se cumplan o no las condiciones.
- */
-/**
- * Muestra un mensaje de error personalizado para un campo
- * @param {HTMLElement} input - El elemento de entrada
- * @param {string} message - El mensaje de error a mostrar
- */
 function showValidationError(input, message) {
-    // Eliminar mensaje de error anterior si existe
-    const existingFeedback = input.nextElementSibling;
-    if (existingFeedback && existingFeedback.classList.contains('invalid-feedback')) {
-        existingFeedback.remove();
+    if (!input) return;
+
+    // Asegurarse de que tiene un ID
+    if (!input.id) {
+        input.id = 'input_' + Math.random().toString(36).substr(2, 9);
     }
-    
-    // Crear y agregar nuevo mensaje de error
-    const feedback = document.createElement('div');
-    feedback.classList.add('invalid-feedback');
+
+    // Crear o actualizar mensaje de error
+    let feedback = input.nextElementSibling;
+
+    if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+        feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        input.parentNode.insertBefore(feedback, input.nextSibling);
+    }
+
     feedback.textContent = message;
-    input.parentNode.appendChild(feedback);
-    
-    // Marcar el campo como inválido
     input.classList.add('is-invalid');
 }
 
-/**
- * Elimina el mensaje de error de un campo
- * @param {HTMLElement} input - El elemento de entrada
- */
 function removeValidationError(input) {
+    if (!input) return;
+
     input.classList.remove('is-invalid');
-    const existingFeedback = input.nextElementSibling;
-    if (existingFeedback && existingFeedback.classList.contains('invalid-feedback')) {
-        existingFeedback.remove();
+
+    const feedback = input.nextElementSibling;
+    if (feedback && feedback.classList.contains('invalid-feedback')) {
+        feedback.textContent = '';
     }
 }
-
-/**
- * Valida un número de teléfono
- * @param {string} phone - El número a validar
- * @returns {boolean} - True si el teléfono es válido
- */
-function validatePhone(phone) {
-    // Permitir números, espacios, guiones y paréntesis
-    const re = /^[\d\s\-()]+$/;
-    return re.test(phone) && phone.replace(/[^\d]/g, '').length >= 7;
-}
-
-/**
- * Valida un IMEI o número de serie
- * @param {string} imei - El IMEI a validar
- * @returns {boolean} - True si el IMEI es válido
- */
-function validateIMEI(imei) {
-    // Un IMEI debe tener exactamente 15 caracteres numéricos
-    return imei.length === 15 && /^\d{15}$/.test(imei);
-}
-
-
-/**
- * Adjunta validaciones en tiempo real mejoradas a campos específicos.
- */
-function attachEnhancedRealTimeValidation() {
-    // Definir los campos y sus reglas de validación
-    const fields = [
-        { 
-            id: 'client_names', 
-            required: true, 
-            errorMsg: 'El nombre del cliente es obligatorio'
-        },
-        { 
-            id: 'client_lastnames', 
-            required: true, 
-            errorMsg: 'El apellido del cliente es obligatorio'
-        },
-        { 
-            id: 'document', 
-            required: true, 
-            errorMsg: 'El documento del cliente es obligatorio',
-            minLength: 5,
-            minLengthMsg: 'El documento debe tener al menos 5 caracteres',
-            maxLength: 15,
-            maxLengthMsg: 'El documento no puede tener más de 15 caracteres'
-        },
-        { 
-            id: 'phone', 
-            validator: validatePhone, 
-            errorMsg: 'Ingrese un número de teléfono válido (mínimo 7 dígitos)'
-        },
-        { 
-            id: 'mail', 
-            required: true, 
-            email: true, 
-            errorMsg: 'Ingrese un correo electrónico válido'
-        },
-        { 
-            id: 'IMEI', 
-            validator: validateIMEI, 
-            errorMsg: 'El IMEI/Serial debe tener 15 caracteres'
-        },
-        { 
-            id: 'service_value', 
-            required: true, 
-            number: true, 
-            min: 0, 
-            errorMsg: 'El valor del servicio debe ser un número positivo'
-        }
-    ];
-
-    fields.forEach(fieldInfo => {
-        const input = document.getElementById(fieldInfo.id);
-        if (input) {
-            input.addEventListener('input', function () {
-                let valid = true;
-                let errorMessage = '';
-                
-                // Validar campo obligatorio
-                if (fieldInfo.required && !this.value.trim()) {
-                    valid = false;
-                    errorMessage = fieldInfo.errorMsg;
-                }
-                
-                // Validar longitud mínima
-                if (valid && fieldInfo.minLength && this.value.trim().length < fieldInfo.minLength) {
-                    valid = false;
-                    errorMessage = fieldInfo.minLengthMsg;
-                }
-                
-                // Validar formato de email si corresponde
-                if (valid && fieldInfo.email && this.value.trim() && !validateEmail(this.value.trim())) {
-                    valid = false;
-                    errorMessage = fieldInfo.errorMsg;
-                }
-                
-                // Validar valor numérico y mínimo
-                if (valid && fieldInfo.number) {
-                    let num = unformatNumber(this.value);
-                    if (isNaN(num) || num < fieldInfo.min) {
-                        valid = false;
-                        errorMessage = fieldInfo.errorMsg;
-                    }
-                }
-                
-                // Usar validador personalizado si existe
-                if (valid && fieldInfo.validator && this.value.trim() && !fieldInfo.validator(this.value.trim())) {
-                    valid = false;
-                    errorMessage = fieldInfo.errorMsg;
-                }
-                
-                // Mostrar u ocultar error
-                if (valid) {
-                    removeValidationError(this);
-                } else {
-                    showValidationError(this, errorMessage);
-                }
-            });
-            
-            // Validación inicial al cargar la página
-            if (input.value) {
-                input.dispatchEvent(new Event('input'));
-            }
-        }
-    });
-    
-    // Validación para campos select
-    const selectFields = [
-        {
-            id: 'reference',
-            required: true,
-            errorMsg: 'Seleccione una referencia de producto'
-        },
-        {
-            id: 'technical_name',
-            errorMsg: 'Seleccione un técnico válido'
-        }
-    ];
-    
-    selectFields.forEach(fieldInfo => {
-        const select = document.getElementById(fieldInfo.id);
-        if (select) {
-            select.addEventListener('change', function() {
-                if (fieldInfo.required && (!this.value || this.value === '')) {
-                    showValidationError(this, fieldInfo.errorMsg);
-                } else {
-                    removeValidationError(this);
-                }
-            });
-            
-            // Para select2, necesitamos un evento adicional
-            if ($(select).data('select2')) {
-                $(select).on('select2:select select2:unselect', function() {
-                    if (fieldInfo.required && (!this.value || this.value === '')) {
-                        showValidationError(this, fieldInfo.errorMsg);
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-            }
-            
-            // Validación inicial
-            if (fieldInfo.required) {
-                select.dispatchEvent(new Event('change'));
-            }
-        }
-    });
-    
-    // Validación para la tabla de repuestos
-    const validatePartsTable = function() {
-        const partsTable = document.getElementById('partsTable');
-        if (!partsTable) return;
-        
-        const rows = partsTable.querySelectorAll('tbody tr.part-row');
-        rows.forEach(row => {
-            // Validar selección de repuesto
-            const partSelect = row.querySelector('select[name="spare_part_code[]"]');
-            if (partSelect) {
-                partSelect.addEventListener('change', function() {
-                    if (!this.value || this.value === '') {
-                        showValidationError(this, 'Seleccione un repuesto');
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-                
-                // Para select2
-                if ($(partSelect).data('select2')) {
-                    $(partSelect).on('select2:select select2:unselect', function() {
-                        if (!this.value || this.value === '') {
-                            showValidationError(this, 'Seleccione un repuesto');
-                        } else {
-                            removeValidationError(this);
-                        }
-                    });
-                }
-            }
-            
-            // Validar cantidad
-            const quantityInput = row.querySelector('.part-quantity');
-            if (quantityInput) {
-                quantityInput.addEventListener('input', function() {
-                    const quantity = parseInt(this.value);
-                    if (isNaN(quantity) || quantity < 1) {
-                        showValidationError(this, 'La cantidad debe ser al menos 1');
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-            }
-            
-            // Validar valor unitario
-            const unitValueInput = row.querySelector('.part-unit-value');
-            if (unitValueInput) {
-                unitValueInput.addEventListener('input', function() {
-                    const value = unformatNumber(this.value);
-                    if (isNaN(value) || value <= 0) {
-                        showValidationError(this, 'Ingrese un valor válido mayor a 0');
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-            }
-        });
-    };
-    
-    // Validar repuestos existentes
-    validatePartsTable();
-    
-    // Agregar validación cuando se agrega un nuevo repuesto
-    const addPartBtn = document.getElementById('addPartBtn');
-    if (addPartBtn) {
-        addPartBtn.addEventListener('click', function() {
-            // Esperar a que se agregue la fila
-            setTimeout(validatePartsTable, 100);
-        });
-    }
-}
-
-/**
- * Modifica el comportamiento del selector de técnico y estado para prevenir combinaciones inválidas
- */
-function setupTechnicianStateRestriction() {
-    const technicianSelect = document.getElementById('technical_name');
-    const stateSelect = document.getElementById('state');
-    const stateDisplay = document.getElementById('state_display');
-    
-    if (!technicianSelect || !stateSelect) return;
-    
-    // Función para actualizar el campo de visualización
-    function updateStateDisplay() {
-        if (stateDisplay) {
-            stateDisplay.value = stateSelect.value;
-        }
-    }
-    
-    // Modificar el comportamiento original del evento change del técnico
-    technicianSelect.addEventListener('change', function() {
-        const hasTechnician = this.value && this.value !== '';
-        
-        // Actualizar el estado basado en la selección del técnico
-        if (hasTechnician) {
-            stateSelect.value = "Asignado";
-        } else {
-            stateSelect.value = "Sin asignar";
-        }
-        
-        // Actualizar el campo de visualización
-        updateStateDisplay();
-        
-        // Disparar evento change para que otros listeners se enteren
-        stateSelect.dispatchEvent(new Event('change'));
-    });
-    
-    // Inicializar el estado de visualización
-    updateStateDisplay();
-}
-
-
 
 /***** Inicialización al Cargar el DOM *****/
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function () {
+    // Identificar elementos del DOM
+    const searchClientBtn = document.getElementById('searchClientBtn');
+    const documentInput = document.getElementById('document');
+    const documentFeedback = document.getElementById('documentFeedback');
+    const clientNamesInput = document.getElementById('client_names');
+    const clientLastnamesInput = document.getElementById('client_lastnames');
+    const phoneInput = document.getElementById('phone');
+    const mailInput = document.getElementById('mail');
 
-    // Llamar a la función de validación en tiempo real
-    attachEnhancedRealTimeValidation();
+    // Configurar evento de búsqueda de cliente
+    if (searchClientBtn) {
+        searchClientBtn.addEventListener('click', function () {
+            const document = documentInput.value.trim();
 
-    /***** 1. Mostrar alerta si el ticket fue creado *****/
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_created') === 'success') {
-        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    /***** 2. Inicialización de Select2 *****/
-    if (document.getElementById('reference')) {
-        $('#reference').select2({
-            width: '100%',
-            placeholder: "Seleccione una referencia",
-            allowClear: true
-        });
-    }
-    
-    // Inicializar Select2 para el selector de facturas
-    if (document.getElementById('invoice_selector')) {
-        $('#invoice_selector').select2({
-            width: '100%',
-            placeholder: "Seleccione una factura",
-            allowClear: true
-        });
-        
-        // Cuando cambia mediante Select2, disparar el evento change nativo
-        $('#invoice_selector').on('select2:select', function (e) {
-            this.dispatchEvent(new Event('change'));
-        });
-    }
-    
-    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code, #invoice_selector').select2({
-        width: '100%',
-        placeholder: "Seleccione una opción",
-        allowClear: true
-    });
-    $('#reference').on('select2:select', function (e) {
-        this.dispatchEvent(new Event('change'));
-    });
+            // Limpiar errores previos
+            if (documentFeedback) {
+                documentFeedback.style.display = 'none';
+                documentFeedback.classList.remove('d-block');
+                documentInput.classList.remove('is-invalid');
+            }
 
-    setupTechnicianStateRestriction();
-
-    /***** 3. Auto-completar campos *****/
-    // Actualizar documento del técnico y cambiar estado a "Asignado"
-    const technicianSelect = document.getElementById('technical_name');
-    const technicianDocumentInput = document.getElementById('technical_document');
-    const stateSelect = document.getElementById('state');
-    if (technicianSelect && technicianDocumentInput && stateSelect) {
-        technicianSelect.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Asignado") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
+            if (!document) {
+                if (documentFeedback) {
+                    documentFeedback.textContent = 'Por favor, ingrese un número de documento';
+                    documentFeedback.style.display = 'block';
+                    documentInput.classList.add('is-invalid');
                 }
+                return;
+            }
+
+            // Extraer solo dígitos para validación básica
+            const digitsOnly = document.replace(/\D/g, '');
+
+            if (digitsOnly.length < 5) {
+                if (documentFeedback) {
+                    documentFeedback.textContent = 'El documento debe tener al menos 5 dígitos';
+                    documentFeedback.style.display = 'block';
+                    documentInput.classList.add('is-invalid');
+                }
+                return;
+            }
+
+            console.log(`Buscando cliente con documento: ${document}`);
+
+            // Crear FormData para enviar en la petición
+            const formData = new FormData();
+            formData.append('document', document);
+
+            // Mostrar indicador de carga
+            searchClientBtn.disabled = true;
+            searchClientBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+            // Enviar petición AJAX
+            fetch('/search_client', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Restaurar botón
+                    searchClientBtn.disabled = false;
+                    searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+
+                    console.log('Respuesta del servidor:', data);
+
+                    if (data.success) {
+                        // Mostrar datos del cliente
+                        if (data.client) {
+                            if (clientNamesInput) {
+                                const nombre1 = data.client.nombre1 || '';
+                                const nombre2 = data.client.nombre2 || '';
+                                clientNamesInput.value = `${nombre1} ${nombre2}`.trim();
+                                clientNamesInput.classList.add('bg-light');
+                                clientNamesInput.readOnly = true;
+                            }
+
+                            if (clientLastnamesInput) {
+                                const apellido1 = data.client.apellido1 || '';
+                                const apellido2 = data.client.apellido2 || '';
+                                clientLastnamesInput.value = `${apellido1} ${apellido2}`.trim();
+                                clientLastnamesInput.classList.add('bg-light');
+                                clientLastnamesInput.readOnly = true;
+                            }
+
+                            if (phoneInput) {
+                                phoneInput.value = data.client.phone || '';
+                                phoneInput.classList.add('bg-light');
+                                phoneInput.readOnly = true;
+                            }
+
+                            if (mailInput) {
+                                mailInput.value = data.client.email || '';
+                                mailInput.classList.add('bg-light');
+                                mailInput.readOnly = true;
+                            }
+                        }
+
+                        // Mostrar facturas usando la función global
+                        showInvoices(data.invoices);
+
+                        // Mostrar notificación
+                        showToast('success', 'Cliente encontrado', 'top-end', 3000);
+                    } else {
+                        if (documentFeedback) {
+                            documentFeedback.textContent = 'Cliente no encontrado';
+                            documentFeedback.style.display = 'block';
+                            documentInput.classList.add('is-invalid');
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Restaurar botón
+                    searchClientBtn.disabled = false;
+                    searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+
+                    console.error('Error en la búsqueda:', error);
+
+                    if (documentFeedback) {
+                        documentFeedback.textContent = `Error: ${error.message}`;
+                        documentFeedback.style.display = 'block';
+                        documentInput.classList.add('is-invalid');
+                    }
+                });
+        });
+    }
+
+    // Buscar cliente al presionar Enter en el campo documento
+    if (documentInput) {
+        documentInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Evitar envío del formulario
+                if (searchClientBtn) searchClientBtn.click();
+            }
+        });
+
+        documentInput.addEventListener('input', function () {
+            if (documentFeedback) {
+                documentFeedback.style.display = 'none';
+                documentInput.classList.remove('is-invalid');
+            }
+        });
+    }
+
+    // Restaurar la funcionalidad para la selección del técnico
+    const technicalNameSelect = document.getElementById('technical_name');
+    const technicalDocumentInput = document.getElementById('technical_document');
+    const stateInput = document.getElementById('state');
+    const stateDisplayInput = document.getElementById('state_display');
+
+    if (technicalNameSelect) {
+        technicalNameSelect.addEventListener('change', function () {
+            // Actualizar documento del técnico
+            if (technicalDocumentInput) {
+                const selectedOption = this.options[this.selectedIndex];
+                const techDocument = selectedOption.dataset.document || '';
+                technicalDocumentInput.value = techDocument;
+            }
+
+            // Actualizar estado
+            if (stateInput && stateDisplayInput) {
+                if (this.value && this.value !== '') {
+                    // Si se seleccionó un técnico, actualizar el estado a "Asignado"
+                    stateInput.value = 'Asignado';
+                    stateDisplayInput.value = 'Asignado';
+                } else {
+                    // Si no hay técnico seleccionado, actualizar el estado a "Sin asignar"
+                    stateInput.value = 'Sin asignar';
+                    stateDisplayInput.value = 'Sin asignar';
+                }
+            }
+        });
+    }
+
+    // Inicializar tabla de repuestos
+    setupPartsTable();
+
+    // Inicializar selector de problemas
+    setupProblemsSelector();
+});
+
+/***** Inicialización de Repuestos *****/
+function setupPartsTable() {
+    const partsTable = document.getElementById('partsTable');
+    const addPartBtn = document.getElementById('addPartBtn');
+    const noPartsRow = document.getElementById('noPartsRow');
+    const spareValueInput = document.getElementById('spare_value');
+    const totalInput = document.getElementById('total');
+    const serviceValueInput = document.getElementById('service_value');
+
+    // Variables para el modal de búsqueda
+    const searchPartsModal = document.getElementById('searchPartsModal');
+    const modalPartSearch = document.getElementById('modalPartSearch');
+    const searchResults = document.getElementById('searchResults');
+    const searchResultsLoader = document.getElementById('searchResultsLoader');
+    const initialSearchMessage = document.getElementById('initialSearchMessage');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+
+    // Variable para guardar la fila actual que está seleccionando un repuesto
+    let currentEditingRow = null;
+
+    if (!partsTable || !addPartBtn) return;
+
+    // Función para actualizar índices
+    function updateRowIndices() {
+        const rows = partsTable.querySelectorAll('tbody tr.part-row');
+        rows.forEach((row, index) => {
+            const indexCell = row.querySelector('.part-index');
+            if (indexCell) {
+                indexCell.textContent = index + 1;
+            }
+        });
+    }
+
+    // Función para calcular el valor total de una fila
+    function updateRowTotal(row) {
+        const quantityInput = row.querySelector('.part-quantity');
+        const unitValueInput = row.querySelector('.part-unit-value');
+        const totalValueInput = row.querySelector('.part-total-value');
+
+        if (!quantityInput || !unitValueInput || !totalValueInput) return;
+
+        const quantity = parseInt(quantityInput.value) || 0;
+        const unitValue = unformatNumber(unitValueInput.value) || 0;
+        const totalValue = quantity * unitValue;
+
+        // Formatear el total de la fila con el separador de miles
+        totalValueInput.value = formatNumberWithThousands(totalValue);
+
+        // Actualizar el total general
+        updatePartsTotals();
+    }
+
+    // Función para actualizar el total de repuestos y el total general
+    function updatePartsTotals() {
+        let totalPartsValue = 0;
+        const partsTotalInputs = document.querySelectorAll('.part-total-value');
+
+        // Sumar valores de repuestos
+        partsTotalInputs.forEach(input => {
+            const value = unformatNumber(input.value);
+            if (!isNaN(value)) {
+                totalPartsValue += value;
+            }
+        });
+
+        // Actualizar campo de valor de repuestos
+        if (spareValueInput) {
+            spareValueInput.value = formatNumberWithThousands(totalPartsValue);
+        }
+
+        // Calcular y actualizar el total general
+        if (totalInput && serviceValueInput) {
+            const serviceValue = unformatNumber(serviceValueInput.value) || 0;
+            const totalValue = serviceValue + totalPartsValue;
+            totalInput.value = formatNumberWithThousands(totalValue);
+            
+            // Añadir el evento input a serviceValueInput si aún no lo tiene
+            if (!serviceValueInput.dataset.eventAttached) {
+                serviceValueInput.addEventListener('input', function() {
+                    // Guardar posición del cursor
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    const originalLength = this.value.length;
+                    
+                    // Formatear valor
+                    let value = this.value.replace(/[^\d]/g, '');
+                    if (value) {
+                        this.value = formatNumberWithThousands(value);
+                    } else {
+                        this.value = '0';
+                    }
+                    
+                    // Reposicionar cursor
+                    const newLength = this.value.length;
+                    const cursorAdjust = newLength - originalLength;
+                    
+                    if (document.activeElement === this) {
+                        this.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+                    }
+                    
+                    // Actualizar total
+                    updatePartsTotals();
+                });
+                
+                // Marcar que ya se añadió el evento
+                serviceValueInput.dataset.eventAttached = 'true';
+            }
+        }
+
+        // Mostrar/ocultar fila de "no hay repuestos"
+        if (noPartsRow) {
+            const rows = partsTable.querySelectorAll('tbody tr.part-row');
+            noPartsRow.style.display = rows.length > 0 ? 'none' : '';
+        }
+    }
+
+    // Función para buscar repuestos
+    function searchParts(term) {
+        // Ocultar mensajes y mostrar loader
+        initialSearchMessage.style.display = 'none';
+        noResultsMessage.style.display = 'none';
+        searchResultsLoader.style.display = 'block';
+
+        // Limpiar resultados anteriores
+        const existingContainer = document.querySelector('.search-results-container');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
+
+        // Validar término de búsqueda
+        if (!term || term.length < 3) {
+            searchResultsLoader.style.display = 'none';
+            initialSearchMessage.style.display = 'block';
+            initialSearchMessage.innerHTML = `
+                <i class="fas fa-info-circle"></i>
+                <p class="mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda.</p>
+            `;
+            return;
+        }
+
+        // Crear FormData para enviar en la petición
+        const formData = new FormData();
+        formData.append('search', term);
+
+        // Mostrar mensaje de búsqueda
+        searchResultsLoader.innerHTML = `
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Buscando...</span>
+            </div>
+            <p class="mt-2">Buscando repuestos...</p>
+            <small class="text-muted">Término de búsqueda: "${term}"</small>
+        `;
+
+        fetch('/search_spare_parts', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Ocultar loader
+                searchResultsLoader.style.display = 'none';
+
+                // Crear contenedor para los resultados
+                const resultsContainer = document.createElement('div');
+                resultsContainer.className = 'search-results-container';
+
+                if (data.success && data.parts && data.parts.length > 0) {
+                    // Mostrar los resultados
+                    data.parts.forEach(part => {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'search-result-item';
+                        resultItem.tabIndex = "0";
+                        resultItem.setAttribute('role', 'button');
+                        resultItem.setAttribute('aria-label', `Seleccionar repuesto ${part.code}`);
+
+                        // Resaltar el término de búsqueda en código y descripción
+                        const partCode = highlightSearchTerm(part.code, term);
+                        const partDesc = highlightSearchTerm(part.description, term);
+
+                        resultItem.innerHTML = `
+                            <div class="part-code">
+                                <i class="fas fa-barcode me-2"></i>${partCode}
+                            </div>
+                            <div class="part-description">
+                                <i class="fas fa-info-circle me-2"></i>${partDesc}
+                            </div>
+                        `;
+
+                        // Agregar evento al hacer clic en un resultado
+                        resultItem.addEventListener('click', function () {
+                            selectPartAndUpdateRow(part);
+                        });
+
+                        // También permitir selección con Enter
+                        resultItem.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                selectPartAndUpdateRow(part);
+                            }
+                        });
+
+                        resultsContainer.appendChild(resultItem);
+                    });
+
+                    searchResults.appendChild(resultsContainer);
+                } else {
+                    // Mostrar mensaje de no resultados
+                    noResultsMessage.style.display = 'block';
+                    noResultsMessage.innerHTML = `
+                        <i class="fas fa-search"></i>
+                        <p class="mb-0">No se encontraron repuestos con el término "${term}"</p>
+                        <small class="text-muted">Intente con otros términos de búsqueda</small>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al buscar repuestos:', error);
+                searchResultsLoader.style.display = 'none';
+                noResultsMessage.style.display = 'block';
+                noResultsMessage.innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    <p class="mb-0">Error al buscar repuestos</p>
+                    <small class="text-muted">Por favor, intente nuevamente</small>
+                `;
+            });
+    }
+
+    // Función para resaltar el término de búsqueda en el texto
+    function highlightSearchTerm(text, term) {
+        if (!text) return '';
+
+        // Escapar caracteres especiales en el término de búsqueda
+        const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // Crear una expresión regular para encontrar el término (insensible a mayúsculas/minúsculas)
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+
+        // Reemplazar todas las ocurrencias con una versión resaltada
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    // Función para seleccionar un repuesto y actualizar la fila
+    function selectPartAndUpdateRow(part) {
+        console.log("Repuesto seleccionado:", part);
+
+        if (!currentEditingRow) {
+            console.error("No hay fila seleccionada para actualizar");
+            showToast('error', 'Error: No se pudo identificar la fila a actualizar');
+            return;
+        }
+
+        try {
+            // Obtener los elementos de la fila
+            const codeSelect = currentEditingRow.querySelector('select[name="spare_part_code[]"]');
+            const quantityInput = currentEditingRow.querySelector('.part-quantity');
+            const unitValueInput = currentEditingRow.querySelector('.part-unit-value');
+            const totalValueInput = currentEditingRow.querySelector('.part-total-value');
+
+            if (!codeSelect) {
+                throw new Error("No se encontró el selector de código en la fila");
+            }
+
+            // Limpiar opciones existentes excepto la primera (placeholder)
+            while (codeSelect.options.length > 1) {
+                codeSelect.remove(1);
+            }
+
+            // Crear nueva opción para el repuesto seleccionado
+            const option = document.createElement('option');
+            option.value = part.code;
+            option.text = `${part.code} - ${part.description}`;
+            codeSelect.add(option);
+
+            // Seleccionar la nueva opción
+            codeSelect.value = part.code;
+
+            // Disparar evento change para activar cualquier listener
+            const changeEvent = new Event('change', { bubbles: true });
+            codeSelect.dispatchEvent(changeEvent);
+
+            // Establecer valor unitario predeterminado si no está definido
+            if (unitValueInput && (!unitValueInput.value || unitValueInput.value === "0")) {
+                unitValueInput.value = "0";
+                // Aplicar formato de miles si es necesario
+                if (typeof applyThousandsFormatting === 'function') {
+                    applyThousandsFormatting(unitValueInput);
+                }
+            }
+
+            // Actualizar el total
+            if (quantityInput && unitValueInput && totalValueInput) {
+                updateRowTotal(currentEditingRow);
+            }
+
+            // Validar la selección
+            if (codeSelect.value !== part.code) {
+                throw new Error("No se pudo establecer el valor seleccionado en el campo");
+            }
+
+            // Cerrar el modal
+            const modal = bootstrap.Modal.getInstance(searchPartsModal);
+            if (modal) {
+                modal.hide();
             } else {
-                technicianDocumentInput.value = '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Sin asignar") {
-                        stateSelect.selectedIndex = i;
+                // Si no se puede obtener la instancia, intentar cerrar manualmente
+                $(searchPartsModal).modal('hide');
+            }
+
+            // Limpiar el campo de búsqueda
+            if (modalPartSearch) {
+                modalPartSearch.value = '';
+            }
+
+            // Enfocar el campo de cantidad para continuar con la edición
+            if (quantityInput) {
+                setTimeout(() => {
+                    quantityInput.focus();
+                    quantityInput.select();
+                }, 100);
+            }
+
+            // Mostrar mensaje de éxito
+            showToast('success', 'Repuesto seleccionado correctamente');
+
+        } catch (error) {
+            console.error("Error al seleccionar repuesto:", error);
+            showToast('error', `Error al seleccionar repuesto: ${error.message}`);
+        }
+    }
+
+    // Configurar el evento de búsqueda en el modal
+    if (modalPartSearch) {
+        // Variable para almacenar el timeout
+        let searchTimeout = null;
+
+        modalPartSearch.addEventListener('input', function () {
+            const searchTerm = this.value.trim();
+
+            // Limpiar timeout anterior
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+
+            // Si hay menos de 3 caracteres, mostrar mensaje inicial
+            if (searchTerm.length < 3) {
+                initialSearchMessage.style.display = 'block';
+                noResultsMessage.style.display = 'none';
+                searchResultsLoader.style.display = 'none';
+
+                // Limpiar resultados anteriores
+                while (searchResults.firstChild) {
+                    if (searchResults.firstChild.id === 'initialSearchMessage' ||
+                        searchResults.firstChild.id === 'noResultsMessage') {
                         break;
                     }
+                    searchResults.removeChild(searchResults.firstChild);
+                }
+
+                return;
+            }
+
+            // Mostrar indicador de carga inmediatamente
+            searchResultsLoader.style.display = 'block';
+
+            // Establecer un timeout para evitar demasiadas peticiones (debounce)
+            searchTimeout = setTimeout(() => {
+                searchParts(searchTerm);
+            }, 400); // Aumentado a 400ms para dar más tiempo entre búsquedas
+        });
+
+        // Agregar navegación con teclado
+        modalPartSearch.addEventListener('keydown', function (e) {
+            const resultsContainer = searchResults.querySelector('.search-results-container');
+            if (!resultsContainer) return;
+
+            const items = resultsContainer.querySelectorAll('.search-result-item');
+            if (!items.length) return;
+
+            // Obtener el elemento actualmente seleccionado
+            const currentItem = document.activeElement;
+            let currentIndex = -1;
+
+            // Determinar el índice actual
+            for (let i = 0; i < items.length; i++) {
+                if (items[i] === currentItem) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            // Manejar teclas de navegación
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    // Si no hay selección o es el último, seleccionar el primero
+                    if (currentIndex === -1 || currentIndex === items.length - 1) {
+                        items[0].focus();
+                    } else {
+                        items[currentIndex + 1].focus();
+                    }
+                    break;
+
+                case 'ArrowUp':
+                    e.preventDefault();
+                    // Si no hay selección o es el primero, seleccionar el último
+                    if (currentIndex === -1 || currentIndex === 0) {
+                        items[items.length - 1].focus();
+                    } else {
+                        items[currentIndex - 1].focus();
+                    }
+                    break;
+
+                case 'Escape':
+                    // Cerrar el modal
+                    const modal = bootstrap.Modal.getInstance(searchPartsModal);
+                    if (modal) {
+                        modal.hide();
+                    }
+                    break;
+            }
+        });
+    }
+
+    // Configurar evento para el modal
+    if (searchPartsModal) {
+        searchPartsModal.addEventListener('shown.bs.modal', function () {
+            if (modalPartSearch) {
+                modalPartSearch.focus();
+                modalPartSearch.value = '';
+
+                // Mostrar mensaje inicial
+                initialSearchMessage.style.display = 'block';
+                noResultsMessage.style.display = 'none';
+                searchResultsLoader.style.display = 'none';
+
+                // Limpiar resultados anteriores
+                while (searchResults.firstChild) {
+                    if (searchResults.firstChild.id === 'initialSearchMessage' ||
+                        searchResults.firstChild.id === 'noResultsMessage') {
+                        break;
+                    }
+                    searchResults.removeChild(searchResults.firstChild);
                 }
             }
         });
-        if (technicianSelect.value) {
-            const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
-            if (selectedOption && selectedOption.value && (!technicianDocumentInput.value || technicianDocumentInput.value.trim() === '')) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-            }
-        }
     }
 
-    // Actualizar el código del producto al cambiar la referencia
-    const referenceElem = document.getElementById('reference');
-    const productCodeInput = document.getElementById('product_code');
-    if (referenceElem && productCodeInput) {
-        referenceElem.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            productCodeInput.value = (selectedOption && selectedOption.value) ? (selectedOption.getAttribute('data-code') || '') : '';
+    // Agregar un nuevo repuesto
+    if (addPartBtn) {
+        addPartBtn.addEventListener('click', function () {
+            const template = document.getElementById('partRowTemplate');
+            if (!template) return;
+
+            // Clonar la plantilla
+            const clone = document.importNode(template.content, true);
+            const newRow = clone.querySelector('tr');
+
+            // Configurar manejadores de eventos para la nueva fila
+            setupRowEvents(newRow);
+
+            // Agregar la fila a la tabla
+            partsTable.querySelector('tbody').appendChild(newRow);
+
+            // Actualizar índices y totales
+            updateRowIndices();
+            updatePartsTotals();
+
+            // Ocultar mensaje de "no hay repuestos"
+            if (noPartsRow) {
+                noPartsRow.style.display = 'none';
+            }
         });
-        if (referenceElem.value) {
-            const selectedOption = referenceElem.options[referenceElem.selectedIndex];
-            if (selectedOption && selectedOption.value && !productCodeInput.value) {
-                productCodeInput.value = selectedOption.getAttribute('data-code') || '';
-            }
-        }
     }
 
-    /***** 4. Gestión de Problemas del Dispositivo *****/
-    const searchProblems = document.getElementById('searchProblems');
-    const problemCheckboxes = document.querySelectorAll('.problem-checkbox');
-    const problemOptions = document.querySelectorAll('.problem-option');
-    const selectedProblemsTextarea = document.getElementById('selected_problems');
-    const selectAllProblemsBtn = document.getElementById('selectAllProblems');
-    const clearProblemsBtn = document.getElementById('clearProblems');
+    // Configurar eventos para una fila
+    function setupRowEvents(row) {
+        // Botón para eliminar
+        const removeBtn = row.querySelector('.remove-part');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                row.remove();
+                updateRowIndices();
+                updatePartsTotals();
+            });
+        }
 
+        // Eventos para actualizar totales
+        const quantityInput = row.querySelector('.part-quantity');
+        const unitValueInput = row.querySelector('.part-unit-value');
+        const codeSelect = row.querySelector('select[name="spare_part_code[]"]');
+
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function () {
+                updateRowTotal(row);
+            });
+        }
+
+        if (unitValueInput) {
+            // Aplicar formato de miles al campo unitario
+            if (unitValueInput.value) {
+                unitValueInput.value = formatNumberWithThousands(unitValueInput.value);
+            }
+
+            unitValueInput.addEventListener('input', function() {
+                // Guardar posición del cursor
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const originalLength = this.value.length;
+                
+                // Remover caracteres no numéricos 
+                let value = this.value.replace(/[^\d]/g, '');
+                
+                // Si hay valor, formatear
+                if (value) {
+                    this.value = formatNumberWithThousands(value);
+                } else {
+                    this.value = '0';
+                }
+                
+                // Calcular desplazamiento del cursor y reposicionar
+                const newLength = this.value.length;
+                const cursorAdjust = newLength - originalLength;
+                
+                // Si el usuario estaba editando, mantener la posición relativa del cursor
+                if (document.activeElement === this) {
+                    this.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+                }
+                
+                // Actualizar totales de la fila
+                updateRowTotal(row);
+            });
+        }
+
+        if (codeSelect) {
+            // Validar selección cuando cambia
+            codeSelect.addEventListener('change', function () {
+                if (this.value) {
+                    removeValidationError(this);
+                } else {
+                    showValidationError(this, 'Debe seleccionar un repuesto');
+                }
+            });
+        }
+
+        // Configurar botón para abrir el modal de búsqueda
+        const selectPartBtn = row.querySelector('.select-part');
+        if (selectPartBtn) {
+            selectPartBtn.addEventListener('click', function () {
+                // Guardar la fila actual
+                currentEditingRow = row;
+
+                // Abrir el modal de búsqueda
+                const modal = new bootstrap.Modal(document.getElementById('searchPartsModal'));
+                modal.show();
+
+                // Enfocar el campo de búsqueda
+                setTimeout(() => {
+                    if (modalPartSearch) {
+                        modalPartSearch.focus();
+                    }
+                }, 500);
+            });
+        }
+    }
+}
+
+// Inicializar filas existentes si las hay
+const existingRows = partsTable.querySelectorAll('tbody tr.part-row');
+existingRows.forEach(row => {
+    setupRowEvents(row);
+});
+
+// Actualizar cuando cambia el valor del servicio
+if (serviceValueInput) {
+    // Eliminar cualquier event listener existente
+    serviceValueInput.removeEventListener('input', updatePartsTotals);
+    
+    // Añadir el evento input para actualizar el total
+    serviceValueInput.addEventListener('input', function() {
+        updatePartsTotals();
+    });
+    
+    // También añadir el evento change para capturar cambios manuales
+    serviceValueInput.addEventListener('change', function() {
+        updatePartsTotals();
+    });
+    
+    // Añadir evento blur para asegurar la actualización cuando pierde el foco
+    serviceValueInput.addEventListener('blur', function() {
+        updatePartsTotals();
+    });
+}
+
+// Actualizar totales iniciales
+updatePartsTotals();
+
+/***** Gestión de Problemas del Dispositivo *****/
+function setupProblemsSelector() {
+    const problemCheckboxes = document.querySelectorAll('.problem-checkbox');
+    const selectedProblemsTextarea = document.getElementById('selected_problems');
+    const selectAllBtn = document.getElementById('selectAllProblems');
+    const clearBtn = document.getElementById('clearProblems');
+    const searchInput = document.getElementById('searchProblems');
+
+    if (!problemCheckboxes.length || !selectedProblemsTextarea) return;
+
+    // Función para actualizar el textarea con los problemas seleccionados
     function updateSelectedProblems() {
-        if (!selectedProblemsTextarea || !problemCheckboxes.length) return;
-        let selectedProblems = [];
+        const selectedProblems = [];
+
         problemCheckboxes.forEach(checkbox => {
             if (checkbox.checked) {
                 const label = document.querySelector(`label[for="${checkbox.id}"]`);
@@ -542,31 +1187,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
+
+        // Actualizar el textarea
         selectedProblemsTextarea.value = selectedProblems.join(', ');
     }
 
-    if (searchProblems && problemOptions.length) {
-        searchProblems.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
-            problemOptions.forEach(option => {
-                const label = option.querySelector('label');
-                if (label) {
-                    const text = label.textContent.toLowerCase();
-                    option.style.display = text.includes(searchTerm) ? '' : 'none';
-                }
-            });
-        });
-    }
-    if (problemCheckboxes.length) {
-        problemCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelectedProblems);
-        });
-        updateSelectedProblems();
-    }
-    if (selectAllProblemsBtn) {
-        selectAllProblemsBtn.addEventListener('click', function () {
+    // Agregar event listeners a cada checkbox
+    problemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedProblems);
+    });
+
+    // Botón para seleccionar todos
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function () {
             problemCheckboxes.forEach(checkbox => {
                 const option = checkbox.closest('.problem-option');
+                // Solo seleccionar las opciones visibles
                 if (option && option.style.display !== 'none') {
                     checkbox.checked = true;
                 }
@@ -574,8 +1210,10 @@ document.addEventListener("DOMContentLoaded", function () {
             updateSelectedProblems();
         });
     }
-    if (clearProblemsBtn) {
-        clearProblemsBtn.addEventListener('click', function () {
+
+    // Botón para limpiar selección
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
             problemCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
             });
@@ -583,909 +1221,293 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    /***** 5. Gestión de Repuestos (Tabla de Repuestos) *****/
-    const partsTable = document.getElementById('partsTable');
-    const addPartBtn = document.getElementById('addPartBtn');
-    const partRowTemplate = document.getElementById('partRowTemplate');
-    if (partsTable && addPartBtn && partRowTemplate) {
-        const partsTableBody = partsTable.querySelector('tbody');
-        const noPartsRow = document.getElementById('noPartsRow');
-        const serviceValueInput = document.getElementById('service_value');
-        const spareValueInput = document.getElementById('spare_value');
-        const totalInput = document.getElementById('total');
+    // Búsqueda de problemas
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            const searchTerm = this.value.toLowerCase();
 
-        // Aplicar formato a campos de valores
-        if (serviceValueInput) applyThousandsFormatting(serviceValueInput);
-        if (spareValueInput) applyThousandsFormatting(spareValueInput);
-        if (totalInput) applyThousandsFormatting(totalInput);
+            // Filtrar opciones
+            document.querySelectorAll('.problem-option').forEach(option => {
+                const label = option.querySelector('label');
+                if (!label) return;
 
-        function editPartTotal(row) {
-            const quantity = parseFloat(row.querySelector('.part-quantity').value) || 0;
-            const unitValue = unformatNumber(row.querySelector('.part-unit-value').value);
-            const totalValue = quantity * unitValue;
-            const totalValueInput = row.querySelector('.part-total-value');
-            totalValueInput.value = formatNumberWithThousands(totalValue);
-            updateTotals();
-        }
-        function updateTotals() {
-            let spareTotal = 0;
-            document.querySelectorAll('.part-total-value').forEach(input => {
-                spareTotal += unformatNumber(input.value);
+                const problemText = label.textContent.toLowerCase();
+                option.style.display = problemText.includes(searchTerm) ? '' : 'none';
             });
-            if (spareValueInput) spareValueInput.value = formatNumberWithThousands(spareTotal);
-            const serviceValue = unformatNumber(serviceValueInput?.value) || 0;
-            if (totalInput) totalInput.value = formatNumberWithThousands(serviceValue + spareTotal);
-        }
-        function editRowIndices() {
-            const rows = partsTableBody.querySelectorAll('.part-row');
-            rows.forEach((row, index) => {
-                row.querySelector('.part-index').textContent = index + 1;
-            });
-        }
-        function setupExistingRows() {
-            const existingRows = partsTableBody.querySelectorAll('.part-row');
-            existingRows.forEach(row => {
-                $(row.querySelector('select')).select2({
-                    width: '100%',
-                    placeholder: "Seleccione un repuesto",
-                    allowClear: true
-                });
-                applyThousandsFormatting(row.querySelector('.part-unit-value'));
-                applyThousandsFormatting(row.querySelector('.part-total-value'));
-                row.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(row));
-                row.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(row));
-                row.querySelector('.remove-part').addEventListener('click', () => {
-                    Swal.fire({
-                        title: '¿Eliminar repuesto?',
-                        text: '¿Estás seguro de eliminar este repuesto?',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            row.remove();
-                            editRowIndices();
-                            updateTotals();
-                            if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                                const emptyRow = document.createElement('tr');
-                                emptyRow.id = 'noPartsRow';
-                                emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                                partsTableBody.appendChild(emptyRow);
-                            }
-                            showToast('success', 'Repuesto eliminado correctamente', 'top-end');
-                        }
-                    });
-                });
-            });
-            updateTotals();
-        }
-        setupExistingRows();
-        addPartBtn.addEventListener('click', function () {
-            if (noPartsRow) {
-                noPartsRow.remove();
-            }
-            const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
-            partsTableBody.appendChild(newRow);
-            $(newRow.querySelector('select')).select2({
-                width: '100%',
-                placeholder: "Seleccione un repuesto",
-                allowClear: true
-            });
-            applyThousandsFormatting(newRow.querySelector('.part-unit-value'));
-            applyThousandsFormatting(newRow.querySelector('.part-total-value'));
-            newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
-            newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
-            newRow.querySelector('.remove-part').addEventListener('click', () => {
-                Swal.fire({
-                    title: '¿Eliminar repuesto?',
-                    text: '¿Estás seguro de eliminar este repuesto?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        newRow.remove();
-                        editRowIndices();
-                        updateTotals();
-                        if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                            const emptyRow = document.createElement('tr');
-                            emptyRow.id = 'noPartsRow';
-                            emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                            partsTableBody.appendChild(emptyRow);
-                        }
-                        showToast('success', 'Repuesto eliminado correctamente', 'top-end');
-                    }
-                });
-            });
-            editRowIndices();
-            showToast('success', 'Repuesto agregado correctamente', 'top-end');
         });
-        if (serviceValueInput) {
-            serviceValueInput.addEventListener('input', updateTotals);
-        }
     }
 
-    /***** 6. Validación y Envío del Formulario *****/
-    const ticketForm = document.querySelector('form');
-    if (ticketForm) {
-        ticketForm.addEventListener('submit', function (e) {
+    // Inicializar el textarea con los problemas ya seleccionados
+    updateSelectedProblems();
+}
+
+// Agregar estilos CSS en línea para los elementos de búsqueda
+(function addSearchStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .search-results-container {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .search-result-item:hover,
+        .search-result-item:focus {
+            background-color: #f8f9fa;
+            outline: none;
+        }
+        
+        .search-result-item.active {
+            background-color: #e9ecef;
+            border-left: 3px solid #0d6efd;
+        }
+        
+        .part-code {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .part-description {
+            color: #555;
+            font-size: 0.9em;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+// Función para mostrar el toast de éxito
+function showSuccessToast() {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    })
+
+    Toast.fire({
+        icon: 'success',
+        title: 'Ticket creado exitosamente'
+    })
+}
+
+// Modificar el formulario para incluir la confirmación
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="{{ url_for(\'warranty.create_warranty\') }}"]');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            let isValid = true;
-            let errorMessage = '';
-
-            // Validar Información del Cliente
-            const clientNames = document.getElementById('client_names');
-            const clientLastnames = document.getElementById('client_lastnames');
-            const documentField = document.getElementById('document');
-            const mail = document.getElementById('mail');
-
-            if (clientNames && !clientNames.value.trim()) {
-                isValid = false;
-                errorMessage += 'El nombre del cliente es requerido.<br>';
-                clientNames.classList.add('is-invalid');
-            } else if (clientNames) {
-                clientNames.classList.remove('is-invalid');
-            }
-
-            if (clientLastnames && !clientLastnames.value.trim()) {
-                isValid = false;
-                errorMessage += 'El apellido del cliente es requerido.<br>';
-                clientLastnames.classList.add('is-invalid');
-            } else if (clientLastnames) {
-                clientLastnames.classList.remove('is-invalid');
-            }
-
-            if (documentField && !documentField.value.trim()) {
-                isValid = false;
-                errorMessage += 'El documento del cliente es requerido.<br>';
-                documentField.classList.add('is-invalid');
-            } else if (documentField) {
-                documentField.classList.remove('is-invalid');
-            }
-
-            if (mail) {
-                if (!mail.value.trim()) {
-                    isValid = false;
-                    errorMessage += 'El correo electrónico del cliente es requerido.<br>';
-                    mail.classList.add('is-invalid');
-                } else if (!validateEmail(mail.value.trim())) {
-                    isValid = false;
-                    errorMessage += 'El correo electrónico no tiene un formato válido.<br>';
-                    mail.classList.add('is-invalid');
-                } else {
-                    mail.classList.remove('is-invalid');
-                }
-            }
-
-            // Validar Tipo de Servicio
-            const typeOfService = document.getElementById('type_of_service');
-            if (typeOfService && !typeOfService.value.trim()) {
-                isValid = false;
-                errorMessage += 'El tipo de servicio es requerido.<br>';
-                typeOfService.classList.add('is-invalid');
-            } else if (typeOfService) {
-                typeOfService.classList.remove('is-invalid');
-            }
-
-            // Validar Valor del Servicio
-            const serviceValue = document.getElementById('service_value');
-            if (serviceValue && (!serviceValue.value || isNaN(serviceValue.value) || parseFloat(serviceValue.value) < 0)) {
-                isValid = false;
-                errorMessage += 'El valor del servicio debe ser un número positivo.<br>';
-                serviceValue.classList.add('is-invalid');
-            } else if (serviceValue) {
-                serviceValue.classList.remove('is-invalid');
-            }
-
-            if (!isValid) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de validación',
-                    html: errorMessage,
-                    confirmButtonText: 'Corregir'
-                });
-                return;
-            }
-
+            
             Swal.fire({
-                title: '¿Crear nuevo ticket?',
-                text: '¿Estás seguro de crear este nuevo ticket de servicio técnico?',
+                title: '¿Crear ticket?',
+                text: '¿Estás seguro de que deseas crear este ticket de garantía?',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Sí, crear ticket',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // Mostrar indicador de carga
                     Swal.fire({
                         title: 'Creando ticket...',
-                        html: 'Por favor espera mientras se crea el nuevo ticket.',
+                        text: 'Por favor espere mientras se procesa su solicitud',
                         allowOutsideClick: false,
                         didOpen: () => {
-                            Swal.showLoading();
+                            Swal.showLoading()
                         }
                     });
-                    // Desformatear los campos numéricos antes de enviar
-                    document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
-                        .forEach(input => {
-                            input.value = unformatNumber(input.value);
-                        });
-                    ticketForm.removeEventListener('submit', arguments.callee);
-                    ticketForm.submit();
+                    
+                    // Enviar el formulario
+                    form.submit();
                 }
             });
         });
     }
-
-    /***** 7. Confirmación al cambiar la referencia del producto *****/
-    const referenceSelect = document.getElementById('reference');
-    if (referenceSelect) {
-        let originalReference = referenceSelect.value;
-        let originalReferenceText = referenceSelect.options[referenceSelect.selectedIndex]?.text || 'Sin seleccionar';
-        referenceSelect.addEventListener('change', function () {
-            const newReference = this.value;
-            const newReferenceText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
-            if (newReference == originalReference ) {
-                Swal.fire({
-                    title: 'Cambiar referencia',
-                    text: `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, cambiar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        originalReference = newReference;
-                        originalReferenceText = newReferenceText;
-                        const productCodeInput = document.getElementById('product_code');
-                        if (productCodeInput) {
-                            const selectedOption = this.options[this.selectedIndex];
-                            productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
-                        }
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-                        Toast.fire({
-                            icon: 'success',
-                            title: `Referencia cambiada a "${newReferenceText}"`
-                        });
-                    } else {
-                        this.value = originalReference;
-                    }
-                });
-            }
-        });
-    }
-
-    // Manejador para la selección de factura
-    function handleInvoiceSelection() {
-        const selectedIndex = parseInt($("#invoiceSelector").val());
-        
-        if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || clientInvoices.length === 0) {
-            $("#selectedInvoiceDetails").hide();
-            return;
-        }
-        
-        const selectedInvoice = clientInvoices[selectedIndex];
-        
-        // Mostrar los detalles de la factura seleccionada
-        $("#invoiceDetailCode").text(selectedInvoice.numero || '-');
-        $("#invoiceDetailSerie").text(selectedInvoice.serie || '-');
-        $("#invoiceDetailDate").text(selectedInvoice.fecha || '-');
-        $("#invoiceDetailReference").text(selectedInvoice.referencia || '-');
-        $("#invoiceDetailStatus").text(selectedInvoice.estado || '-');
-        $("#invoiceDetailValue").text(selectedInvoice.valor_total || '-');
-        $("#invoiceDetailOrigin").text(selectedInvoice.origen || '-');
-        
-        // Mostrar el panel de detalles
-        $("#selectedInvoiceDetails").show();
-    }
-
-    // Manejador para el botón de usar datos de factura
-    $(document).on("click", "#useInvoiceDataBtn", function() {
-        const selectedIndex = parseInt($("#invoiceSelector").val());
-        
-        if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || clientInvoices.length === 0) {
-            return;
-        }
-        
-        const selectedInvoice = clientInvoices[selectedIndex];
-        
-        // Rellenar los campos del formulario con datos de la factura
-        $("#product_code").val(selectedInvoice.producto || '');
-        $("#reference").val(selectedInvoice.referencia || '');
-        $("#serial").val(selectedInvoice.serie || '');
-        
-        if (selectedInvoice.fecha) {
-            try {
-                // Intentar convertir la fecha de la factura al formato requerido por el input date
-                const dateParts = selectedInvoice.fecha.split('/');
-                if (dateParts.length === 3) {
-                    const formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-                    $("#initial_date").val(formattedDate);
-                }
-            } catch (e) {
-                console.error("Error al formatear la fecha:", e);
-            }
-        }
-        
-        // Mostrar notificación de éxito
-        Swal.fire({
-            title: '¡Datos aplicados!',
-            text: 'Los datos de la factura han sido aplicados al formulario',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    });
 });
 
-// Asegurarse de que, al seleccionar con Select2, se dispare el evento change en el select de referencia
-$(document).ready(function () {
-    $('#reference').on('select2:select', function (e) {
-        this.dispatchEvent(new Event('change'));
-    });
-});
-
-// Funcionalidad para búsqueda de clientes por documento
+// SOLUCIÓN COMPLETA: Agregar este fragmento al final del archivo
 document.addEventListener('DOMContentLoaded', function() {
-    // Elementos del DOM
-    const searchClientBtn = document.getElementById('searchClientBtn');
-    const documentInput = document.getElementById('document');
-    const documentFeedback = document.getElementById('documentFeedback');
-    const clientNamesInput = document.getElementById('client_names');
-    const clientLastnamesInput = document.getElementById('client_lastnames');
-    const phoneInput = document.getElementById('phone');
-    const mailInput = document.getElementById('mail');
-    const invoicesSection = document.getElementById('invoicesSection');
-    const invoicesTable = document.getElementById('invoicesTable');
+    // Referencias a los campos
+    const serviceValueInput = document.getElementById('service_value');
+    const spareValueInput = document.getElementById('spare_value');
+    const totalInput = document.getElementById('total');
     
-    // Nuevos elementos para dropdown de facturas
-    const invoiceDropdownSection = document.getElementById('invoiceDropdownSection');
-    const invoiceSelector = document.getElementById('invoice_selector');
-    const selectedInvoiceDetails = document.getElementById('selectedInvoiceDetails');
-    const invoiceDetailSerie = document.getElementById('invoiceDetailSerie');
-    const invoiceDetailDate = document.getElementById('invoiceDetailDate');
-    const invoiceDetailCode = document.getElementById('invoiceDetailCode');
-    const invoiceDetailReference = document.getElementById('invoiceDetailReference');
-    const useInvoiceDataBtn = document.getElementById('useInvoiceDataBtn');
-    
-    // Elementos para la tabla de facturas
-    const showAllInvoicesBtn = document.getElementById('showAllInvoicesBtn');
-    const hideAllInvoicesBtn = document.getElementById('hideAllInvoicesBtn');
-    const invoicesTableSection = document.getElementById('invoicesTableSection');
-    
-    // Inicializar eventos para la tabla de facturas
-    if (showAllInvoicesBtn) {
-        showAllInvoicesBtn.addEventListener('click', toggleInvoicesTable);
-    }
-    
-    if (hideAllInvoicesBtn) {
-        hideAllInvoicesBtn.addEventListener('click', toggleInvoicesTable);
-    }
-    
-    // Agregar evento al botón "Usar para garantía"
-    if (useInvoiceDataBtn) {
-        useInvoiceDataBtn.addEventListener('click', function() {
-            if (!invoiceSelector) return;
-            
-            const selectedIndex = parseInt(invoiceSelector.value);
-            
-            if (isNaN(selectedIndex) || selectedIndex < 0 || !clientInvoices || selectedIndex >= clientInvoices.length) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Selección inválida',
-                    text: 'Por favor, seleccione una factura válida',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                return;
-            }
-            
-            const invoice = clientInvoices[selectedIndex];
-            applyProductData(invoice.product_code, invoice.product_description);
-        });
-    }
-    
-    // También permitir buscar al presionar Enter en el campo de documento
-    if (documentInput) {
-        documentInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // Evitar envío del formulario
-                if (searchClientBtn) searchClientBtn.click();
-            }
-        });
-    }
-
-    // Variable para almacenar las facturas del cliente
-    let clientInvoices = [];
-
-    // Función para mostrar error en el campo de documento
-    function showDocumentError(message) {
-        if (documentInput && documentFeedback) {
-            documentInput.classList.add('is-invalid');
-            documentFeedback.textContent = message;
-            documentFeedback.style.display = 'block';
-        }
-    }
-    
-    // Función para limpiar errores
-    function clearDocumentError() {
-        if (documentInput && documentFeedback) {
-            documentInput.classList.remove('is-invalid');
-            documentFeedback.textContent = '';
-            documentFeedback.style.display = 'none';
-        }
-    }
-    
-    // Agregar evento para limpiar espacios y caracteres no válidos al perder el foco
-    if (documentInput) {
-        documentInput.addEventListener('blur', function() {
-            // Guardar la posición del cursor
-            const cursorPos = this.selectionStart;
-            
-            // Eliminar espacios al inicio y final
-            this.value = this.value.trim();
-            
-            // Restaurar cursor si es necesario
-            if (document.activeElement === this) {
-                this.setSelectionRange(cursorPos, cursorPos);
-            }
-        });
+    // Función para actualizar el total manualmente
+    function calculateTotal() {
+        if (!serviceValueInput || !spareValueInput || !totalInput) return;
         
-        // Limpiar errores cuando el usuario comienza a escribir de nuevo
-        documentInput.addEventListener('input', clearDocumentError);
+        // Obtener y procesar los valores
+        const serviceValue = unformatNumber(serviceValueInput.value) || 0;
+        const spareValue = unformatNumber(spareValueInput.value) || 0;
+        
+        // Calcular el total
+        const total = serviceValue + spareValue;
+        
+        // Actualizar el campo total
+        totalInput.value = formatNumberWithThousands(total);
+        
+        console.log(`CÁLCULO TOTAL: ${serviceValue} + ${spareValue} = ${total}`);
     }
     
-    // Función para buscar cliente por documento
-    if (searchClientBtn) {
-        searchClientBtn.addEventListener('click', function() {
-            const document = documentInput.value.trim();
-            
-            clearDocumentError(); // Limpiar errores anteriores
-            
-            if (!document) {
-                showDocumentError('Por favor, ingrese un número de documento para buscar');
-                return;
-            }
-            
-            // Extraer solo dígitos para validación básica
-            const digitsOnly = document.replace(/\D/g, '');
-            
-            if (digitsOnly.length < 5) {
-                showDocumentError('El documento debe tener al menos 5 dígitos');
-                return;
-            }
-            
-            console.log(`Buscando cliente. Documento original: ${document}, Dígitos: ${digitsOnly}`);
-            
-            // Crear FormData para enviar en la petición
-            const formData = new FormData();
-            formData.append('document', document);
-            
-            // Mostrar indicador de carga
-            searchClientBtn.disabled = true;
-            searchClientBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-            
-            // Enviar petición AJAX
-            fetch('/search_client', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Error en la respuesta: ${response.status} ${response.statusText}`);
+    // Agregar eventos a los campos
+    if (serviceValueInput) {
+        ['input', 'change', 'blur'].forEach(event => {
+            serviceValueInput.addEventListener(event, calculateTotal);
+        });
+    }
+    
+    if (spareValueInput) {
+        // Observar cambios en el valor de repuestos
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === "attributes" && mutation.attributeName === "value") {
+                    calculateTotal();
                 }
-                return response.json();
-            })
-            .then(data => {
-                // Restaurar botón
-                searchClientBtn.disabled = false;
-                searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
-                
-                console.log('Respuesta del servidor:', data);
-                
-                if (data.success) {
-                    // Mostrar datos del cliente
-                    fillClientData(data.client);
-                    
-                    // Mostrar facturas
-                    showInvoices(data.invoices);
-                    
-                    // Actualizar el campo de documento con el formato correcto si es diferente
-                    if (data.client.document && data.client.document !== document) {
-                        documentInput.value = data.client.document;
-                    }
-                    
-                    // Mostrar notificación
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Cliente encontrado',
-                        text: `Se ha cargado la información de ${data.client.name} y sus facturas`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    showDocumentError(data.message || 'No se encontró ningún cliente con ese documento. Verifique el documento e intente nuevamente.');
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Cliente no encontrado',
-                        text: data.message || 'No se encontró ningún cliente con ese documento. Verifique el documento e intente nuevamente.',
-                        confirmButtonText: 'Entendido'
-                    });
-                }
-            })
-            .catch(error => {
-                // Restaurar botón
-                searchClientBtn.disabled = false;
-                searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
-                
-                console.error('Error en la búsqueda:', error);
-                
-                showDocumentError(`Error: ${error.message}`);
-                
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error en la búsqueda',
-                    text: `Ocurrió un error al buscar el cliente: ${error.message}`,
-                    confirmButtonText: 'Entendido'
-                });
             });
         });
+        
+        observer.observe(spareValueInput, { attributes: true });
     }
     
-    // Función para llenar datos del cliente
-    function fillClientData(client) {
-        // Usar los campos nombre1, nombre2, apellido1 y apellido2
-        if (clientNamesInput) {
-            // Combinar nombre1 y nombre2 en el campo nombres
-            const nombre1 = client.nombre1 || '';
-            const nombre2 = client.nombre2 || '';
-            clientNamesInput.value = `${nombre1} ${nombre2}`.trim();
-            // Aplicar estilos para campos solo lectura
-            clientNamesInput.classList.add('bg-light');
-            clientNamesInput.readOnly = true;
-        }
-        
-        if (clientLastnamesInput) {
-            // Combinar apellido1 y apellido2 en el campo apellidos
-            const apellido1 = client.apellido1 || '';
-            const apellido2 = client.apellido2 || '';
-            clientLastnamesInput.value = `${apellido1} ${apellido2}`.trim();
-            // Aplicar estilos para campos solo lectura
-            clientLastnamesInput.classList.add('bg-light');
-            clientLastnamesInput.readOnly = true;
-        }
-        
-        // Llenar otros campos
-        if (phoneInput) {
-            phoneInput.value = client.phone || '';
-            // Aplicar estilos para campos solo lectura
-            phoneInput.classList.add('bg-light');
-            phoneInput.readOnly = true;
-        }
-        
-        if (mailInput) {
-            mailInput.value = client.email || '';
-            // Aplicar estilos para campos solo lectura
-            mailInput.classList.add('bg-light');
-            mailInput.readOnly = true;
-        }
-        
-        // Actualizar el documento con el valor formateado de la base de datos
-        if (client.document && documentInput) {
-            documentInput.value = client.document;
-        }
-    }
-    
-    // Función para mostrar facturas
-    function showInvoices(invoices) {
-        console.log("Mostrando facturas:", invoices);
-        
-        // Guardar las facturas en variable global para acceso posterior
-        clientInvoices = invoices || [];
-        
-        // Acceder al selector de facturas
-        let invoiceSelector = document.getElementById('invoice_selector');
-        let dropdownSection = document.getElementById('invoiceDropdownSection');
-        let showAllSection = document.getElementById('showAllInvoicesSection');
-        
-        // Hacer visible las secciones si hay facturas
-        if (invoiceSelector && dropdownSection) {
-            dropdownSection.style.display = 'block';
-        }
-        
-        if (showAllSection) {
-            showAllSection.style.display = 'block';
-        }
-        
-        // Verificar si hay facturas para mostrar
-        if (clientInvoices.length > 0) {
-            console.log(`Se encontraron ${clientInvoices.length} facturas`);
-            
-            // Preparar el selector de facturas
-            if (invoiceSelector) {
-                // Limpiar opciones previas
-                invoiceSelector.innerHTML = '<option value="">Seleccione una factura</option>';
-                
-                // Añadir cada factura como una opción
-                clientInvoices.forEach((invoice, index) => {
-                    let option = document.createElement('option');
-                    option.value = index; // Usar el índice como valor
-                    
-                    // Construir texto descriptivo para la opción usando los nuevos campos
-                    let optionText = `${invoice.invoice_number || 'Sin serie'} - ${invoice.formatted_date || 'Sin fecha'}`;
-                    
-                    // Añadir valor formateado si está disponible
-                    if (invoice.formatted_value && invoice.formatted_value !== 'N/A') {
-                        optionText += ` - ${invoice.formatted_value}`;
-                    }
-                    
-                    option.textContent = optionText;
-                    invoiceSelector.appendChild(option);
-                });
-                
-                // Inicializar Select2 si está disponible
-                if (typeof $.fn.select2 === 'function') {
-                    try {
-                        // Primero destruir si ya está inicializado
-                        if ($('#invoice_selector').data('select2')) {
-                            $('#invoice_selector').select2('destroy');
-                        }
-                        
-                        // Inicializar Select2
-                        $('#invoice_selector').select2({
-                            placeholder: 'Seleccione una factura',
-                            width: '100%',
-                            allowClear: true
-                        });
-                        
-                        console.log('Select2 inicializado para el dropdown de facturas');
-                    } catch (e) {
-                        console.error('Error al inicializar Select2:', e);
-                    }
-                }
-                
-                // Agregar evento para detectar cambios en la selección
-                invoiceSelector.removeEventListener('change', handleInvoiceSelection);
-                invoiceSelector.addEventListener('change', handleInvoiceSelection);
-            }
-            
-            // Preparar también los datos para la tabla detallada
-            prepareDetailedInvoicesTable();
-        } else {
-            console.log('No hay facturas para mostrar');
-            
-            // Añadir mensaje de no facturas al selector
-            if (invoiceSelector) {
-                invoiceSelector.innerHTML = '<option value="">No hay facturas disponibles</option>';
-                invoiceSelector.disabled = true;
-            }
-            
-            // Ocultar el botón para mostrar todas las facturas
-            if (showAllSection) {
-                showAllSection.style.display = 'none';
-            }
-        }
-        
-        // Ocultar sección de detalles de factura si estaba visible
-        let detailsSection = document.getElementById('selectedInvoiceDetails');
-        if (detailsSection) {
-            detailsSection.style.display = 'none';
-        }
-        
-        // Ocultar también la tabla de facturas detallada
-        let tableSection = document.getElementById('invoicesTableSection');
-        if (tableSection) {
-            tableSection.style.display = 'none';
-        }
-    }
-    
-    // Función para preparar la tabla detallada de facturas
-    function prepareDetailedInvoicesTable() {
-        const tableSection = document.getElementById('invoicesTableSection');
-        const table = document.getElementById('detailedInvoicesTable');
-        
-        if (!table || !tableSection) {
-            console.error('No se encontró la tabla o su contenedor');
-            return;
-        }
-        
-        // Obtener el tbody donde agregaremos las filas
-        const tbody = table.querySelector('tbody');
-        if (!tbody) {
-            console.error('No se encontró el tbody de la tabla');
-            return;
-        }
-        
-        // Limpiar contenido previo
-        tbody.innerHTML = '';
-        
-        // Si no hay facturas, mostrar mensaje
-        if (!clientInvoices || clientInvoices.length === 0) {
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se encontraron facturas para este cliente.</td>';
-            tbody.appendChild(emptyRow);
-            return;
-        }
-        
-        // Añadir una fila por cada factura
-        clientInvoices.forEach((invoice, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><span class="badge bg-secondary">${invoice.product_code || 'N/A'}</span></td>
-                <td>${invoice.product_description || 'N/A'}</td>
-                <td>${invoice.origin || 'N/A'}</td>
-                <td>${invoice.invoice_number || 'N/A'}</td>
-                <td>${invoice.formatted_date || 'N/A'}</td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-primary select-invoice" data-index="${index}">
-                        <i class="fas fa-check me-1"></i>Seleccionar
-                    </button>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-        });
-        
-        // Añadir eventos a los botones de selección
-        const selectButtons = tbody.querySelectorAll('.select-invoice');
-        selectButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const index = this.getAttribute('data-index');
-                selectInvoiceFromTable(index);
-            });
-        });
-    }
-
-    // Función para mostrar/ocultar la tabla de facturas
-    function toggleInvoicesTable() {
-        const tableSection = document.getElementById('invoicesTableSection');
-        const showAllBtn = document.getElementById('showAllInvoicesBtn');
-        
-        if (!tableSection) return;
-        
-        if (tableSection.style.display === 'none') {
-            // Mostrar tabla
-            tableSection.style.display = 'block';
-            if (showAllBtn) showAllBtn.style.display = 'none';
-        } else {
-            // Ocultar tabla
-            tableSection.style.display = 'none';
-            if (showAllBtn) showAllBtn.style.display = 'block';
-        }
-    }
-
-    // Función para seleccionar una factura desde la tabla
-    function selectInvoiceFromTable(index) {
-        // Convertir a número
-        index = parseInt(index);
-        
-        if (isNaN(index) || index < 0 || !clientInvoices || index >= clientInvoices.length) {
-            console.error('Índice de factura inválido');
-            return;
-        }
-        
-        console.log(`Seleccionando factura del índice ${index} desde la tabla`);
-        
-        // Actualizar el selector de facturas si existe
-        const invoiceSelector = document.getElementById('invoice_selector');
-        if (invoiceSelector) {
-            invoiceSelector.value = index;
-            
-            // Si usa Select2, actualizar también la UI de Select2
-            if (typeof $.fn.select2 === 'function' && $('#invoice_selector').data('select2')) {
-                $('#invoice_selector').trigger('change.select2');
-            }
-            
-            // Disparar evento change para actualizar los detalles
-            invoiceSelector.dispatchEvent(new Event('change'));
-        } else {
-            // Si no existe el selector, mostrar directamente los detalles
-            displayInvoiceDetails(clientInvoices[index]);
-        }
-        
-        // Ocultar la tabla
-        toggleInvoicesTable();
-    }
-
-    // Función para mostrar los detalles de una factura directamente
-    function displayInvoiceDetails(invoice) {
-        if (!invoice) {
-            console.error('No se recibió una factura válida');
-            return;
-        }
-        
-        // Actualizar los detalles de la factura con los nuevos campos
-        const detailsSection = document.getElementById('selectedInvoiceDetails');
-        const invoiceDetailSerie = document.getElementById('invoiceDetailSerie');
-        const invoiceDetailDate = document.getElementById('invoiceDetailDate');
-        const invoiceDetailCode = document.getElementById('invoiceDetailCode');
-        const invoiceDetailReference = document.getElementById('invoiceDetailReference');
-        const invoiceDetailStatus = document.getElementById('invoiceDetailStatus');
-        
-        if (invoiceDetailSerie) invoiceDetailSerie.textContent = invoice.invoice_number || 'N/A';
-        if (invoiceDetailDate) invoiceDetailDate.textContent = invoice.formatted_date || 'N/A';
-        if (invoiceDetailCode) invoiceDetailCode.textContent = invoice.product_code || 'N/A';
-        if (invoiceDetailReference) invoiceDetailReference.textContent = invoice.product_description || 'N/A';
-        if (invoiceDetailStatus) invoiceDetailStatus.textContent = invoice.status || 'N/A';
-        
-        // Mostrar el valor formateado si existe
-        const invoiceDetailValue = document.getElementById('invoiceDetailValue');
-        if (invoiceDetailValue) {
-            invoiceDetailValue.textContent = invoice.formatted_value || 'N/A';
-        }
-        
-        // Mostrar origen si existe
-        const invoiceDetailOrigin = document.getElementById('invoiceDetailOrigin');
-        if (invoiceDetailOrigin) {
-            invoiceDetailOrigin.textContent = invoice.origin || 'N/A';
-        }
-        
-        // Mostrar la sección de detalles
-        if (detailsSection) {
-            detailsSection.style.display = 'block';
-        }
-    }
-
-    // Función para aplicar los datos del producto a los campos del formulario
-    function applyProductData(code, description) {
-        const referenceInput = document.getElementById('reference');
-        const productCodeInput = document.getElementById('product_code');
-        
-        if (referenceInput) {
-            // Si reference es un select, buscar la opción que coincida
-            if (referenceInput.tagName === 'SELECT') {
-                let optionFound = false;
-                for (let i = 0; i < referenceInput.options.length; i++) {
-                    if (referenceInput.options[i].text.includes(description)) {
-                        referenceInput.selectedIndex = i;
-                        optionFound = true;
-                        // Disparar el evento change para que se actualice el código
-                        referenceInput.dispatchEvent(new Event('change'));
-                        break;
-                    }
-                }
-                if (!optionFound) {
-                    // Si no se encuentra una opción similar, crear una nueva
-                    const option = new Option(description, description);
-                    option.setAttribute('data-code', code);
-                    referenceInput.add(option);
-                    referenceInput.value = description;
-                    // Disparar el evento change
-                    referenceInput.dispatchEvent(new Event('change'));
-                }
-            } else {
-                // Si es un input normal
-                referenceInput.value = description;
-            }
-        }
-        
-        if (productCodeInput) {
-            productCodeInput.value = code;
-        }
-        
-        // Notificar al usuario
-        Swal.fire({
-            icon: 'success',
-            title: 'Producto seleccionado',
-            text: 'Se ha seleccionado el producto para la garantía',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
+    // Calcular el total inicial
+    setTimeout(calculateTotal, 500);
 });
+
+// Función para agregar una fila de repuesto
+function addPartRow(partData = null) {
+    const partsTable = document.getElementById('partsTable');
+    const noPartsRow = document.getElementById('noPartsRow');
+    if (noPartsRow) {
+        noPartsRow.style.display = 'none';
+    }
+
+    const row = document.createElement('tr');
+    row.className = 'part-row';
+    row.innerHTML = `
+        <td class="align-middle part-index"></td>
+        <td class="align-middle">
+            <input type="text" class="form-control part-code" readonly>
+            <input type="hidden" name="part_ids[]" class="part-id">
+        </td>
+        <td class="align-middle"><span class="part-name"></span></td>
+        <td class="align-middle">
+            <input type="number" name="quantities[]" class="form-control part-quantity" min="1" value="1">
+        </td>
+        <td class="align-middle">
+            <input type="text" name="unit_values[]" class="form-control part-unit-value text-end" value="0">
+        </td>
+        <td class="align-middle">
+            <input type="text" class="form-control part-total-value text-end" readonly value="0">
+        </td>
+        <td class="align-middle">
+            <button type="button" class="btn btn-danger btn-sm remove-part">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+
+    const tbody = partsTable.querySelector('tbody');
+    tbody.appendChild(row);
+
+    // Actualizar índices
+    updateRowIndices();
+
+    // Configurar botón para eliminar fila
+    const removeBtn = row.querySelector('.remove-part');
+    removeBtn.addEventListener('click', () => {
+        row.remove();
+        updateRowIndices();
+        updatePartsTotals();
+
+        const rows = partsTable.querySelectorAll('tbody tr.part-row');
+        if (rows.length === 0 && noPartsRow) {
+            noPartsRow.style.display = '';
+        }
+    });
+
+    // Configurar eventos para actualización de totales
+    const quantityInput = row.querySelector('.part-quantity');
+    const unitValueInput = row.querySelector('.part-unit-value');
+
+    if (quantityInput) {
+        quantityInput.addEventListener('input', () => {
+            updateRowTotal(row);
+        });
+    }
+
+    if (unitValueInput) {
+        // Aplicar formato inicial si tiene valor
+        if (unitValueInput.value && unitValueInput.value !== '0') {
+            unitValueInput.value = formatNumberWithThousands(unformatNumber(unitValueInput.value));
+        }
+        
+        unitValueInput.addEventListener('input', function() {
+            // Guardar posición del cursor
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            const originalLength = this.value.length;
+            
+            // Remover caracteres no numéricos 
+            let value = this.value.replace(/[^\d]/g, '');
+            
+            // Si hay valor, formatear
+            if (value) {
+                this.value = formatNumberWithThousands(value);
+            } else {
+                this.value = '0';
+            }
+            
+            // Calcular desplazamiento del cursor y reposicionar
+            const newLength = this.value.length;
+            const cursorAdjust = newLength - originalLength;
+            
+            // Si el usuario estaba editando, mantener la posición relativa del cursor
+            if (document.activeElement === this) {
+                this.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+            }
+            
+            // Actualizar totales de la fila
+            updateRowTotal(row);
+        });
+    }
+
+    // Si hay datos, llenar la fila
+    if (partData) {
+        const codeInput = row.querySelector('.part-code');
+        const idInput = row.querySelector('.part-id');
+        const nameSpan = row.querySelector('.part-name');
+
+        if (codeInput && partData.code) codeInput.value = partData.code;
+        if (idInput && partData.id) idInput.value = partData.id;
+        if (nameSpan && partData.name) nameSpan.textContent = partData.name;
+        
+        if (unitValueInput && partData.price) {
+            unitValueInput.value = formatNumberWithThousands(partData.price);
+        }
+        
+        // Actualizar el total de la fila
+        updateRowTotal(row);
+    }
+
+    return row;
+}

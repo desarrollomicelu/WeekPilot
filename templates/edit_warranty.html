@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Crear Ticket de Servicio Técnico{% endblock %}
+{% block title %}Editar Garantía{% endblock %}
 
 {% block head %}
 {{ super() }}
@@ -11,14 +11,12 @@
 <!-- Incluir CSS de Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-
-
-<div id="create-ticket-page" class="container-fluid py-4">
+<div id="edit-warranty-page" class="container-fluid py-4">
     <!-- Cabecera -->
     <div class="row align-items-center mb-2">
         <div class="col-md-6">
             <h2 class="mb-0">
-                <i class="fas fa-plus-circle text-primary me-2"></i>Crear Garantía
+                <i class="fas fa-edit text-primary me-2"></i>Editar Garantía #{{ ticket.id_ticket }}
             </h2>
         </div>
         <div class="col-md-6 text-end">
@@ -28,72 +26,70 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('warranty.create_warranty') }}">
+    <form method="POST" action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}">
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
-            <!-- Información del Cliente -->
+            <!-- Información del Cliente (solo lectura) -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-2 h-100">
                     <div class="card-header bg-light">
                         <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Documento -->
+                        <!-- Documento - solo lectura -->
                         <div class="mb-3 row">
                             <label for="document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <div class="input-group mb-1">
-                                    <input type="text" class="form-control" id="document" name="document" required
-                                        placeholder="Ingrese el documento">
-                                    <button type="button" id="searchClientBtn" class="btn btn-primary">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                                <div id="documentFeedback" class="text-danger mt-1"
-                                    style="display:none; font-size: 80%;">
-                                    <!-- Aquí se mostrarán los mensajes de error -->
-                                </div>
+                                <input type="text" class="form-control bg-light" id="document" name="document" 
+                                    value="{{ client.document }}" readonly>
+                                <input type="hidden" name="document" value="{{ client.document }}">
                             </div>
                         </div>
 
-                        <!-- Nombres -->
+                        <!-- Nombres - solo lectura -->
                         <div class="mb-3 row">
                             <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control bg-light" id="client_names" name="client_names"
-                                    required readonly>
+                                    value="{{ client.name }}" readonly>
+                                <input type="hidden" name="client_names" value="{{ client.name }}">
                             </div>
                         </div>
 
-                        <!-- Apellidos -->
+                        <!-- Apellidos - solo lectura -->
                         <div class="mb-3 row">
                             <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control bg-light" id="client_lastnames"
-                                    name="client_lastnames" required readonly>
+                                    name="client_lastnames" value="{{ client.lastname }}" readonly>
+                                <input type="hidden" name="client_lastnames" value="{{ client.lastname }}">
                             </div>
                         </div>
 
-                        <!-- Teléfono -->
+                        <!-- Teléfono - solo lectura -->
                         <div class="mb-3 row">
                             <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control bg-light" id="phone" name="phone" readonly>
+                                <input type="text" class="form-control bg-light" id="phone" name="phone" 
+                                    value="{{ client.phone }}" readonly>
+                                <input type="hidden" name="phone" value="{{ client.phone }}">
                             </div>
                         </div>
 
-                        <!-- Correo electrónico -->
+                        <!-- Correo electrónico - solo lectura -->
                         <div class="mb-3 row">
                             <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
                             <div class="col-sm-8">
-                                <input type="email" class="form-control bg-light" id="mail" name="mail" readonly>
+                                <input type="email" class="form-control bg-light" id="mail" name="mail" 
+                                    value="{{ client.mail }}" readonly>
+                                <input type="hidden" name="mail" value="{{ client.mail }}">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Detalles del Ticket -->
+            <!-- Detalles del Ticket (técnico editable) -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-2 h-100">
                     <div class="card-header bg-light">
@@ -101,18 +97,19 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <!-- Técnico -->
+                        <!-- Técnico - editable -->
                         <div class="mb-3 row">
                             <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
                             <div class="col-sm-8">
                                 <select class="form-select" id="technical_name" name="technical_name">
                                     <option value="">Sin asignar</option>
                                     {% for technician in technicians %}
-                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}">{{
-                                        technician.NOMBRE }}</option>
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}" 
+                                        {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
+                                        {{ technician.NOMBRE }}
+                                    </option>
                                     {% endfor %}
                                 </select>
-                                <!-- Aquí se insertará el mensaje de error -->
                             </div>
                         </div>
 
@@ -120,29 +117,27 @@
                             <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
                                 <input type="text" class="form-control" id="technical_document"
-                                    name="technical_document" value="Sin asignar" readonly>
+                                    name="technical_document" value="{{ ticket.technical_document }}" readonly>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="state" class="col-sm-4 col-form-label">Estado</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="state_display" value="Sin asignar" readonly>
-                                <input type="hidden" id="state" name="state" value="Sin asignar">
+                                <input type="text" class="form-control" id="state_display" value="{{ ticket.state }}" readonly>
+                                <input type="hidden" id="state" name="state" value="{{ ticket.state }}">
                             </div>
                         </div>
 
-
-                        <!-- Ciudad -->
+                        <!-- Ciudad - editable -->
                         <div class="mb-3 row">
                             <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
                             <div class="col-sm-8">
                                 <select class="form-select searchable-select" id="city" name="city">
                                     {% for city in ['Medellín', 'Bogotá'] %}
-                                    <option value="{{ city }}">{{ city }}</option>
+                                    <option value="{{ city }}" {% if ticket.city == city %}selected{% endif %}>{{ city }}</option>
                                     {% endfor %}
                                 </select>
-                                <!-- Aquí se insertará el mensaje de error -->
                             </div>
                         </div>
 
@@ -151,7 +146,7 @@
                             <div class="col-sm-8">
                                 <select class="form-select searchable-select" id="priority" name="priority">
                                     {% for priority in ['Alta', 'Media', 'Baja'] %}
-                                    <option value="{{ priority }}">{{ priority }}</option>
+                                    <option value="{{ priority }}" {% if ticket.priority == priority %}selected{% endif %}>{{ priority }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -161,81 +156,55 @@
             </div>
         </div>
 
-        <!-- NUEVA FILA: Facturas Asociadas al Cliente -->
+        <!-- NUEVA FILA: Información de Factura - solo lectura -->
         <div class="row mb-3">
             <div class="col-12">
                 <div class="card shadow-sm">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Facturas Asociadas al
-                            Cliente</h5>
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Información de Factura</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-3">
-                            <!-- Selector de facturas -->
-                            <div class="col-md-12" id="invoiceDropdownSection" style="display: none;">
-                                <label for="invoice_selector" class="form-label">Seleccionar Factura</label>
-                                <select class="form-select" id="invoice_selector" name="invoice_selector">
-                                    <option value="">Seleccione una factura</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Detalles de Factura Seleccionada -->
-                        <div id="selectedInvoiceDetails" class="card mt-3 border-primary" style="display: none;">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Detalles de la Factura</h6>
-                            </div>
-                            <div class="card-body p-3">
-                                <div class="row g-2">
-                                    <div class="col-md-4 col-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Código Producto</label>
-                                            <input type="text" class="form-control bg-light" id="invoiceDetailCode"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 col-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Serie</label>
-                                            <input type="text" class="form-control bg-light" id="invoiceDetailSerie"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 col-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Documento</label>
-                                            <input type="text" class="form-control bg-light" id="invoiceDetailDocument"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 col-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Fecha</label>
-                                            <input type="text" class="form-control bg-light" id="invoiceDetailDate"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-8 col-12">
-                                        <div class="mb-3">
-                                            <label class="form-label">Referencia</label>
-                                            <input type="text" class="form-control bg-light" id="invoiceDetailReference"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-end mt-2">
-                                    <button type="button" class="btn btn-primary" id="useInvoiceDataBtn">
-                                        <i class="fas fa-check me-1"></i>Usar para garantía
-                                    </button>
+                        <div class="row">
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Código Producto</label>
+                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
+                                        value="{{ ticket.product_code }}" readonly>
+                                    <input type="hidden" name="product_code" value="{{ ticket.product_code }}">
                                 </div>
                             </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Serie/IMEI</label>
+                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI"
+                                        value="{{ ticket.IMEI }}" readonly>
+                                    <input type="hidden" name="IMEI" value="{{ ticket.IMEI }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Factura</label>
+                                    <input type="text" class="form-control bg-light" id="invoice_number" name="invoice_number"
+                                        value="{{ ticket.invoice_number }}" readonly>
+                                    <input type="hidden" name="invoice_number" value="{{ ticket.invoice_number }}">
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Referencia</label>
+                                    <input type="text" class="form-control bg-light" id="reference" name="reference"
+                                        value="{{ ticket.reference }}" readonly>
+                                    <input type="hidden" name="reference" value="{{ ticket.reference }}">
+                                </div>
+                            </div>
+                            <input type="hidden" id="type_of_service" name="type_of_service" value="{{ ticket.type_of_service }}">
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Fila 2: Repuestos Utilizados -->
+        <!-- Fila 2: Repuestos Utilizados - editable -->
         <div class="row mb-2">
             <div class="col-md-12">
                 <div class="card shadow-sm">
@@ -258,12 +227,57 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {% if current_spare_tickets %}
+                                    {% for spare in current_spare_tickets %}
+                                    <tr class="part-row">
+                                        <td>
+                                            <div class="input-group">
+                                                <select class="form-select" name="spare_part_code[]" required>
+                                                    <option value="" disabled>Seleccione un repuesto</option>
+                                                    {% for part in spare_parts %}
+                                                    <option value="{{ part.code }}" {% if spare.spare_code==part.code %}selected{% endif %}>
+                                                        {{ part.code }} - {{ part.description }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" 
+                                                value="{{ spare.quantity }}" required>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" 
+                                                    value="{{ spare.unit_price }}" required>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" 
+                                                    value="{{ spare.total_price }}" readonly>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-danger remove-part" title="Eliminar repuesto">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
                                     <tr id="noPartsRow">
                                         <td colspan="5" class="text-center py-4">
                                             <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                                             <p class="text-muted mb-0">No se han agregado repuestos para este servicio.</p>
                                         </td>
                                     </tr>
+                                    {% endif %}
                                 </tbody>
                                 
                             </table>
@@ -273,43 +287,9 @@
             </div>
         </div>
 
-        <!-- Fila de Facturas Asociadas -->
-        <div class="row mb-2" id="invoicesSection" style="display: none;">
-            <div class="col-md-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Facturas Asociadas
-                        </h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table" id="invoicesTable">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Serie</th>
-                                        <th>Fecha Inicial</th>
-                                        <th>Estado</th>
-                                        <th>Código Producto</th>
-                                        <th>Referencia</th>
-                                        <th>Seleccionar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr id="noInvoicesRow">
-                                        <td colspan="6" class="text-center py-3">No se encontraron facturas para
-                                            este cliente.</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Fila 3: Problemas del Dispositivo y Valores -->
         <div class="row mb-2">
-            <!-- Problemas del Dispositivo -->
+            <!-- Problemas del Dispositivo - editable -->
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-light">
@@ -326,7 +306,8 @@
                             {% for problem in problems %}
                             <div class="form-check problem-option">
                                 <input class="form-check-input problem-checkbox" type="checkbox"
-                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]">
+                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]"
+                                    {% if problem in ticket.problems %}checked{% endif %}>
                                 <label class="form-check-label" for="problem_{{ problem.id }}">
                                     {{ problem.name }}
                                 </label>
@@ -348,54 +329,13 @@
                 </div>
             </div>
 
-            <!-- Valores -->
+            <!-- Valores - valor de servicio editable -->
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">Valores</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Información del Equipo -->
-                        <div class="mb-2">
-                            <h6 class="mb-3">Información del Equipo</h6>
-                            <div class="row">
-                                <!-- Campo de referencia -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="reference" class="form-label">Referencia</label>
-                                    <input type="text" class="form-control bg-light" id="reference" name="reference"
-                                    readonly>
-                                    <!-- Aquí se insertará el mensaje de error -->
-                                </div>
-
-                                <!-- Campo de código de producto (ahora como input de texto) -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="product_code" class="form-label">Código Producto</label>
-                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
-                                        readonly>
-                                </div>
-
-                                <!-- Campo IMEI o Serial -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="IMEI" class="form-label">IMEI o Serial</label>
-                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI" readonly>
-                                    <!-- Aquí se insertará el mensaje de error -->
-                                </div>
-
-                                <!-- Campo Número de Factura -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="invoice_number" class="form-label">Número de Factura</label>
-                                    <input type="text" class="form-control bg-light" id="invoice_number" name="invoice_number" readonly>
-                                </div>
-
-                                <!-- Campo de tipo de servicio -->
-                                <div class="col-sm-6 mb-3" style="display: none;">
-                                    <input type="hidden" id="type_of_service" name="type_of_service" value="2">
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
                         <!-- Valores Financieros -->
                         <div class="mb-3 row">
                             <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
@@ -403,8 +343,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="text" class="form-control text-end" id="service_value" name="service_value"
-                                        min="0" value="0" required>
-                                    <!-- Aquí se insertará el mensaje de error -->
+                                        min="0" value="{{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}" required>
                                 </div>
                             </div>
                         </div>
@@ -414,8 +353,8 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" value="0" min="0"
-                                        readonly>
+                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" 
+                                        value="{{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -425,25 +364,27 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total" value="0" min="0" readonly>
+                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total" 
+                                        value="{{ "{:,.0f}".format(ticket.total).replace(',', '.') }}" min="0" readonly>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div </div>
-            <!-- Botones de acción -->
-            <div class="d-flex justify-content-between my-2">
-                <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-2"></i>Cancelar
-                </a>
-                <div>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-2"></i>Crear Garantía
-                    </button>
-                </div>
             </div>
+        </div>
 
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-between my-2">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </a>
+            <div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
     </form>
 </div>
 
@@ -469,7 +410,7 @@
                 <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
             </div>
         </td>
-        <td style="width: 40%;">
+        <td>
             <div class="input-group">
                 <span class="input-group-text">$</span>
                 <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
@@ -537,14 +478,9 @@
     </div>
 </div>
 
-
 <!-- Se incluye jQuery, Select2 y Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='js/create_warranty.js') }}"></script>
-<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
-
-
-
+<script src="{{ url_for('static', filename='js/edit_warranty.js') }}"></script>
 
 {% endblock %}
