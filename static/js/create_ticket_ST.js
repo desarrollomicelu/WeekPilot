@@ -305,17 +305,6 @@ function attachEnhancedRealTimeValidation() {
                 }
             });
             
-            // Para select2, necesitamos un evento adicional
-            if ($(select).data('select2')) {
-                $(select).on('select2:select select2:unselect', function() {
-                    if (fieldInfo.required && (!this.value || this.value === '')) {
-                        showValidationError(this, fieldInfo.errorMsg);
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-            }
-            
             // Validación inicial
             if (fieldInfo.required) {
                 select.dispatchEvent(new Event('change'));
@@ -340,17 +329,6 @@ function attachEnhancedRealTimeValidation() {
                         removeValidationError(this);
                     }
                 });
-                
-                // Para select2
-                if ($(partSelect).data('select2')) {
-                    $(partSelect).on('select2:select select2:unselect', function() {
-                        if (!this.value || this.value === '') {
-                            showValidationError(this, 'Seleccione un repuesto');
-                        } else {
-                            removeValidationError(this);
-                        }
-                    });
-                }
             }
             
             // Validar cantidad
@@ -401,6 +379,7 @@ function setupTechnicianStateRestriction() {
     const technicianSelect = document.getElementById('technical_name');
     const stateSelect = document.getElementById('state');
     const stateDisplay = document.getElementById('state_display');
+    const technicianDocumentInput = document.getElementById('technical_document');
     
     if (!technicianSelect || !stateSelect) return;
     
@@ -418,8 +397,22 @@ function setupTechnicianStateRestriction() {
         // Actualizar el estado basado en la selección del técnico
         if (hasTechnician) {
             stateSelect.value = "Asignado";
+            
+            // Obtener y asignar el documento del técnico seleccionado
+            if (technicianDocumentInput) {
+                const selectedOption = this.options[this.selectedIndex];
+                const technicianDocument = selectedOption.getAttribute('data-document') || '';
+                technicianDocumentInput.value = technicianDocument;
+                
+                // Asegurarse de que se ha asignado correctamente el documento
+                console.log("Técnico seleccionado: " + this.value);
+                console.log("Documento asignado: " + technicianDocument);
+            }
         } else {
             stateSelect.value = "Sin asignar";
+            if (technicianDocumentInput) {
+                technicianDocumentInput.value = '';
+            }
         }
         
         // Actualizar el campo de visualización
@@ -429,8 +422,13 @@ function setupTechnicianStateRestriction() {
         stateSelect.dispatchEvent(new Event('change'));
     });
     
-    // Inicializar el estado de visualización
+    // Inicializar el estado de visualización al cargar la página
     updateStateDisplay();
+    
+    // Ejecutar el evento change al inicio para asegurar consistencia
+    if (technicianSelect.value && technicianSelect.value !== '') {
+        technicianSelect.dispatchEvent(new Event('change'));
+    }
 }
 
 /**
@@ -702,129 +700,118 @@ function setupPartsTable() {
 
     // Función para buscar repuestos
     function searchParts(term) {
-        if (!searchResultsLoader || !initialSearchMessage || !noResultsMessage || !searchResults) {
-            console.error("Faltan elementos del modal de búsqueda");
-            return;
-        }
-        
-        // Ocultar mensajes y mostrar loader
-        initialSearchMessage.style.display = 'none';
-        noResultsMessage.style.display = 'none';
-        searchResultsLoader.style.display = 'block';
-
-        // Limpiar resultados anteriores
-        const existingContainer = document.querySelector('.search-results-container');
-        if (existingContainer) {
-            existingContainer.innerHTML = '';
-        }
-
-        // Validar término de búsqueda
         if (!term || term.length < 3) {
-            searchResultsLoader.style.display = 'none';
-            initialSearchMessage.style.display = 'block';
             return;
         }
 
-        // Crear FormData para enviar en la petición
-        const formData = new FormData();
-        formData.append('search', term);
+        // Mostrar loader y ocultar mensajes
+        if (initialSearchMessage) initialSearchMessage.style.display = 'none';
+        if (searchResultsLoader) searchResultsLoader.style.display = 'block';
+        if (noResultsMessage) noResultsMessage.style.display = 'none';
+        
+        // Mostrar contenedor de resultados
+        const resultsContainer = document.querySelector('.search-results-container');
+        if (resultsContainer) {
+            resultsContainer.style.display = 'none';
+        }
 
-        // Enviar petición AJAX
-        console.log("Buscando repuestos con término:", term);
-        fetch('/search_spare_parts', {
-            method: 'POST',
-            body: formData
-        })
+        // Realizar búsqueda mediante AJAX
+        fetch(`/api/parts/search?term=${encodeURIComponent(term)}`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    throw new Error('Error en la red al buscar repuestos');
                 }
                 return response.json();
             })
             .then(data => {
                 // Ocultar loader
-                searchResultsLoader.style.display = 'none';
+                if (searchResultsLoader) searchResultsLoader.style.display = 'none';
                 
-                console.log("Resultados de búsqueda:", data);
-
-                // Verificar si hay resultados
-                if (!data.parts || data.parts.length === 0) {
-                    noResultsMessage.style.display = 'block';
+                // Mostrar mensaje de no resultados si corresponde
+                if (data.length === 0) {
+                    if (noResultsMessage) noResultsMessage.style.display = 'block';
+                    if (resultsContainer) resultsContainer.style.display = 'none';
                     return;
                 }
-
-                // Crear o mostrar el contenedor de resultados
-                let resultsContainer = document.querySelector('.search-results-container');
-                if (!resultsContainer) {
-                    resultsContainer = document.createElement('div');
-                    resultsContainer.className = 'search-results-container';
-                    searchResults.appendChild(resultsContainer);
-                }
-                resultsContainer.style.display = 'block';
-                resultsContainer.innerHTML = '';
-
-                // Crear una fila para los resultados
-                const row = document.createElement('div');
-                row.className = 'row g-3';
-                resultsContainer.appendChild(row);
-
-                // Agregar cada repuesto encontrado en columnas
-                data.parts.forEach(part => {
-                    // Crear columna para este repuesto (6 columnas en pantalla md)
-                    const col = document.createElement('div');
-                    col.className = 'col-md-6';
-                    
-                    // Crear tarjeta para el repuesto
+                
+                // Limpiar resultados anteriores
+                if (searchResults) searchResults.innerHTML = '';
+                
+                // Mostrar contenedor de resultados
+                if (resultsContainer) resultsContainer.style.display = 'block';
+                
+                // Crear y añadir cada resultado
+                data.forEach(part => {
                     const card = document.createElement('div');
-                    card.className = 'card h-100 shadow-sm';
+                    card.className = 'card mb-2 search-result-card';
+                    card.dataset.partId = part.id;
                     
-                    // Agregar contenido a la tarjeta
+                    // Stock badge class basado en disponibilidad
+                    let stockBadgeClass = 'bg-danger';
+                    if (part.stock > 10) {
+                        stockBadgeClass = 'bg-success';
+                    } else if (part.stock > 0) {
+                        stockBadgeClass = 'bg-warning text-dark';
+                    }
+                    
                     card.innerHTML = `
-                        <div class="card-body">
-                            <h6 class="card-title mb-1 fw-bold">${highlightSearchTerm(part.description, term)}</h6>
-                            <p class="card-text text-muted small mb-2">${highlightSearchTerm(part.code, term)}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-5 text-success fw-bold">$${formatNumberWithThousands(part.price || 0)}</span>
-                                <button class="btn btn-sm btn-primary select-result">
-                                    <i class="fas fa-check me-1"></i>Seleccionar
-                                </button>
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">${highlightSearchTerm(part.code, term)} - ${highlightSearchTerm(part.description, term)}</h6>
+                                    <div class="small text-muted">
+                                        <span class="me-2"><i class="fas fa-tag"></i> ${formatCurrency(part.price)}</span>
+                                        <span><i class="fas fa-box"></i> Ubicación: ${part.location || 'No especificada'}</span>
+                                    </div>
+                                </div>
+                                <span class="badge ${stockBadgeClass}">${part.stock} en stock</span>
                             </div>
                         </div>
                     `;
-
-                    // Agregar datos al elemento para su uso posterior
-                    card.dataset.code = part.code;
-                    card.dataset.description = part.description;
-                    card.dataset.price = part.price || '0';
-
-                    // Evento de clic para seleccionar un repuesto
-                    card.querySelector('.select-result').addEventListener('click', function() {
+                    
+                    // Evento para seleccionar este repuesto
+                    card.addEventListener('click', function() {
                         const partData = {
-                            code: card.dataset.code,
-                            description: card.dataset.description,
-                            price: card.dataset.price
+                            id: part.id,
+                            code: part.code,
+                            description: part.description,
+                            price: part.price,
+                            stock: part.stock,
+                            location: part.location
                         };
-                        selectPartAndUpdateRow(partData);
                         
-                        // Cerrar modal
+                        // Seleccionar el repuesto y cerrar el modal
+                        selectPartAndUpdateRow(partData);
                         const modal = bootstrap.Modal.getInstance(searchPartsModal);
                         if (modal) modal.hide();
                     });
-
-                    // Agregar a la columna y luego a la fila
-                    col.appendChild(card);
-                    row.appendChild(col);
+                    
+                    searchResults.appendChild(card);
                 });
+                
+                // Añadir evento de búsqueda con tecla Enter en los resultados
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && bootstrap.Modal.getInstance(searchPartsModal)) {
+                        const firstResult = searchResults.querySelector('.search-result-card');
+                        if (firstResult) firstResult.click();
+                    }
+                });
+                
             })
             .catch(error => {
                 console.error('Error al buscar repuestos:', error);
-                searchResultsLoader.style.display = 'none';
-                noResultsMessage.style.display = 'block';
-                noResultsMessage.innerHTML = `
-                    <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
-                    <h5 class="text-danger">Error al buscar repuestos</h5>
-                    <p class="text-muted mb-0">${error.message}</p>
-                `;
+                
+                // Ocultar loader y mostrar mensaje de error
+                if (searchResultsLoader) searchResultsLoader.style.display = 'none';
+                if (searchResults) {
+                    searchResults.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error al buscar repuestos: ${error.message}
+                        </div>
+                    `;
+                }
+                if (resultsContainer) resultsContainer.style.display = 'block';
             });
     }
 
@@ -867,7 +854,7 @@ function setupPartsTable() {
         if (!optionExists) {
             const newOption = document.createElement('option');
             newOption.value = partData.code;
-            // Solo mostrar la descripción, no el código
+            // Solo mostrar la descripción, sin el código
             newOption.textContent = partData.description;
             select.appendChild(newOption);
             select.selectedIndex = select.options.length - 1;
@@ -1108,20 +1095,34 @@ function setupPartsTable() {
 
 /***** Inicialización al Cargar el DOM *****/
 document.addEventListener("DOMContentLoaded", function () {
-    // Configuración de búsqueda de cliente
+    console.log("Script create_ticket_ST.js inicializado");
+    
+    // 1. Validaciones en tiempo real
+    attachEnhancedRealTimeValidation();
+    
+    // Configurar los componentes para la tabla de repuestos
+    setupPartsTable();
+    
+    // Configurar la búsqueda y selección de clientes
     setupClientSearch();
     
-    // Inicio de validación de técnico y estado
-    setupTechnicianStateRestriction();
+    /***** 2. Inicialización de la interfaz *****/
+    if (document.getElementById('reference')) {
+        // El select reference ahora usa la clase de Bootstrap, no es necesario inicializarlo con Select2
+    }
+    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').each(function() {
+        // Los selects ahora usan la clase form-select de Bootstrap, no es necesario inicializarlos con Select2
+    });
+    
+    // 3. Configurar eventos para los selectores normales de Bootstrap
+    $('#reference').on('change', function (e) {
+        // La lógica de gestión de eventos permanece, solo cambia select2:select por change
+    });
 
-    // Inicializar selector de problemas
-    setupProblemsSelector();
-
-    // Configurar tabla de repuestos
-    setupPartsTable();
-
-    // Configurar eventos de validación
-    attachEnhancedRealTimeValidation();
+    // Inicializar selectores de repuestos con clases de Bootstrap
+    $('select[name="spare_part_code[]"]').each(function() {
+        // Los selects de repuestos ahora usan la clase form-select de Bootstrap
+    });
 
     /***** 1. Mostrar alerta si el ticket fue creado *****/
     const urlParams = new URLSearchParams(window.location.search);
@@ -1130,73 +1131,6 @@ document.addEventListener("DOMContentLoaded", function () {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
     
-    /***** 2. Inicialización de Select2 *****/
-    if (document.getElementById('reference')) {
-        $('#reference').select2({
-            width: '100%',
-            placeholder: "Seleccione una referencia",
-            allowClear: true
-        });
-    }
-    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2({
-        width: '100%',
-        placeholder: "Seleccione una opción",
-        allowClear: true
-    });
-    $('#reference').on('select2:select', function (e) {
-        this.dispatchEvent(new Event('change'));
-    });
-
-    /***** 3. Auto-completar campos *****/
-    // Actualizar documento del técnico y cambiar estado a "Asignado"
-    const technicianSelect = document.getElementById('technical_name');
-    const technicianDocumentInput = document.getElementById('technical_document');
-    const stateSelect = document.getElementById('state');
-    if (technicianSelect && technicianDocumentInput && stateSelect) {
-        technicianSelect.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Asignado") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            } else {
-                technicianDocumentInput.value = '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Sin asignar") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        });
-        if (technicianSelect.value) {
-            const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
-            if (selectedOption && selectedOption.value && (!technicianDocumentInput.value || technicianDocumentInput.value.trim() === '')) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-            }
-        }
-    }
-
-    // Actualizar el código del producto al cambiar la referencia
-    const referenceElem = document.getElementById('reference');
-    const productCodeInput = document.getElementById('product_code');
-    if (referenceElem && productCodeInput) {
-        referenceElem.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            productCodeInput.value = (selectedOption && selectedOption.value) ? (selectedOption.getAttribute('data-code') || '') : '';
-        });
-        if (referenceElem.value) {
-            const selectedOption = referenceElem.options[referenceElem.selectedIndex];
-            if (selectedOption && selectedOption.value && !productCodeInput.value) {
-                productCodeInput.value = selectedOption.getAttribute('data-code') || '';
-            }
-        }
-    }
-
     /***** 4. Gestión de Problemas del Dispositivo *****/
     const searchProblems = document.getElementById('searchProblems');
     const problemCheckboxes = document.querySelectorAll('.problem-checkbox');
@@ -1423,12 +1357,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Asegurarse de que, al seleccionar con Select2, se dispare el evento change en el select de referencia
-$(document).ready(function () {
-    // La funcionalidad de Select2 ya no se usa
-    // Se mantienen solo los eventos nativos
-});
-
 /**
  * Busca un cliente por documento y muestra sus datos en el formulario
  * @param {string} documentNumber - Documento del cliente a buscar
@@ -1508,7 +1436,6 @@ function searchClient(documentNumber) {
                         const nombre2 = data.client.nombre2 || '';
                         clientNamesInput.value = `${nombre1} ${nombre2}`.trim();
                         clientNamesInput.classList.add('bg-light');
-                        clientNamesInput.readOnly = true;
                         console.log("Nombres actualizados:", clientNamesInput.value);
                     }
 
@@ -1517,21 +1444,18 @@ function searchClient(documentNumber) {
                         const apellido2 = data.client.apellido2 || '';
                         clientLastnamesInput.value = `${apellido1} ${apellido2}`.trim();
                         clientLastnamesInput.classList.add('bg-light');
-                        clientLastnamesInput.readOnly = true;
                         console.log("Apellidos actualizados:", clientLastnamesInput.value);
                     }
 
                     if (phoneInput) {
                         phoneInput.value = data.client.phone || '';
                         phoneInput.classList.add('bg-light');
-                        phoneInput.readOnly = true;
                         console.log("Teléfono actualizado:", phoneInput.value);
                     }
 
                     if (mailInput) {
                         mailInput.value = data.client.email || '';
                         mailInput.classList.add('bg-light');
-                        mailInput.readOnly = true;
                         console.log("Email actualizado:", mailInput.value);
                     }
                 }
@@ -1685,7 +1609,9 @@ function searchParts() {
                         const partData = {
                             code: part.code,
                             description: part.description,
-                            price: part.price || '0'
+                            price: part.price,
+                            stock: part.stock,
+                            location: part.location
                         };
                         
                         // Usar la función existente para seleccionar el repuesto

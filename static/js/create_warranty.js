@@ -342,6 +342,10 @@ function setupMoneyHandling() {
 
 // Inicializar el manejo de valores monetarios al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
+    // Los selectores de repuestos ahora usan la clase form-select de Bootstrap
+    // No es necesario inicializarlos con Select2
+    
+    // Configurar manejo de valores monetarios
     setupMoneyHandling();
 });
 
@@ -682,6 +686,11 @@ function setupPartsTable() {
 
     // Función para buscar repuestos
     function searchParts(term) {
+        if (!searchResultsLoader || !initialSearchMessage || !noResultsMessage || !searchResults) {
+            console.error("Faltan elementos del modal de búsqueda");
+            return;
+        }
+        
         // Ocultar mensajes y mostrar loader
         initialSearchMessage.style.display = 'none';
         noResultsMessage.style.display = 'none';
@@ -690,17 +699,13 @@ function setupPartsTable() {
         // Limpiar resultados anteriores
         const existingContainer = document.querySelector('.search-results-container');
         if (existingContainer) {
-            existingContainer.remove();
+            existingContainer.innerHTML = '';
         }
 
         // Validar término de búsqueda
         if (!term || term.length < 3) {
             searchResultsLoader.style.display = 'none';
             initialSearchMessage.style.display = 'block';
-            initialSearchMessage.innerHTML = `
-                <i class="fas fa-info-circle"></i>
-                <p class="mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda.</p>
-            `;
             return;
         }
 
@@ -708,90 +713,133 @@ function setupPartsTable() {
         const formData = new FormData();
         formData.append('search', term);
 
-        // Mostrar mensaje de búsqueda
-        searchResultsLoader.innerHTML = `
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Buscando...</span>
-            </div>
-            <p class="mt-2">Buscando repuestos...</p>
-            <small class="text-muted">Término de búsqueda: "${term}"</small>
-        `;
-
+        // Enviar petición AJAX
+        console.log("Buscando repuestos con término:", term);
         fetch('/search_spare_parts', {
             method: 'POST',
             body: formData
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Error en la respuesta del servidor');
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
                 // Ocultar loader
                 searchResultsLoader.style.display = 'none';
+                
+                console.log("Resultados de búsqueda:", data);
 
-                // Crear contenedor para los resultados
-                const resultsContainer = document.createElement('div');
-                resultsContainer.className = 'search-results-container';
+                // Verificar si hay resultados
+                if (!data.parts || data.parts.length === 0) {
+                    noResultsMessage.style.display = 'block';
+                    return;
+                }
 
-                if (data.success && data.parts && data.parts.length > 0) {
-                    // Mostrar los resultados
-                    data.parts.forEach(part => {
-                        const resultItem = document.createElement('div');
-                        resultItem.className = 'search-result-item';
-                        resultItem.tabIndex = "0";
-                        resultItem.setAttribute('role', 'button');
-                        resultItem.setAttribute('aria-label', `Seleccionar repuesto ${part.code}`);
+                // Crear o mostrar el contenedor de resultados
+                let resultsContainer = document.querySelector('.search-results-container');
+                if (!resultsContainer) {
+                    resultsContainer = document.createElement('div');
+                    resultsContainer.className = 'search-results-container';
+                    searchResults.appendChild(resultsContainer);
+                }
+                resultsContainer.style.display = 'block';
+                resultsContainer.innerHTML = '';
 
-                        // Resaltar el término de búsqueda en código y descripción
-                        const partCode = highlightSearchTerm(part.code, term);
-                        const partDesc = highlightSearchTerm(part.description, term);
+                // Crear una fila para los resultados
+                const row = document.createElement('div');
+                row.className = 'row g-3';
+                resultsContainer.appendChild(row);
 
-                        resultItem.innerHTML = `
-                            <div class="part-code">
-                                <i class="fas fa-barcode me-2"></i>${partCode}
+                // Agregar contador de resultados
+                const resultCount = document.createElement('div');
+                resultCount.className = 'col-12 mb-2';
+                resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.parts.length} repuestos</small>`;
+                row.appendChild(resultCount);
+
+                // Agregar cada repuesto encontrado en columnas
+                data.parts.forEach(part => {
+                    // Crear columna para este repuesto (6 columnas en pantalla md)
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 mb-2';
+                    
+                    // Crear tarjeta para el repuesto
+                    const card = document.createElement('div');
+                    card.className = 'card h-100 shadow-sm part-card';
+                    
+                    // Agregar contenido a la tarjeta
+                    card.innerHTML = `
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0 fw-bold">${highlightSearchTerm(part.description, term)}</h6>
+                                <span class="badge bg-primary ms-2">Cód: ${highlightSearchTerm(part.code, term)}</span>
                             </div>
-                            <div class="part-description">
-                                <i class="fas fa-info-circle me-2"></i>${partDesc}
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-success fw-bold">${part.price && part.price != '0' ? '$' + formatNumberWithThousands(part.price) : ''}</span>
+                                <button class="btn btn-sm btn-primary select-result">
+                                    <i class="fas fa-check me-1"></i>Seleccionar
+                                </button>
                             </div>
-                        `;
+                        </div>
+                    `;
 
-                        // Agregar evento al hacer clic en un resultado
-                        resultItem.addEventListener('click', function () {
-                            selectPartAndUpdateRow(part);
-                        });
+                    // Agregar datos al elemento para su uso posterior
+                    card.dataset.code = part.code;
+                    card.dataset.description = part.description;
+                    card.dataset.price = part.price || '0';
 
-                        // También permitir selección con Enter
-                        resultItem.addEventListener('keydown', function (e) {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                selectPartAndUpdateRow(part);
-                            }
-                        });
-
-                        resultsContainer.appendChild(resultItem);
+                    // Evento de clic para seleccionar un repuesto
+                    card.querySelector('.select-result').addEventListener('click', function() {
+                        const partData = {
+                            code: card.dataset.code,
+                            description: card.dataset.description,
+                            price: card.dataset.price
+                        };
+                        selectPartAndUpdateRow(partData);
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(searchPartsModal);
+                        if (modal) modal.hide();
                     });
 
-                    searchResults.appendChild(resultsContainer);
-                } else {
-                    // Mostrar mensaje de no resultados
-                    noResultsMessage.style.display = 'block';
-                    noResultsMessage.innerHTML = `
-                        <i class="fas fa-search"></i>
-                        <p class="mb-0">No se encontraron repuestos con el término "${term}"</p>
-                        <small class="text-muted">Intente con otros términos de búsqueda</small>
-                    `;
-                }
+                    // Agregar a la columna y luego a la fila
+                    col.appendChild(card);
+                    row.appendChild(col);
+                });
+
+                // Agregar estilos adicionales para la tarjeta de resultados
+                const style = document.createElement('style');
+                style.textContent = `
+                    .part-card {
+                        transition: all 0.2s ease;
+                        border: 1px solid #dee2e6;
+                    }
+                    .part-card:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+                        border-color: #6c757d;
+                    }
+                    .highlight {
+                        background-color: #ffeeba;
+                        padding: 0 2px;
+                        border-radius: 2px;
+                    }
+                    .search-input:focus {
+                        border-color: #80bdff;
+                        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+                    }
+                `;
+                document.head.appendChild(style);
             })
             .catch(error => {
                 console.error('Error al buscar repuestos:', error);
                 searchResultsLoader.style.display = 'none';
                 noResultsMessage.style.display = 'block';
                 noResultsMessage.innerHTML = `
-                    <i class="fas fa-exclamation-triangle text-danger"></i>
-                    <p class="mb-0">Error al buscar repuestos</p>
-                    <small class="text-muted">Por favor, intente nuevamente</small>
+                    <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                    <h5 class="text-danger">Error al buscar repuestos</h5>
+                    <p class="text-muted mb-0">${error.message}</p>
                 `;
             });
     }
@@ -811,8 +859,8 @@ function setupPartsTable() {
     }
 
     // Función para seleccionar un repuesto y actualizar la fila
-    function selectPartAndUpdateRow(part) {
-        console.log("Repuesto seleccionado:", part);
+    function selectPartAndUpdateRow(partData) {
+        console.log("Repuesto seleccionado:", partData);
 
         if (!currentEditingRow) {
             console.error("No hay fila seleccionada para actualizar");
@@ -838,12 +886,12 @@ function setupPartsTable() {
 
             // Crear nueva opción para el repuesto seleccionado
             const option = document.createElement('option');
-            option.value = part.code;
-            option.text = `${part.code} - ${part.description}`;
+            option.value = partData.code;
+            option.text = partData.description;
             codeSelect.add(option);
 
             // Seleccionar la nueva opción
-            codeSelect.value = part.code;
+            codeSelect.value = partData.code;
 
             // Disparar evento change para activar cualquier listener
             const changeEvent = new Event('change', { bubbles: true });
@@ -864,7 +912,7 @@ function setupPartsTable() {
             }
 
             // Validar la selección
-            if (codeSelect.value !== part.code) {
+            if (codeSelect.value !== partData.code) {
                 throw new Error("No se pudo establecer el valor seleccionado en el campo");
             }
 
