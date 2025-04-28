@@ -254,24 +254,18 @@
                                     <div class="col-sm-6 mb-3">
                                         <label for="reference" class="form-label">Referencia</label>
                                         <div class="input-group">
-                                            <select class="form-select" id="reference" name="reference" required>
-                                                <option value="">Seleccione una referencia</option>
-                                                {% for item in product_info %}
-                                                <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}">
-                                                    {{ item.DESCRIPCIO }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
+                                            <input type="text" class="form-control" id="reference" name="reference" readonly placeholder="Seleccione una referencia de producto">
                                             <button type="button" class="btn btn-outline-primary" id="searchReferenceBtn" title="Buscar referencia">
                                                 <i class="fas fa-search"></i>
                                             </button>
                                         </div>
                                     </div>
 
-                                    <!-- Campo de código de producto -->
+                                    <!-- Campo de código de producto (ahora como input de texto) -->
                                     <div class="col-sm-6 mb-3">
                                         <label for="product_code" class="form-label">Código Producto</label>
-                                        <input type="text" class="form-control bg-light" id="product_code" name="product_code" readonly>
+                                        <input type="text" class="form-control bg-light" id="product_code" name="product_code"
+                                            readonly>
                                     </div>
 
                                     <!-- Campo IMEI o Serial -->

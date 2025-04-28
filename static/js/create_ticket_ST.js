@@ -297,18 +297,6 @@ function attachEnhancedRealTimeValidation() {
         }
     });
     
-    // Validación para campos select
-    const selectFields = [
-        {
-            id: 'reference',
-            required: true,
-            errorMsg: 'Seleccione una referencia de producto'
-        },
-        {
-            id: 'technical_name',
-            errorMsg: 'Seleccione un técnico válido'
-        }
-    ];
     
     selectFields.forEach(fieldInfo => {
         const select = document.getElementById(fieldInfo.id);
@@ -1369,7 +1357,7 @@ function processFlashMessages() {
  */
 function setupReferenceSearch() {
     const searchReferenceBtn = document.getElementById('searchReferenceBtn');
-    const referenceSelect = document.getElementById('reference');
+    const referenceInput = document.getElementById('reference');
     const productCodeInput = document.getElementById('product_code');
     const searchReferenceModal = document.getElementById('searchReferenceModal');
     const modalReferenceSearch = document.getElementById('modalReferenceSearch');
@@ -1380,26 +1368,10 @@ function setupReferenceSearch() {
     const noReferenceResults = document.getElementById('noReferenceResults');
 
     // Verificar si los elementos existen
-    if (!searchReferenceBtn || !referenceSelect || !searchReferenceModal) {
+    if (!searchReferenceBtn || !referenceInput || !searchReferenceModal) {
         console.error("Faltan elementos para la búsqueda de referencias");
         return;
     }
-
-    // Configurar el valor inicial del código de producto si hay una referencia seleccionada
-    if (referenceSelect.value) {
-        const selectedOption = referenceSelect.options[referenceSelect.selectedIndex];
-        if (selectedOption && productCodeInput) {
-            productCodeInput.value = selectedOption.dataset.code || '';
-        }
-    }
-
-    // Evento de cambio en el select de referencia para actualizar el código
-    referenceSelect.addEventListener('change', function() {
-        if (productCodeInput) {
-            const selectedOption = this.options[this.selectedIndex];
-            productCodeInput.value = selectedOption && selectedOption.dataset.code ? selectedOption.dataset.code : '';
-        }
-    });
 
     // Configurar botón de búsqueda de referencia
     searchReferenceBtn.addEventListener('click', function() {
@@ -1428,6 +1400,9 @@ function setupReferenceSearch() {
 
     // Configurar búsqueda en el modal
     if (modalReferenceSearch) {
+        // Variable para almacenar el timeout
+        let searchTimeout = null;
+
         modalReferenceSearch.addEventListener('input', function() {
             const searchTerm = this.value.trim().toLowerCase();
             
@@ -1443,13 +1418,21 @@ function setupReferenceSearch() {
                 return;
             }
             
+            // Limpiar timeout anterior
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
             // Mostrar indicador de carga
             if (initialReferenceMessage) initialReferenceMessage.style.display = 'none';
             if (referenceResultsLoader) referenceResultsLoader.style.display = 'block';
             if (noReferenceResults) noReferenceResults.style.display = 'none';
             
-            // Buscar referencias que coincidan
-            filterReferences(searchTerm);
+            // Establecer un timeout para evitar demasiadas peticiones (debounce)
+            searchTimeout = setTimeout(() => {
+                // Buscar referencias que coincidan
+                filterReferences(searchTerm);
+            }, 400);
         });
     }
 
@@ -1474,97 +1457,114 @@ function setupReferenceSearch() {
  * @param {string} searchTerm - Término de búsqueda
  */
 function filterReferences(searchTerm) {
-    const referenceSelect = document.getElementById('reference');
     const referenceResultsList = document.getElementById('referenceResultsList');
     const referenceResultsLoader = document.getElementById('referenceResultsLoader');
     const noReferenceResults = document.getElementById('noReferenceResults');
     const searchReferenceModal = document.getElementById('searchReferenceModal');
     
-    if (!referenceSelect || !referenceResultsList || !referenceResultsLoader || !noReferenceResults) {
+    if (!referenceResultsList || !referenceResultsLoader || !noReferenceResults) {
         console.error("Faltan elementos para mostrar resultados de referencias");
         return;
     }
     
-    // Obtener todas las opciones del select
-    const options = Array.from(referenceSelect.options).slice(1); // Excluir la primera opción (placeholder)
-    
-    // Filtrar opciones que coincidan con el término de búsqueda
-    const matchingOptions = options.filter(option => {
-        const text = option.textContent.toLowerCase();
-        const code = option.dataset.code ? option.dataset.code.toLowerCase() : '';
-        return text.includes(searchTerm) || code.includes(searchTerm);
-    });
-    
-    // Ocultar loader
-    referenceResultsLoader.style.display = 'none';
-    
-    // Mostrar mensaje si no hay resultados
-    if (matchingOptions.length === 0) {
-        noReferenceResults.style.display = 'block';
-        referenceResultsList.style.display = 'none';
-        return;
-    }
-    
-    // Mostrar resultados
-    referenceResultsList.style.display = 'block';
-    referenceResultsList.innerHTML = '';
-    
-    // Crear contador de resultados
-    const resultCount = document.createElement('div');
-    resultCount.className = 'col-12 mb-2';
-    resultCount.innerHTML = `<small class="text-muted">Se encontraron ${matchingOptions.length} referencias</small>`;
-    referenceResultsList.appendChild(resultCount);
-    
-    // Crear fila para resultados
-    const row = document.createElement('div');
-    row.className = 'row g-3';
-    referenceResultsList.appendChild(row);
-    
-    // Agregar cada referencia como tarjeta
-    matchingOptions.forEach(option => {
-        const description = option.textContent.trim();
-        const code = option.dataset.code || '';
-        const value = option.value;
-        
-        // Crear columna
-        const col = document.createElement('div');
-        col.className = 'col-md-6 mb-2';
-        
-        // Crear tarjeta
-        const card = document.createElement('div');
-        card.className = 'card h-100 shadow-sm reference-card';
-        card.dataset.description = description;
-        card.dataset.code = code;
-        card.dataset.value = value;
-        
-        // Agregar contenido a la tarjeta
-        card.innerHTML = `
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="card-title mb-0 fw-bold">${highlightSearchTerm(description, searchTerm)}</h6>
-                </div>
-                <p class="card-text text-muted mb-1">Código: ${highlightSearchTerm(code, searchTerm)}</p>
-                <div class="d-flex justify-content-end mt-2">
-                    <button class="btn btn-sm btn-primary select-reference">
-                        <i class="fas fa-check me-1"></i>Seleccionar
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Agregar evento para seleccionar esta referencia
-        card.querySelector('.select-reference').addEventListener('click', function() {
-            selectReference(value, code);
+    // Crear FormData para enviar en la petición
+    const formData = new FormData();
+    formData.append('search', searchTerm);
+
+    // Enviar petición AJAX
+    fetch('/search_references', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Ocultar loader
+            referenceResultsLoader.style.display = 'none';
             
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(searchReferenceModal);
-            if (modal) modal.hide();
+            if (!data.references || data.references.length === 0) {
+                // Mostrar mensaje si no hay resultados
+                noReferenceResults.style.display = 'block';
+                referenceResultsList.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar resultados
+            referenceResultsList.style.display = 'block';
+            referenceResultsList.innerHTML = '';
+            
+            // Crear contador de resultados
+            const resultCount = document.createElement('div');
+            resultCount.className = 'col-12 mb-2';
+            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.references.length} referencias</small>`;
+            referenceResultsList.appendChild(resultCount);
+            
+            // Crear fila para resultados
+            const row = document.createElement('div');
+            row.className = 'row g-3';
+            referenceResultsList.appendChild(row);
+            
+            // Agregar cada referencia como tarjeta
+            data.references.forEach(reference => {
+                const description = reference.description || '';
+                const code = reference.code || '';
+                
+                // Crear columna
+                const col = document.createElement('div');
+                col.className = 'col-md-6 mb-2';
+                
+                // Crear tarjeta
+                const card = document.createElement('div');
+                card.className = 'card h-100 shadow-sm reference-card';
+                card.dataset.description = description;
+                card.dataset.code = code;
+                
+                // Agregar contenido a la tarjeta
+                card.innerHTML = `
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 fw-bold">${highlightSearchTerm(description, searchTerm)}</h6>
+                        </div>
+                        <p class="card-text text-muted mb-1">Código: ${highlightSearchTerm(code, searchTerm)}</p>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button class="btn btn-sm btn-primary select-reference">
+                                <i class="fas fa-check me-1"></i>Seleccionar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Agregar evento para seleccionar esta referencia
+                card.querySelector('.select-reference').addEventListener('click', function() {
+                    selectReference(description, code);
+                    
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(searchReferenceModal);
+                    if (modal) modal.hide();
+                });
+                
+                // Agregar tarjeta a la columna y la columna a la fila
+                col.appendChild(card);
+                row.appendChild(col);
+            });
+        })
+        .catch(error => {
+            console.error('Error en la búsqueda de referencias:', error);
+            
+            // Ocultar loader y mostrar mensaje de error
+            referenceResultsLoader.style.display = 'none';
+            noReferenceResults.style.display = 'block';
+            noReferenceResults.innerHTML = `
+                <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                <h5 class="text-danger">Error al buscar referencias</h5>
+                <p class="text-muted mb-0">${error.message}</p>
+            `;
+            referenceResultsList.style.display = 'none';
         });
-        
-        // Agregar tarjeta a la columna y la columna a la fila
-        col.appendChild(card);
-        row.appendChild(col);
-    });
 }
 
 /**
@@ -1573,26 +1573,17 @@ function filterReferences(searchTerm) {
  * @param {string} codeValue - Código del producto correspondiente
  */
 function selectReference(referenceValue, codeValue) {
-    const referenceSelect = document.getElementById('reference');
+    const referenceInput = document.getElementById('reference');
     const productCodeInput = document.getElementById('product_code');
     
-    if (!referenceSelect || !productCodeInput) return;
+    if (!referenceInput || !productCodeInput) return;
     
-    // Buscar la opción correspondiente
-    const options = Array.from(referenceSelect.options);
-    const optionIndex = options.findIndex(opt => opt.value === referenceValue);
+    // Establecer el valor de la referencia
+    referenceInput.value = referenceValue;
     
-    if (optionIndex > -1) {
-        // Seleccionar la opción
-        referenceSelect.selectedIndex = optionIndex;
-        
-        // Actualizar el código de producto
-        productCodeInput.value = codeValue;
-        
-        // Disparar evento de cambio para que otras funciones puedan responder
-        referenceSelect.dispatchEvent(new Event('change'));
-        
-        // Mostrar mensaje de éxito
-        showToast('success', 'Referencia seleccionada', 'top-end', 2000);
-    }
+    // Actualizar el código de producto
+    productCodeInput.value = codeValue;
+    
+    // Mostrar mensaje de éxito
+    showToast('success', 'Referencia seleccionada', 'top-end', 2000);
 }
