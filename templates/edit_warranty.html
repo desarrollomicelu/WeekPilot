@@ -276,7 +276,6 @@
                                     </tr>
                                     {% endif %}
                                 </tbody>
-                                
                             </table>
                         </div>
                     </div>
@@ -371,6 +370,17 @@
             </div>
         </div>
 
+        <!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+        <div class="d-none">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
         <!-- Botones de acción -->
         <div class="d-flex justify-content-between my-2">
             <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
@@ -389,28 +399,28 @@
 <template id="partRowTemplate">
     <tr class="part-row">
         <td>
-            <div class="input-group input-group-sm">
-                <select class="form-select form-select-sm" name="spare_part_code[]" required>
+            <div class="input-group">
+                <select class="form-select" name="spare_part_code[]" required>
                     <option value="" disabled selected>Seleccione un repuesto</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-outline-primary select-part" title="Buscar repuesto">
+                <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
                     <i class="fas fa-search"></i>
                 </button>
             </div>
         </td>
         <td class="text-center" style="width: 5%;">
-            <input type="number" class="form-control form-control-sm part-quantity" min="1" name="part_quantity[]" value="1" required>
+            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
         </td>
         <td>
-            <div class="input-group input-group-sm">
+            <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="text" class="form-control form-control-sm text-end part-unit-value" name="part_unit_value[]" value="0" required>
+                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
             </div>
         </td>
-        <td>
-            <div class="input-group input-group-sm">
+        <td style="width: 40%;">
+            <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="text" class="form-control form-control-sm text-end part-total-value" name="part_total_value[]" readonly>
+                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
             </div>
         </td>
         <td class="text-center">

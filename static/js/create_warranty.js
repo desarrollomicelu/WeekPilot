@@ -459,7 +459,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (clientNamesInput) {
                                 const nombre1 = data.client.nombre1 || '';
                                 const nombre2 = data.client.nombre2 || '';
-                                clientNamesInput.value = `${nombre1} ${nombre2}`.trim();
+                                // Eliminar espacios adicionales antes, después y dejar solo un espacio entre nombres
+                                const nombreCompleto = `${nombre1.trim()} ${nombre2.trim()}`.trim().replace(/\s+/g, ' ');
+                                clientNamesInput.value = nombreCompleto;
                                 clientNamesInput.classList.add('bg-light');
                                 clientNamesInput.readOnly = true;
                             }
@@ -467,7 +469,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (clientLastnamesInput) {
                                 const apellido1 = data.client.apellido1 || '';
                                 const apellido2 = data.client.apellido2 || '';
-                                clientLastnamesInput.value = `${apellido1} ${apellido2}`.trim();
+                                // Eliminar espacios adicionales antes, después y dejar solo un espacio entre apellidos
+                                const apellidoCompleto = `${apellido1.trim()} ${apellido2.trim()}`.trim().replace(/\s+/g, ' ');
+                                clientLastnamesInput.value = apellidoCompleto;
                                 clientLastnamesInput.classList.add('bg-light');
                                 clientLastnamesInput.readOnly = true;
                             }
@@ -482,6 +486,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                 mailInput.value = data.client.email || '';
                                 mailInput.classList.add('bg-light');
                                 mailInput.readOnly = true;
+                            }
+
+                            // Hacer que el campo documento sea de solo lectura
+                            if (documentInput) {
+                                documentInput.classList.add('bg-light');
+                                documentInput.readOnly = true;
                             }
                         }
 
@@ -566,6 +576,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar selector de problemas
     setupProblemsSelector();
+
+    // Procesar mensajes flash
+    processFlashMessages();
 });
 
 /***** Inicialización de Repuestos *****/
@@ -1558,4 +1571,23 @@ function addPartRow(partData = null) {
     }
 
     return row;
+}
+
+/**
+ * Procesa los mensajes flash del backend
+ */
+function processFlashMessages() {
+    const flashMessages = document.querySelectorAll('.alert');
+    
+    flashMessages.forEach(message => {
+        const category = message.classList.contains('alert-success') ? 'success' :
+                         message.classList.contains('alert-danger') ? 'error' :
+                         message.classList.contains('alert-warning') ? 'warning' : 'info';
+        
+        const content = message.textContent.trim();
+        
+        if (content) {
+            showToast(category, content);
+        }
+    });
 }

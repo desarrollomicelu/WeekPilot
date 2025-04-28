@@ -788,6 +788,25 @@ function setupTechnicianHandling() {
     }
 }
 
+/**
+ * Procesa los mensajes flash del backend
+ */
+function processFlashMessages() {
+    const flashMessages = document.querySelectorAll('.alert');
+    
+    flashMessages.forEach(message => {
+        const category = message.classList.contains('alert-success') ? 'success' :
+                         message.classList.contains('alert-danger') ? 'error' :
+                         message.classList.contains('alert-warning') ? 'warning' : 'info';
+        
+        const content = message.textContent.trim();
+        
+        if (content) {
+            showToast(category, content);
+        }
+    });
+}
+
 // Inicializar funcionalidades cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar funcionalidades principales
@@ -798,4 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Los selectores de repuestos ahora usan la clase form-select de Bootstrap
     // No es necesario inicializarlos con Select2
+
+    // Procesar mensajes flash
+    processFlashMessages();
 });

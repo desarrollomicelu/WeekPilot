@@ -311,7 +311,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control" id="service_value" name="service_value"
+                                    <input type="text" class="form-control text-end" id="service_value" name="service_value"
                                         min="0" value="{{ ticket.service_value }}" required>
                                 </div>
                             </div>
@@ -322,7 +322,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control" id="spare_value" name="spare_value" min="0"
+                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" min="0"
                                         value="{{ ticket.spare_value }}" readonly>
                                 </div>
                             </div>
@@ -333,7 +333,7 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control fw-bold" id="total" name="total"
+                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total"
                                         value="{{ ticket.total }}" readonly>
                                 </div>
                             </div>
@@ -474,6 +474,9 @@
             <div class="input-group">
                 <select class="form-select" name="spare_part_code[]" required>
                     <option value="" disabled selected>Seleccione un repuesto</option>
+                    {% if part %}
+                    <option value="{{ part.code }}" selected>{{ part.description }}</option>
+                    {% endif %}
                 </select>
                 <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
                     <i class="fas fa-search"></i>

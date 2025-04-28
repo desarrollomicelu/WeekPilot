@@ -79,68 +79,69 @@ function validateEmail(email) {
 }
 
 /**
- * Formatea un número con separadores de miles (punto).
- * Maneja correctamente valores con punto decimal.
- * @param {number|string} number - El número a formatear.
- * @returns {string} - El número formateado.
+ * Formatea un número con separadores de miles (puntos en formato colombiano)
+ * @param {number|string} number - Número a formatear
+ * @returns {string} Número formateado con separadores de miles
  */
 function formatNumberWithThousands(number) {
-    // Si es una cadena, convertirla a número
+    // Si no es un valor válido, devolver 0
+    if (number === undefined || number === null || isNaN(number)) return '0';
+    
+    // Si es string, convertir a número eliminando separadores existentes
     if (typeof number === 'string') {
-        // Reemplazar comas por puntos (por si acaso)
-        number = number.replace(/,/g, '.');
-        // Convertir a número (el parseFloat maneja correctamente el punto decimal)
-        number = parseFloat(number) || 0;
+        // Eliminar puntos existentes para evitar problemas con diferentes formatos
+        number = parseInt(number.replace(/\./g, ''), 10) || 0;
+    } else {
+        // Si es número, asegurar que sea entero
+        number = Math.floor(number);
     }
-
-    // Redondear a entero y formatear con separadores de miles
-    return Math.round(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    
+    // Formatear usando el formato colombiano (punto como separador de miles)
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 /**
- * Elimina los separadores de miles de un número formateado.
- * @param {string} formattedNumber - El número con separadores.
- * @returns {number} - El número sin formato.
+ * Elimina los separadores de miles de un número
+ * @param {string} formattedNumber - Número con formato (separadores de miles)
+ * @returns {number} Número sin formato
  */
 function unformatNumber(formattedNumber) {
     if (!formattedNumber) return 0;
-    return parseFloat(formattedNumber.replace(/\./g, "")) || 0;
+    
+    // Convertir a string si no lo es
+    const strValue = formattedNumber.toString();
+    
+    // Eliminar todos los puntos (separadores de miles)
+    return parseInt(strValue.replace(/\./g, ''), 10) || 0;
 }
 
 /**
- * Aplica formato de miles a un campo de entrada.
- * @param {HTMLElement} input - El elemento de entrada.
+ * Aplica formato de miles a un input al escribir
+ * @param {HTMLInputElement} input - Input a formatear
  */
 function applyThousandsFormatting(input) {
     if (!input) return;
-
-    // Formatear el valor inicial si existe y no está ya formateado
-    if (input.value && !input.value.includes('.')) {
-        input.value = formatNumberWithThousands(input.value);
+    
+    // Guardar posición del cursor
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const originalLength = input.value.length;
+    
+    // Formatear valor
+    let value = input.value.replace(/[^\d]/g, '');
+    if (value) {
+        input.value = formatNumberWithThousands(value);
+    } else {
+        input.value = '0';
     }
-
-    // Agregar evento para formatear mientras se escribe
-    input.addEventListener('input', function () {
-        const cursorPos = this.selectionStart;
-        const originalLength = this.value.length;
-
-        // Eliminar caracteres no numéricos excepto puntos
-        let value = this.value.replace(/[^\d\.]/g, '');
-
-        // Eliminar todos los puntos para tener solo el número
-        value = value.replace(/\./g, '');
-
-        if (value) {
-            this.value = formatNumberWithThousands(value);
-        } else {
-            this.value = '';
-        }
-
-        // Ajustar la posición del cursor
-        const newLength = this.value.length;
-        const posDiff = newLength - originalLength;
-        this.setSelectionRange(Math.max(0, cursorPos + posDiff), Math.max(0, cursorPos + posDiff));
-    });
+    
+    // Reposicionar cursor
+    const newLength = input.value.length;
+    const cursorAdjust = newLength - originalLength;
+    
+    if (document.activeElement === input) {
+        input.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+    }
 }
 
 /**
@@ -537,15 +538,24 @@ function updateTotals() {
 }
 
 /**
- * Calcula el total de una fila de repuesto
- * @param {HTMLElement} row - Fila de la tabla de repuestos
+ * Actualiza el total de una fila de repuesto
+ * @param {HTMLElement} row - Fila a actualizar
  */
 function editPartTotal(row) {
-    const quantity = parseInt(row.querySelector('.part-quantity').value) || 0;
-    const unitValue = unformatNumber(row.querySelector('.part-unit-value').value);
-    const totalValue = quantity * unitValue;
-    row.querySelector('.part-total-value').value = formatNumberWithThousands(totalValue);
-    updateTotals();
+    const quantityInput = row.querySelector('input[name="part_quantity[]"]');
+    const priceInput = row.querySelector('input[name="part_unit_value[]"]');
+    const subtotalInput = row.querySelector('input[name="part_total_value[]"]');
+    
+    if (quantityInput && priceInput && subtotalInput) {
+        const quantity = parseInt(quantityInput.value) || 0;
+        const price = unformatNumber(priceInput.value) || 0;
+        const total = quantity * price;
+        
+        subtotalInput.value = formatNumberWithThousands(total);
+        
+        // Actualizar totales generales
+        updateTotals();
+    }
 }
 
 /**
@@ -557,7 +567,10 @@ function editRowIndices() {
 
     const rows = partsTable.querySelector('tbody').querySelectorAll('.part-row');
     rows.forEach((row, index) => {
-        row.querySelector('.part-index').textContent = index + 1;
+        const indexSpan = row.querySelector('.part-index');
+        if (indexSpan) {
+            indexSpan.textContent = index + 1;
+        }
     });
 }
 
@@ -609,17 +622,10 @@ function setupExistingRows() {
     const existingRows = partsTableBody.querySelectorAll('.part-row');
 
     existingRows.forEach(row => {
-        // Inicializar Select2 para el select de repuesto
-        $(row.querySelector('select')).select2({
-            width: '100%',
-            placeholder: "Seleccione un repuesto",
-            allowClear: true
-        });
-
         // Obtener referencias a los campos de la fila
-        const unitValueInput = row.querySelector('.part-unit-value');
-        const totalValueInput = row.querySelector('.part-total-value');
-        const quantityInput = row.querySelector('.part-quantity');
+        const unitValueInput = row.querySelector('input[name="part_unit_value[]"]');
+        const totalValueInput = row.querySelector('input[name="part_total_value[]"]');
+        const quantityInput = row.querySelector('input[name="part_quantity[]"]');
 
         // IMPORTANTE: Formatear correctamente los valores sin multiplicarlos
         if (unitValueInput && unitValueInput.value) {
@@ -634,9 +640,36 @@ function setupExistingRows() {
         applyThousandsFormatting(unitValueInput);
 
         // Configurar eventos
-        quantityInput.addEventListener('input', () => editPartTotal(row));
-        unitValueInput.addEventListener('input', () => editPartTotal(row));
-        row.querySelector('.remove-part').addEventListener('click', () => removePartRow(row));
+        if (quantityInput) {
+            quantityInput.addEventListener('input', () => editPartTotal(row));
+        }
+        
+        if (unitValueInput) {
+            unitValueInput.addEventListener('input', () => editPartTotal(row));
+        }
+        
+        const removeBtn = row.querySelector('.remove-part');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => removePartRow(row));
+        }
+        
+        // Configurar evento para el botón de búsqueda de repuestos
+        const searchBtn = row.querySelector('.select-part');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', function() {
+                selectedRow = row;
+                const searchModal = new bootstrap.Modal(document.getElementById('searchPartsModal'));
+                searchModal.show();
+                
+                // Limpiar búsqueda anterior
+                document.getElementById('modalPartSearch').value = '';
+                document.getElementById('initialSearchMessage').style.display = 'block';
+                document.getElementById('searchResultsLoader').style.display = 'none';
+                document.getElementById('noResultsMessage').style.display = 'none';
+                document.getElementById('searchResultsList').style.display = 'none';
+                document.getElementById('searchResultsList').innerHTML = '';
+            });
+        }
     });
 
     // Actualizar totales iniciales
@@ -647,41 +680,93 @@ function setupExistingRows() {
  * Agrega una nueva fila de repuesto a la tabla
  */
 function addNewPartRow() {
+    console.log("Ejecutando addNewPartRow");
+    
+    // Obtener elementos clave de la tabla
     const partsTable = document.getElementById('partsTable');
-    if (!partsTable) return;
-
-    const partsTableBody = partsTable.querySelector('tbody');
+    if (!partsTable) {
+        console.error("No se encontró la tabla de repuestos");
+        return;
+    }
+    
+    const tbody = partsTable.querySelector('tbody');
     const noPartsRow = document.getElementById('noPartsRow');
-    const partRowTemplate = document.getElementById('partRowTemplate');
-
+    
     // Eliminar la fila de "No hay repuestos" si existe
-    if (noPartsRow) noPartsRow.remove();
-
-    // Clonar el template y agregar la nueva fila
-    const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
-    partsTableBody.appendChild(newRow);
-
-    // Inicializar Select2 para el select de repuesto
-    $(newRow.querySelector('select')).select2({
-        width: '100%',
-        placeholder: "Seleccione un repuesto",
-        allowClear: true
-    });
-
+    if (noPartsRow) {
+        noPartsRow.remove();
+    }
+    
+    // Clonar el template de fila
+    const template = document.getElementById('partRowTemplate');
+    if (!template) {
+        console.error("No se encontró la plantilla de fila");
+        return;
+    }
+    
+    // Crear nueva fila a partir del template
+    const newRow = template.content.cloneNode(true).querySelector('tr');
+    
+    // Agregar la fila al cuerpo de la tabla
+    tbody.appendChild(newRow);
+    
     // Aplicar formato al campo de valor unitario
-    applyThousandsFormatting(newRow.querySelector('.part-unit-value'));
-
-    // Configurar eventos
-    newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
-    newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
-    newRow.querySelector('.remove-part').addEventListener('click', () => removePartRow(newRow));
-
-    // Actualizar índices y mostrar mensaje
+    const unitValue = newRow.querySelector('.part-unit-value');
+    if (unitValue) {
+        applyThousandsFormatting(unitValue);
+    }
+    
+    // Configurar evento para cantidad
+    const qtyInput = newRow.querySelector('.part-quantity');
+    if (qtyInput) {
+        qtyInput.addEventListener('input', function() {
+            editPartTotal(newRow);
+        });
+    }
+    
+    // Configurar evento para valor unitario
+    if (unitValue) {
+        unitValue.addEventListener('input', function() {
+            editPartTotal(newRow);
+        });
+    }
+    
+    // Configurar evento para el botón de eliminar
+    const removeBtn = newRow.querySelector('.remove-part');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            removePartRow(newRow);
+        });
+    }
+    
+    // Configurar evento para el botón de búsqueda
+    const searchBtn = newRow.querySelector('.select-part');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function() {
+            selectedRow = newRow;
+            const searchModal = new bootstrap.Modal(document.getElementById('searchPartsModal'));
+            searchModal.show();
+            
+            // Limpiar búsqueda anterior
+            document.getElementById('modalPartSearch').value = '';
+            document.getElementById('initialSearchMessage').style.display = 'block';
+            document.getElementById('searchResultsLoader').style.display = 'none';
+            document.getElementById('noResultsMessage').style.display = 'none';
+            document.getElementById('searchResultsList').style.display = 'none';
+            document.getElementById('searchResultsList').innerHTML = '';
+        });
+    }
+    
+    // Actualizar índices de las filas
     editRowIndices();
+    
+    // Mostrar mensaje de éxito
     showToast('success', 'Repuesto agregado correctamente', 'top-end');
-
+    
     // Validar la nueva fila
     validatePartsTable();
+    
+    console.log("Fila de repuesto agregada exitosamente");
 }
 
 /***** SECCIÓN 4: FUNCIONES DE GESTIÓN DE PROBLEMAS *****/
@@ -1138,16 +1223,13 @@ function initializeEditTicket() {
     });
 }
 
-// Inicializar todo cuando el DOM esté completamente cargado
-document.addEventListener("DOMContentLoaded", initializeEditTicket);
-
+// Inicialización simple cuando el documento esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Inicializando edit_ticket_ST.js");
+    console.log("Documento cargado - Inicializando funcionalidad de repuestos con código nativo");
     
+    // Inicializar las funciones principales
+    initializeEditTicket();
     setupPartsTable();
-    
-    // Inicializar Select2
-    initializeSelect2();
     
     // Configurar listeners para actualizar valores financieros
     setupFinancialListeners();
@@ -1155,6 +1237,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Variable global para la fila seleccionada
 let selectedRow = null;
+let isAddingRow = false; // Variable global para controlar la adición de filas
 
 // Actualizar la función setupPartsTable para usar la nueva lógica de búsqueda
 function setupPartsTable() {
@@ -1170,24 +1253,23 @@ function setupPartsTable() {
     
     // Evento para agregar nueva fila de repuesto
     addPartBtn.addEventListener('click', function() {
+        console.log("Botón de agregar repuesto clickeado");
         addNewPartRow();
     });
     
     // Evento para eliminar fila de repuesto (delegación de eventos)
     partsTableBody.addEventListener('click', function(e) {
-        if (e.target.classList.contains('delete-row-btn') || e.target.closest('.delete-row-btn')) {
+        if (e.target.classList.contains('remove-part') || e.target.closest('.remove-part')) {
             const row = e.target.closest('tr');
             if (row) {
-                row.remove();
-                updateRowIndices();
-                calculateTotals();
+                removePartRow(row);
             }
         }
     });
     
     // Evento para abrir modal de búsqueda (delegación de eventos)
     partsTableBody.addEventListener('click', function(e) {
-        if (e.target.classList.contains('select-part-btn') || e.target.closest('.select-part-btn')) {
+        if (e.target.classList.contains('select-part') || e.target.closest('.select-part')) {
             selectedRow = e.target.closest('tr');
             searchModal.show();
             
@@ -1203,10 +1285,9 @@ function setupPartsTable() {
     
     // Evento para cambiar cantidad o precio y recalcular
     partsTableBody.addEventListener('input', function(e) {
-        if (e.target.name === 'spare_part_quantity[]' || e.target.name === 'spare_part_price[]') {
+        if (e.target.name === 'part_quantity[]' || e.target.name === 'part_unit_value[]') {
             const row = e.target.closest('tr');
-            updateRowSubtotal(row);
-            calculateTotals();
+            editPartTotal(row);
         }
     });
     
@@ -1257,13 +1338,11 @@ function setupPartsTable() {
         document.getElementById('searchResultsList').innerHTML = '';
     });
     
-    // Si ya hay filas iniciales, actualizar índices
-    if (partsTableBody.querySelectorAll('.part-row').length > 0) {
-        updateRowIndices();
-    } else {
-        // Agregar primera fila si no hay ninguna
-        addNewPartRow();
-    }
+    // Configurar las filas de repuestos existentes
+    setupExistingRows();
+    
+    // Actualizar índices
+    editRowIndices();
     
     // Calcular totales iniciales
     calculateTotals();
@@ -1386,14 +1465,28 @@ function selectPart(item) {
     
     if (selectedRow) {
         // Actualizar campos en la fila
-        selectedRow.querySelector('input[name="spare_part_code[]"]').value = code;
-        selectedRow.querySelector('input[name="spare_part_description[]"]').value = description;
-        const priceInput = selectedRow.querySelector('input[name="spare_part_price[]"]');
-        priceInput.value = parseFloat(price).toFixed(2);
+        const select = selectedRow.querySelector('select[name="spare_part_code[]"]');
+        if (select) {
+            // Ver si la opción ya existe
+            let option = Array.from(select.options).find(opt => opt.value === code);
+            
+            // Si no existe, crear nueva opción
+            if (!option) {
+                option = new Option(description, code);
+                select.add(option);
+            }
+            
+            // Seleccionar la opción
+            select.value = code;
+        }
+        
+        const priceInput = selectedRow.querySelector('input[name="part_unit_value[]"]');
+        if (priceInput) {
+            priceInput.value = parseFloat(price).toFixed(2);
+        }
         
         // Actualizar subtotal
-        updateRowSubtotal(selectedRow);
-        calculateTotals();
+        editPartTotal(selectedRow);
     }
     
     // Cerrar modal
@@ -1432,9 +1525,9 @@ function formatCurrency(value) {
  * Actualiza el subtotal de una fila
  */
 function updateRowSubtotal(row) {
-    const quantityInput = row.querySelector('input[name="spare_part_quantity[]"]');
-    const priceInput = row.querySelector('input[name="spare_part_price[]"]');
-    const subtotalInput = row.querySelector('input[name="spare_part_subtotal[]"]');
+    const quantityInput = row.querySelector('input[name="part_quantity[]"]');
+    const priceInput = row.querySelector('input[name="part_unit_value[]"]');
+    const subtotalInput = row.querySelector('input[name="part_total_value[]"]');
     
     if (quantityInput && priceInput && subtotalInput) {
         const quantity = parseFloat(quantityInput.value) || 0;
@@ -1453,7 +1546,7 @@ function calculateTotals() {
     let subtotal = 0;
     
     rows.forEach(row => {
-        const subtotalInput = row.querySelector('input[name="spare_part_subtotal[]"]');
+        const subtotalInput = row.querySelector('input[name="part_total_value[]"]');
         if (subtotalInput && subtotalInput.value) {
             subtotal += parseFloat(subtotalInput.value) || 0;
         }
@@ -1494,8 +1587,26 @@ function updateTotalAndIVA(subtotal) {
  * Inicializa los selectores Select2
  */
 function initializeSelect2() {
-    // Los selectores ahora utilizan clases de Bootstrap (form-select)
-    // No es necesario inicializarlos con Select2
+    // Inicializar el select para las referencias de producto
+    const referenceSelect = document.getElementById('reference');
+    if (referenceSelect) {
+        $(referenceSelect).select2({
+            placeholder: "Seleccione una referencia",
+            allowClear: true,
+            width: '100%'
+        });
+    }
+    
+    // Inicializar los selects para los repuestos (existentes y nuevos)
+    $('.form-select[name="spare_part_code[]"]').each(function() {
+        if (!$(this).data('select2-initialized')) {
+            $(this).select2({
+                placeholder: "Seleccione un repuesto",
+                allowClear: true,
+                width: '100%'
+            }).data('select2-initialized', true);
+        }
+    });
 }
 
 /**
