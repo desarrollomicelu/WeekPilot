@@ -1,94 +1,112 @@
 {% extends "base.html" %}
-{% block title %}Editar Ticket de Servicio Técnico{% endblock %}
+{% block title %}Editar Garantía{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/warranty.css') }}">
+{% endblock %}
+
 {% block content %}
 
-<div id="edit-ticket-page" class="container-fluid py-4">
+<div id="edit-warranty-page" class="container-fluid py-4">
     <!-- Cabecera -->
     <div class="row align-items-center mb-2">
         <div class="col-md-6">
             <h2 class="mb-0">
-                <i class="fas fa-edit text-primary me-2"></i>Editar Ticket #{{ ticket.id_ticket }}
+                <i class="fas fa-edit text-primary me-2"></i>Editar Garantía #{{ ticket.id_ticket }}
             </h2>
         </div>
         <div class="col-md-6 text-end">
-            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i> Volver
             </a>
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
-        enctype="multipart/form-data">
-
+    <form method="POST" action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}">
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
-            <!-- Información del Cliente -->
+            <!-- Información del Cliente (solo lectura) -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-2 h-100">
                     <div class="card-header bg-light">
                         <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3 row">
-                            <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_names" name="client_names"
-                                    value="{{ client.name }}" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-3 row">
-                            <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
-                            <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames"
-                                    value="{{ client.lastname }}" required>
-                            </div>
-                        </div>
-
+                        <!-- Documento - solo lectura -->
                         <div class="mb-3 row">
                             <label for="document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="document" name="document"
-                                    value="{{ client.document }}" required>
+                                <input type="text" class="form-control bg-light" id="document" name="document" 
+                                    value="{{ client.document }}" readonly>
+                                <input type="hidden" name="document" value="{{ client.document }}">
                             </div>
                         </div>
+
+                        <!-- Nombres - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_names" name="client_names"
+                                    value="{{ client.name }}" readonly>
+                                <input type="hidden" name="client_names" value="{{ client.name }}">
+                            </div>
+                        </div>
+
+                        <!-- Apellidos - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_lastnames"
+                                    name="client_lastnames" value="{{ client.lastname }}" readonly>
+                                <input type="hidden" name="client_lastnames" value="{{ client.lastname }}">
+                            </div>
+                        </div>
+
+                        <!-- Teléfono - solo lectura -->
                         <div class="mb-3 row">
                             <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="phone" name="phone"
-                                    value="{{ client.phone }}">
+                                <input type="text" class="form-control bg-light" id="phone" name="phone" 
+                                    value="{{ client.phone }}" readonly>
+                                <input type="hidden" name="phone" value="{{ client.phone }}">
                             </div>
                         </div>
+
+                        <!-- Correo electrónico - solo lectura -->
                         <div class="mb-3 row">
                             <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
                             <div class="col-sm-8">
-                                <input type="mail" class="form-control" id="mail" name="mail" value="{{ client.mail }}"
-                                    required>
+                                <input type="email" class="form-control bg-light" id="mail" name="mail" 
+                                    value="{{ client.mail }}" readonly>
+                                <input type="hidden" name="mail" value="{{ client.mail }}">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Detalles del Ticket -->
+
+            <!-- Detalles del Ticket (técnico editable) -->
             <div class="col-md-6">
                 <div class="card shadow-sm mb-2 h-100">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket</h5>
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket
+                        </h5>
                     </div>
                     <div class="card-body">
-                        <!-- Técnico -->
+                        <!-- Técnico - editable -->
                         <div class="mb-3 row">
                             <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
                             <div class="col-sm-8">
                                 <select class="form-select" id="technical_name" name="technical_name">
                                     <option value="">Sin asignar</option>
                                     {% for technician in technicians %}
-                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}" {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip()==technician.NOMBRE.strip() %}selected{% endif %}>
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}" 
+                                        {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
                                         {{ technician.NOMBRE }}
                                     </option>
                                     {% endfor %}
                                 </select>
-                                <!-- Aquí se insertará el mensaje de error -->
                             </div>
                         </div>
 
@@ -108,16 +126,15 @@
                             </div>
                         </div>
 
-                        <!-- Ciudad -->
+                        <!-- Ciudad - editable -->
                         <div class="mb-3 row">
                             <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
                             <div class="col-sm-8">
                                 <select class="form-select searchable-select" id="city" name="city">
                                     {% for city in ['Medellín', 'Bogotá'] %}
-                                    <option value="{{ city }}" {% if ticket.city==city %}selected{% endif %}>{{ city }}</option>
+                                    <option value="{{ city }}" {% if ticket.city == city %}selected{% endif %}>{{ city }}</option>
                                     {% endfor %}
                                 </select>
-                                <!-- Aquí se insertará el mensaje de error -->
                             </div>
                         </div>
 
@@ -126,7 +143,7 @@
                             <div class="col-sm-8">
                                 <select class="form-select searchable-select" id="priority" name="priority">
                                     {% for priority in ['Alta', 'Media', 'Baja'] %}
-                                    <option value="{{ priority }}" {% if ticket.priority==priority %}selected{% endif %}>{{ priority }}</option>
+                                    <option value="{{ priority }}" {% if ticket.priority == priority %}selected{% endif %}>{{ priority }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -136,7 +153,55 @@
             </div>
         </div>
 
-        <!-- Fila 2: Repuestos Utilizados -->
+        <!-- NUEVA FILA: Información de Factura - solo lectura -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Información de Factura</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Código Producto</label>
+                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
+                                        value="{{ ticket.product_code }}" readonly>
+                                    <input type="hidden" name="product_code" value="{{ ticket.product_code }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Serie/IMEI</label>
+                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI"
+                                        value="{{ ticket.IMEI }}" readonly>
+                                    <input type="hidden" name="IMEI" value="{{ ticket.IMEI }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Factura</label>
+                                    <input type="text" class="form-control bg-light" id="invoice_number" name="invoice_number"
+                                        value="{{ ticket.invoice_number }}" readonly>
+                                    <input type="hidden" name="invoice_number" value="{{ ticket.invoice_number }}">
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Referencia</label>
+                                    <input type="text" class="form-control bg-light" id="reference" name="reference"
+                                        value="{{ ticket.reference }}" readonly>
+                                    <input type="hidden" name="reference" value="{{ ticket.reference }}">
+                                </div>
+                            </div>
+                            <input type="hidden" id="type_of_service" name="type_of_service" value="{{ ticket.type_of_service }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 2: Repuestos Utilizados - editable -->
         <div class="row mb-2">
             <div class="col-md-12">
                 <div class="card shadow-sm">
@@ -165,7 +230,7 @@
                                         <td>
                                             <div class="input-group">
                                                 <select class="form-select" name="spare_part_code[]" required>
-                                                    <option value="" disabled selected>Seleccione un repuesto</option>
+                                                    <option value="" disabled>Seleccione un repuesto</option>
                                                     {% for part in spare_parts %}
                                                     <option value="{{ part.code }}" {% if spare.spare_code==part.code %}selected{% endif %}>
                                                         {{ part.code }} - {{ part.description }}
@@ -178,18 +243,21 @@
                                             </div>
                                         </td>
                                         <td class="text-center">
-                                            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="{{ spare.quantity }}" required>
+                                            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" 
+                                                value="{{ spare.quantity }}" required>
                                         </td>
                                         <td>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="{{ spare.unit_price }}" required>
+                                                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" 
+                                                    value="{{ spare.unit_price }}" required>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" value="{{ spare.total_price }}" readonly>
+                                                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" 
+                                                    value="{{ spare.total_price }}" readonly>
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -217,7 +285,7 @@
 
         <!-- Fila 3: Problemas del Dispositivo y Valores -->
         <div class="row mb-2">
-            <!-- Problemas del Dispositivo -->
+            <!-- Problemas del Dispositivo - editable -->
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-light">
@@ -234,8 +302,8 @@
                             {% for problem in problems %}
                             <div class="form-check problem-option">
                                 <input class="form-check-input problem-checkbox" type="checkbox"
-                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]" {%
-                                    if problem in ticket.problems %}checked{% endif %}>
+                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]"
+                                    {% if problem in ticket.problems %}checked{% endif %}>
                                 <label class="form-check-label" for="problem_{{ problem.id }}">
                                     {{ problem.name }}
                                 </label>
@@ -245,62 +313,25 @@
 
                         <div class="mt-3">
                             <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
-                            <textarea id="selected_problems" class="form-control" rows="3" readonly>{% for problem in problems %}{% if problem.id in selected_problem_ids %}{{ problem.name }}
-                          {% endif %}{% endfor %}</textarea>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
                             <div class="d-flex justify-content-between mt-2">
-                              <button type="button" id="selectAllProblems" class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
-                              <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar Selección</button>
+                                <button type="button" id="selectAllProblems"
+                                    class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+                                <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar
+                                    Selección</button>
                             </div>
-                          </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Valores -->
+            <!-- Valores - valor de servicio editable -->
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">Valores</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Información del Equipo -->
-                        <div class="mb-2">
-                            <h6 class="mb-3">Información del Equipo</h6>
-                            <div class="row">
-                                <!-- Campo de referencia -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="reference" class="form-label">Referencia</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="reference" name="reference" readonly value="{{ ticket.reference }}">
-                                        <button type="button" class="btn btn-outline-primary" id="searchReferenceBtn" title="Buscar referencia">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Campo de código de producto -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="product_code" class="form-label">Código Producto</label>
-                                    <input type="text" class="form-control" id="product_code" name="product_code"
-                                        value="{{ ticket.product_code }}" readonly>
-                                </div>
-
-                                <!-- Campo IMEI o Serial -->
-                                <div class="col-sm-6 mb-3">
-                                    <label for="IMEI" class="form-label">IMEI o Serial</label>
-                                    <input type="text" class="form-control" id="IMEI" name="IMEI"
-                                        value="{{ ticket.IMEI }}">
-                                </div>
-
-                                <!-- Campo de tipo de servicio -->
-                                <div class="col-sm-6 mb-3">
-                                    <input type="hidden" id="type_of_service" name="type_of_service" value="0">
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
                         <!-- Valores Financieros -->
                         <div class="mb-3 row">
                             <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
@@ -308,7 +339,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
                                     <input type="text" class="form-control text-end" id="service_value" name="service_value"
-                                        min="0" value="{{ ticket.service_value }}" required>
+                                        min="0" value="{{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}" required>
                                 </div>
                             </div>
                         </div>
@@ -318,8 +349,8 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" min="0"
-                                        value="{{ ticket.spare_value }}" readonly>
+                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" 
+                                        value="{{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -329,8 +360,8 @@
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total"
-                                        value="{{ ticket.total }}" readonly>
+                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total" 
+                                        value="{{ "{:,.0f}".format(ticket.total).replace(',', '.') }}" min="0" readonly>
                                 </div>
                             </div>
                         </div>
@@ -339,120 +370,20 @@
             </div>
         </div>
 
-        <!-- Tarjeta con formulario para comentarios y subida de imágenes -->
-        <div class="card shadow-sm border-0 mb-2">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="fas fa-upload me-2 text-primary"></i>Comentarios y Evidencias</h5>
-            </div>
-            <div class="card-body">
-
-                <!-- Apartado para agregar comentarios -->
-                <div class="mb-4">
-                    <label for="comment" class="form-label">
-                        <i class="fas fa-comment text-primary me-1"></i> Agregar Comentario
-                    </label>
-                    <textarea id="comment" name="comment" class="form-control" rows="3"
-                        placeholder="Escribe aquí tus observaciones, diagnóstico o comentarios sobre el servicio..."
-                        aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
-                    <div id="commentHelp" class="form-text text-muted">
-                        Puede incluir detalles adicionales o información relevante para el ticket.
-                    </div>
-                </div>
-
-                <!-- Campos para subir imágenes -->
-                <div class="mb-4">
-                    <h6 class="mb-3 border-bottom pb-2">Subir Imágenes</h6>
-                    
-                    <!-- Authentication status indicator -->
-                    {% if not ms_authenticated %}
-                    <div class="alert alert-warning mt-2 mb-3">
-                        <p><i class="fas fa-exclamation-triangle me-2"></i> Para subir imágenes, primero debes 
-                           <a href="{{ url_for('onedrive.login_ms') }}" class="btn btn-primary btn-sm ms-2">
-                               <i class="fab fa-microsoft me-1"></i> Iniciar sesión con OneDrive
-                           </a>
-                        </p>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-success mt-2 mb-3">
-                        <p><i class="fas fa-check-circle me-2"></i> Conectado a OneDrive. Puedes subir imágenes.</p>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="row">
-                        <!-- Campo para subir fotos desde galería -->
-                        <div class="col-md-6 mb-3">
-                            <label for="uploadImages" class="form-label">Subir Fotos</label>
-                            <input type="file" id="uploadImages" name="images" class="form-control" multiple
-                                accept="image/*">
-                        </div>
-                        
-                        <!-- Campo para tomar foto con la cámara -->
-                        <div class="col-md-6 mb-3">
-                            <label for="takePhoto" class="form-label">Tomar Foto</label>
-                            <input type="file" id="takePhoto" name="photo" class="form-control" accept="image/*"
-                                capture="environment">
-                        </div>
-                        
-                        <!-- Campo oculto para referencias de imágenes -->
-                        <input type="hidden" id="imageReferences" name="image_references" value="[]">
-                    </div>
-                </div>
-
-                <!-- Área de previsualización de imágenes -->
-                <div id="previewContainer" class="row mt-4">
-                    {% if ticket_images %}
-                        {% for image in ticket_images %}
-                        <div class="col-6 col-md-3 mb-3 preview-image-container" data-image-id="{{ image.id }}">
-                            <div class="card h-100 position-relative">
-                                <!-- Botón X para eliminar en esquina superior derecha -->
-                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 rounded-circle p-1 m-1 remove-image" 
-                                        data-image-id="{{ image.id }}" style="width: 25px; height: 25px; z-index: 100;">
-                                    <i class="fas fa-times" style="font-size: 0.8rem;"></i>
-                                </button>
-                                
-                                <img src="{{ image.url }}" 
-                                     class="card-img-top img-thumbnail preview-image" 
-                                     alt="Imagen del ticket"
-                                     style="cursor: zoom-in;"
-                                     data-bs-toggle="modal" 
-                                     data-bs-target="#imageModal" 
-                                     data-image-url="{{ image.url }}"
-                                     data-image-name="{{ image.name }}"
-                                     onerror="this.onerror=null; this.src='/static/img/error.png';">
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-
-                <!-- Modal para ampliar imágenes -->
-                <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="imageModalLabel">Vista ampliada</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body text-center p-0">
-                                <img id="modalImage" src="" class="img-fluid" alt="Imagen ampliada">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Campo oculto para almacenar referencias a las imágenes -->
-                <input type="hidden" id="imageReferences" name="image_references" value="{{ ticket_images_json|default('[]') }}">
-                <!-- Campo oculto para almacenar IDs de imágenes a eliminar -->
-                <input type="hidden" id="imagesToDelete" name="images_to_delete" value="[]">
-            </div>
+        <!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+        <div class="d-none">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
         </div>
 
         <!-- Botones de acción -->
         <div class="d-flex justify-content-between my-2">
-            <a href="{{ url_for('technical_service.list_tickets') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-times me-2"></i>Cancelar
             </a>
             <div>
@@ -463,6 +394,7 @@
         </div>
     </form>
 </div>
+
 <!-- Template para nueva fila de repuesto -->
 <template id="partRowTemplate">
     <tr class="part-row">
@@ -470,9 +402,6 @@
             <div class="input-group">
                 <select class="form-select" name="spare_part_code[]" required>
                     <option value="" disabled selected>Seleccione un repuesto</option>
-                    {% if part %}
-                    <option value="{{ part.code }}" selected>{{ part.description }}</option>
-                    {% endif %}
                 </select>
                 <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
                     <i class="fas fa-search"></i>
@@ -532,7 +461,7 @@
                         <p class="text-muted mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda</p>
                     </div>
                     <div id="searchResultsLoader" class="text-center py-5" style="display: none;">
-                        <div class="spinner-border text-primary" role="status">
+                        <div class="spinner-border text-primary mb-3" role="status">
                             <span class="visually-hidden">Buscando...</span>
                         </div>
                         <h5 class="text-primary mb-0">Buscando repuestos...</h5>
@@ -555,66 +484,9 @@
     </div>
 </div>
 
-<!-- Modal de búsqueda de referencias -->
-<div class="modal fade" id="searchReferenceModal" tabindex="-1" aria-labelledby="searchReferenceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="searchReferenceModalLabel">
-                    <i class="fas fa-search me-2 text-primary"></i>Buscar Referencia
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-4">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="fas fa-search text-muted"></i>
-                        </span>
-                        <input type="text" class="form-control search-input" id="modalReferenceSearch"
-                            placeholder="Ingrese código o descripción de la referencia...">
-                        <button class="btn btn-outline-secondary" type="button" id="clearReferenceSearch">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <small class="form-text text-muted">Mínimo 3 caracteres para iniciar búsqueda</small>
-                </div>
-                <div id="referenceSearchResults" class="mt-3">
-                    <div id="initialReferenceMessage" class="text-center py-5">
-                        <h5 class="text-muted mb-2">Buscar Referencias</h5>
-                        <p class="text-muted mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda</p>
-                    </div>
-                    <div id="referenceResultsLoader" class="text-center py-5" style="display: none;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Buscando...</span>
-                        </div>
-                        <h5 class="text-primary mb-0">Buscando referencias...</h5>
-                    </div>
-                    <div id="noReferenceResults" class="text-center py-5" style="display: none;">
-                        <h5 class="text-muted mb-2">No se encontraron resultados</h5>
-                        <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
-                    </div>
-                    <div id="referenceResultsList" class="search-results-container" style="display: none;">
-                        <!-- Los resultados se insertarán aquí dinámicamente -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Se incluye jQuery y Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- SweetAlert2 para notificaciones -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="{{ url_for('static', filename='js/edit_ticket_ST.js') }}"></script>
-
-<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
+<script src="{{ url_for('static', filename='js/edit_warranty.js') }}"></script>
 
 {% endblock %}

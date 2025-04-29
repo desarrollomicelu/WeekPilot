@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% block title %}Crear Ticket de Servicio Técnico{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/warranty.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div id="create-ticket-page" class="container-fluid py-4">
+    <!-- Cabecera -->
+    <div class="row align-items-center mb-2">
+        <div class="col-md-6">
+            <h2 class="mb-0">
+                <i class="fas fa-plus-circle text-primary me-2"></i>Crear Garantía
+            </h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('warranty.create_warranty') }}">
+        <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
+        <div class="row mb-2">
+            <!-- Información del Cliente -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-2 h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Documento -->
+                        <div class="mb-3 row">
+                            <label for="document" class="col-sm-4 col-form-label">Documento</label>
+                            <div class="col-sm-8">
+                                <div class="input-group mb-1">
+                                    <input type="text" class="form-control" id="document" name="document" required
+                                        placeholder="Ingrese el documento">
+                                    <button type="button" id="searchClientBtn" class="btn btn-primary">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                                <div id="documentFeedback" class="text-danger mt-1"
+                                    style="display:none; font-size: 80%;">
+                                    <!-- Aquí se mostrarán los mensajes de error -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nombres -->
+                        <div class="mb-3 row">
+                            <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_names" name="client_names"
+                                    required readonly>
+                            </div>
+                        </div>
+
+                        <!-- Apellidos -->
+                        <div class="mb-3 row">
+                            <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_lastnames"
+                                    name="client_lastnames" required readonly>
+                            </div>
+                        </div>
+
+                        <!-- Teléfono -->
+                        <div class="mb-3 row">
+                            <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="phone" name="phone" readonly>
+                            </div>
+                        </div>
+
+                        <!-- Correo electrónico -->
+                        <div class="mb-3 row">
+                            <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
+                            <div class="col-sm-8">
+                                <input type="email" class="form-control bg-light" id="mail" name="mail" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles del Ticket -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-2 h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Técnico -->
+                        <div class="mb-3 row">
+                            <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="technical_name" name="technical_name">
+                                    <option value="">Sin asignar</option>
+                                    {% for technician in technicians %}
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}">{{
+                                        technician.NOMBRE }}</option>
+                                    {% endfor %}
+                                </select>
+                                <!-- Aquí se insertará el mensaje de error -->
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="technical_document"
+                                    name="technical_document" value="Sin asignar" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="state" class="col-sm-4 col-form-label">Estado</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="state_display" value="Sin asignar" readonly>
+                                <input type="hidden" id="state" name="state" value="Sin asignar">
+                            </div>
+                        </div>
+
+
+                        <!-- Ciudad -->
+                        <div class="mb-3 row">
+                            <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select searchable-select" id="city" name="city">
+                                    {% for city in ['Medellín', 'Bogotá'] %}
+                                    <option value="{{ city }}">{{ city }}</option>
+                                    {% endfor %}
+                                </select>
+                                <!-- Aquí se insertará el mensaje de error -->
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select searchable-select" id="priority" name="priority">
+                                    {% for priority in ['Alta', 'Media', 'Baja'] %}
+                                    <option value="{{ priority }}">{{ priority }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUEVA FILA: Facturas Asociadas al Cliente -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Facturas Asociadas al
+                            Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <!-- Selector de facturas -->
+                            <div class="col-md-12" id="invoiceDropdownSection" style="display: none;">
+                                <label for="invoice_selector" class="form-label">Seleccionar Factura</label>
+                                <select class="form-select" id="invoice_selector" name="invoice_selector">
+                                    <option value="">Seleccione una factura</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Detalles de Factura Seleccionada -->
+                        <div id="selectedInvoiceDetails" class="card mt-3 border-primary" style="display: none;">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-file-invoice me-2"></i>Detalles de la Factura</h6>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-2">
+                                    <div class="col-md-4 col-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Código Producto</label>
+                                            <input type="text" class="form-control bg-light" id="invoiceDetailCode"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Serie</label>
+                                            <input type="text" class="form-control bg-light" id="invoiceDetailSerie"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Documento</label>
+                                            <input type="text" class="form-control bg-light" id="invoiceDetailDocument"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 col-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Fecha</label>
+                                            <input type="text" class="form-control bg-light" id="invoiceDetailDate"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8 col-12">
+                                        <div class="mb-3">
+                                            <label class="form-label">Referencia</label>
+                                            <input type="text" class="form-control bg-light" id="invoiceDetailReference"
+                                                readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-2">
+                                    <button type="button" class="btn btn-primary" id="useInvoiceDataBtn">
+                                        <i class="fas fa-check me-1"></i>Usar para garantía
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 2: Repuestos Utilizados -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+                        <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
+                            <i class="fas fa-plus me-1"></i> Agregar repuesto
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="partsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 30%;">Descripción</th>
+                                        <th class="text-center" style="width: 5%;">Cant.</th>
+                                        <th class="text-center" style="width: 20%;">V. Unit</th>
+                                        <th class="text-center" style="width: 20%;">V. Total</th>
+                                        <th class="text-center" style="width: 5%;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="noPartsRow">
+                                        <td colspan="5" class="text-center py-4">
+                                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">No se han agregado repuestos para este servicio.</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila de Facturas Asociadas -->
+        <div class="row mb-2" id="invoicesSection" style="display: none;">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Facturas Asociadas
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table" id="invoicesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Serie</th>
+                                        <th>Fecha Inicial</th>
+                                        <th>Estado</th>
+                                        <th>Código Producto</th>
+                                        <th>Referencia</th>
+                                        <th>Seleccionar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="noInvoicesRow">
+                                        <td colspan="6" class="text-center py-3">No se encontraron facturas para
+                                            este cliente.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 3: Problemas del Dispositivo y Valores -->
+        <div class="row mb-2">
+            <!-- Problemas del Dispositivo -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <input type="text" id="searchProblems" class="form-control mb-2"
+                            placeholder="Buscar problema...">
+
+                        <div class="form-check-container mb-3"
+                            style="max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 10px;">
+                            {% for problem in problems %}
+                            <div class="form-check problem-option">
+                                <input class="form-check-input problem-checkbox" type="checkbox"
+                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]">
+                                <label class="form-check-label" for="problem_{{ problem.id }}">
+                                    {{ problem.name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+                            <div class="d-flex justify-content-between mt-2">
+                                <button type="button" id="selectAllProblems"
+                                    class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+                                <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar
+                                    Selección</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Valores -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Valores</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Información del Equipo -->
+                        <div class="mb-2">
+                            <h6 class="mb-3">Información del Equipo</h6>
+                            <div class="row">
+                                <!-- Campo de referencia -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="reference" class="form-label">Referencia</label>
+                                    <input type="text" class="form-control bg-light" id="reference" name="reference"
+                                    readonly>
+                                    <!-- Aquí se insertará el mensaje de error -->
+                                </div>
+
+                                <!-- Campo de código de producto (ahora como input de texto) -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="product_code" class="form-label">Código Producto</label>
+                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
+                                        readonly>
+                                </div>
+
+                                <!-- Campo IMEI o Serial -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="IMEI" class="form-label">IMEI o Serial</label>
+                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI" readonly>
+                                    <!-- Aquí se insertará el mensaje de error -->
+                                </div>
+
+                                <!-- Campo Número de Factura -->
+                                <div class="col-sm-6 mb-3">
+                                    <label for="invoice_number" class="form-label">Número de Factura</label>
+                                    <input type="text" class="form-control bg-light" id="invoice_number" name="invoice_number" readonly>
+                                </div>
+
+                                <!-- Campo de tipo de servicio -->
+                                <div class="col-sm-6 mb-3" style="display: none;">
+                                    <input type="hidden" id="type_of_service" name="type_of_service" value="2">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Valores Financieros -->
+                        <div class="mb-3 row">
+                            <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end" id="service_value" name="service_value"
+                                        min="0" value="0" required>
+                                    <!-- Aquí se insertará el mensaje de error -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" value="0" min="0"
+                                        readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total" value="0" min="0" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-between my-2">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </a>
+            <div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Crear Garantía
+                </button>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<!-- Template para nueva fila de repuesto -->
+<template id="partRowTemplate">
+    <tr class="part-row">
+        <td>
+            <div class="input-group">
+                <select class="form-select" name="spare_part_code[]" required>
+                    <option value="" disabled selected>Seleccione un repuesto</option>
+                </select>
+                <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </td>
+        <td class="text-center" style="width: 5%;">
+            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
+        </td>
+        <td>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
+            </div>
+        </td>
+        <td style="width: 40%;">
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+            </div>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger remove-part" title="Eliminar repuesto">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<!-- Modal de búsqueda de repuestos -->
+<div class="modal fade" id="searchPartsModal" tabindex="-1" aria-labelledby="searchPartsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchPartsModalLabel">
+                    <i class="fas fa-search me-2 text-primary"></i>Buscar Repuestos
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control search-input" id="modalPartSearch"
+                            placeholder="Ingrese código o descripción del repuesto...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Mínimo 3 caracteres para iniciar búsqueda</small>
+                </div>
+                <div id="searchResults" class="mt-3">
+                    <div id="initialSearchMessage" class="text-center py-5">
+                        <h5 class="text-muted mb-2">Buscar Repuestos</h5>
+                        <p class="text-muted mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda</p>
+                    </div>
+                    <div id="searchResultsLoader" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Buscando...</span>
+                        </div>
+                        <h5 class="text-primary mb-0">Buscando repuestos...</h5>
+                    </div>
+                    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+                        <h5 class="text-muted mb-2">No se encontraron resultados</h5>
+                        <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
+                    </div>
+                    <div id="searchResultsList" class="search-results-container" style="display: none;">
+                        <!-- Los resultados se insertarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+<div class="d-none">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Se incluye jQuery y Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/create_warranty.js') }}"></script>
+<script src="{{ url_for('static', filename='js/upload_image.js') }}"></script>
+
+{% endblock %}

@@ -15,7 +15,12 @@ def role_required(*roles):
                 flash("Por favor inicia sesión para acceder a esta página", "warning")
                 return redirect(url_for('auth.login'))
             
-            # Verificar si el usuario tiene un rol permitido
+            # Verificar si "Admin" está en los roles permitidos y el usuario NO es servicioTecnico
+            # Esto permite que cualquier cargo que no sea servicioTecnico acceda a las rutas de Admin
+            if "Admin" in roles and current_user.cargo != "servicioTecnico":
+                return f(*args, **kwargs)
+            
+            # Para el resto de casos, verificar si el usuario tiene un rol permitido
             if current_user.cargo not in roles:
                 flash("No tienes permisos para acceder a esta sección", "error")
                 
@@ -34,7 +39,7 @@ def role_required(*roles):
 
 def admin_required(f):
     """
-    Decorador para restringir el acceso solo a administradores
+    Decorador para restringir el acceso solo a administradores y otros roles (excepto servicioTecnico)
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -42,14 +47,10 @@ def admin_required(f):
             flash("Por favor inicia sesión para acceder a esta página", "warning")
             return redirect(url_for('auth.login'))
         
-        if current_user.cargo != "Admin":
+        # Permitir acceso a todos los cargos excepto servicioTecnico
+        if current_user.cargo == "servicioTecnico":
             flash("Esta sección está reservada para administradores", "error")
-            
-            # Redirigir según el rol
-            if current_user.cargo == "servicioTecnico":
-                return redirect(url_for('view_technical.view_technical'))
-            else:
-                return redirect(url_for('dashboard.dashboard'))
+            return redirect(url_for('view_technical.view_technical'))
         
         return f(*args, **kwargs)
     

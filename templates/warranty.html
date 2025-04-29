@@ -1,34 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Gestión de Garantías{% endblock %}
+{% block title %}Technical Service{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/warranty.css') }}">
+{% endblock %}
+
 {% block content %}
 
-<div class="container-fluid py-4">
-  <!-- Fila del título -->
-  <div class="row mb-2">
-    <div class="col">
+  <div class="container-fluid py-2 px-2">
+  <!-- Fila del título y búsqueda/nuevo ticket -->
+  <div class="row mb-2 align-items-center">
+    <div class="col-md-6">
       <h2 class="mb-0">
-        <i class="fas fa-shield-alt text-primary me-2"></i>Gestión de Garantías
+        <i class="fas fa-ticket-alt text-secondary me-2"></i>Gestión de Garantía
       </h2>
     </div>
-  </div>
-  <!-- Fila de controles -->
-  <div class="row">
-    <div class="col d-flex justify-content-end align-items-center gap-2">
+    <div class="col-md-6 d-flex flex-wrap justify-content-end align-items-center gap-2">
       <!-- Barra de búsqueda compacta -->
       <div class="input-group" style="max-width: 250px;">
         <span class="input-group-text bg-light">
           <i class="fas fa-search text-muted"></i>
         </span>
-        <input type="text" class="form-control" placeholder="Buscar garantías..." id="searchWarranties"
-          aria-label="Buscar garantías">
+        <input type="text" class="form-control" placeholder="Buscar tickets..." id="searchInput"
+          aria-label="Buscar tickets">
       </div>
-      <!-- Botón de nueva garantía -->
-      <a href="" class="btn btn-success d-flex align-items-center">
-        <i class="fas fa-plus me-2"></i>Nueva Garantía
-      </a>
-      <!-- Botón de subir documentos -->
-      <a href="" class="btn btn-secondary d-flex align-items-center">
-        <i class="fas fa-upload me-2 text-white"></i>Subir Documentos
+      <!-- Botón de nuevo ticket -->
+      <a href="{{ url_for('warranty.create_warranty') }}" class="btn btn-success d-flex align-items-center">
+        <i class="fas fa-plus me-2"></i>Nuevo Ticket
       </a>
     </div>
   </div>
@@ -36,142 +35,119 @@
 
 
 <!-- Filtros rápidos -->
-<div class="card mb-4 border-0 shadow-sm">
-  <div class="card-body">
+<div class="card mb-3 border-0 shadow-sm mx-2">
+  <div class="card-body py-2">
     <div class="row">
-      <div class="col-md-8">
-        <div class="d-flex gap-2 flex-wrap">
-          {% for status in ['Todos', 'Pendientes', 'En Revision', 'Aprobadas', 'Rechazadas'] %}
+      <div class="col-12">
+        <div class="d-flex gap-2 flex-wrap justify-content-center">
+          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
-          <label class="btn btn-outline-primary" for="btn{{ status }}">
+          <label class="btn btn-outline-secondary" for="btn{{ status }}">
             <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Pendientes' %}clock{% elif status == 'En Revision' %}search{% elif status == 'Aprobadas' %}check-circle{% else %}times-circle{% endif %} me-1"></i>
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% elif status == 'En Revision' %}search{% else %}check-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="d-flex justify-content-end">
-          <select class="form-select form-select-sm" style="max-width: 200px;" id="filterByType">
-            <option value="all">Todos los tipos</option>
-            <option value="product">Productos</option>
-            <option value="service">Servicios</option>
-          </select>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Tabla de garantías -->
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
-        <label class="form-check-label fw-bold ms-2" for="selectAllCheckbox">Seleccionar todos</label>
-      </div>
-      <div class="ms-3">
-        <button class="btn btn-sm btn-outline-secondary" disabled id="bulkActionBtn">
-          <i class="fas fa-cogs me-1"></i> Acciones
-        </button>
-      </div>
+
+<!-- Tabla de tickets -->
+<div class="card shadow-sm border-0 mx-2">
+  <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+    <div>
+      <h3 class="mb-0">Listado de todos los tickets</h3>
     </div>
-    <span class="badge bg-primary rounded-pill py-2 px-3">
-      <i class="fas fa-shield-alt me-2"></i>
-      Garantías activas: <strong>{{ warranties|length }}</strong>
+    <span class="badge bg-secondary rounded-pill py-2 px-3">
+      <i class="fas fa-ticket-alt me-2"></i>
+      Tickets activos: <strong>{{ tickets|length }}</strong>
     </span>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light text-nowrap">
+      <table class="table table-hover align-middle mb-0" id="ticketsTable">
+        <thead class="table-light">
           <tr>
-            <th class="ps-3">#</th>
-            <th>Cliente</th>
-            <th>Producto/Servicio</th>
-            <th>No. Factura</th>
-            <th>Estado</th>
-            <th>Fecha Solicitud</th>
-            <th>Fecha Vencimiento</th>
-            <th>Tipo</th>
-            <th>Motivo</th>
-            <th>Costo Estimado</th>
-            <th class="text-center">Acciones</th>
+            <th class="text-start" style="width: 5%">#</th>
+            <th class="text-start" >Referencia</th>
+            <th class="text-start" >Cliente</th>
+            <th class="text-start" >Estado</th>
+            <th class="text-start" >Prioridad</th>
+            <th class="text-start" >Motivo</th>
+            <th class="text-center" >Acciones</th>
           </tr>
         </thead>
         <tbody>
-          {% for warranty in warranties %}
-          <tr class="align-middle" data-status="{{ warranty.status }}">
-            <td class="ps-3 fw-bold">#{{ warranty.id_warranty }}</td>
-            <td>
-              <div class="d-flex align-items-center">
-                <div>{{ warranty.client_info.name }}</div>
-              </div>
+          {% for ticket in tickets %}
+          <tr class="align-middle" data-status="{{ ticket.state }}">
+            <td class="ps-2 fw-bold" style="width: 5%">#{{ ticket.id_ticket }}</td>
+            <td class="text-nowrap">
+              {% if ticket.reference %}
+                {{ ticket.reference.replace('seminuevo', '').replace('Seminuevo', '').replace('SEMINUEVO', '').strip() }}
+              {% else %}
+                N/A
+              {% endif %}
             </td>
-            <td>{{ warranty.item_name }}</td>
-            <td>{{ warranty.invoice_number }}</td>
+            <td class="text-nowrap">{{ ticket.client_info.name }} {{ ticket.client_info.lastname }}</td>
             <td>
-              <select class="form-select form-select-sm" data-warranty-id="{{ warranty.id }}" name="status">
-                {% for status in ['Pendiente', 'En Revision', 'Aprobada', 'Rechazada'] %}
-                <option value="{{ status }}" {% if warranty.status==status %}selected{% endif %}>{{ status }}</option>
-                {% endfor %}
+              <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}" data-original-state="{{ ticket.state }}">
+                <option value="Sin asignar" {% if ticket.state=='Sin asignar' %}selected{% endif %}>Sin asignar</option>
+                <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
+                <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
+                <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En Revision</option>
+                <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>
               </select>
             </td>
             <td>
-              {% if warranty.request_date %}
-              <div>{{ warranty.request_date.strftime("%d/%m/%Y") if warranty.request_date else "Fecha no disponible" }}</div>
-              <small class="text-muted">{{ warranty.request_date.strftime("%H:%M:%S") if warranty.request_date else "" }}</small>
-              {% else %}
-              <span class="badge bg-secondary">No registrada</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if warranty.expiration_date %}
-              <div>{{ warranty.expiration_date.strftime("%d/%m/%Y") if warranty.expiration_date else "Fecha no disponible" }}</div>
-              {% if (warranty.expiration_date - now).days < 30 and (warranty.expiration_date - now).days >= 0 %}
-              <small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Vence pronto</small>
-              {% elif (warranty.expiration_date - now).days < 0 %}
-              <small class="text-danger"><i class="fas fa-exclamation-circle"></i> Vencida</small>
-              {% endif %}
-              {% else %}
-              <span class="badge bg-secondary">No definida</span>
-              {% endif %}
-            </td>
-            <td>
-              <span class="badge {% if warranty.type == 'Producto' %}bg-info{% else %}bg-success{% endif %}">
-                <i class="fas {% if warranty.type == 'Producto' %}fa-box{% else %}fa-tools{% endif %} me-1"></i>
-                {{ warranty.type }}
+              <span
+                class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ ticket.priority }}
               </span>
             </td>
-            <td>{{ warranty.reason }}</td>
-            <td><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(warranty.estimated_cost) }}</span></td>
+            <td>
+              {% if ticket.problems %}
+                <div class="d-flex flex-wrap gap-1">
+                  {% for problem in ticket.problems %}
+                  <span class="badge bg-secondary">{{ problem.name }}</span>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="text-muted">{{ ticket.reason or 'N/A' }}</span>
+              {% endif %}
+            </td>
             <td class="text-center">
-              <div class="btn-group">
-                <a href="{{ url_for('edit_warranty', warranty_id=warranty.id_warranty) }}"
-                  class="btn btn-sm btn-outline-primary">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{{ url_for('view_detail_warranty', warranty_id=warranty.id_warranty) }}"
-                  class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="{{ url_for('print_warranty', warranty_id=warranty.id_warranty) }}"
-                  class="btn btn-sm btn-outline-secondary">
-                  <i class="fas fa-print"></i>
-                </a>
+              <div class="btn-group btn-group-sm">
+                <!-- Botón para Editar Ticket con formulario -->
+                <form action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}" method="get"
+                  style="display:inline-block;">
+                  <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" 
+                          {% if ticket.state == 'Terminado' %}disabled title="No se puede editar un ticket en estado Terminado"{% endif %}>
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </form>
+
+                <!-- Botón para Ver Detalle Ticket con formulario -->
+                <form action="{{ url_for('warranty.view_detail_warranty', ticket_id=ticket.id_ticket) }}"
+                  method="get" style="display:inline-block;">
+                  <button type="submit" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </form>
+
               </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="11" class="text-center py-5">
-              <i class="fas fa-shield-alt fa-3x mb-3 text-muted"></i>
-              <p class="text-muted">No hay garantías registradas actualmente.</p>
-              <a href="" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Crear nueva garantía
+            <td colspan="9" class="text-center py-5">
+              <i class="fas fa-ticket-alt fa-3x mb-3 text-muted"></i>
+              <p class="text-muted">No hay tickets registrados actualmente.</p>
+              <a href="{{ url_for('warranty.create_warranty') }}" class="btn btn-secondary">
+                <i class="fas fa-plus me-1 text-white"></i> Crear nuevo ticket
               </a>
             </td>
           </tr>
@@ -180,59 +156,35 @@
       </table>
     </div>
   </div>
-  <div class="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center">
+  <div class="card-footer bg-white py-2">
+    <div class="row align-items-center">
+      <div class="col-lg-6 d-flex flex-wrap align-items-center mb-3 mb-lg-0">
       <select class="form-select form-select-sm me-2" id="rowsPerPage" style="width: auto;">
         <option value="10">10 filas</option>
         <option value="25">25 filas</option>
         <option value="50">50 filas</option>
         <option value="100">100 filas</option>
       </select>
-      <small class="text-muted">Mostrando <strong>{{ warranties|length }}</strong> garantías</small>
+      <small class="text-muted">Mostrando <span id="currentRowsCount">0</span> de <strong>{{ tickets|length }}</strong>
+        tickets</small>
     </div>
-    <nav>
-      <ul class="pagination pagination-sm mb-0">
-        <li class="page-item disabled">
+      <div class="col-lg-6">
+        <nav aria-label="Paginación de tickets" class="d-flex justify-content-lg-end justify-content-center">
+      <ul class="pagination pagination-sm mb-0" id="pagination">
+        <li class="page-item disabled" id="prevPage">
           <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
         </li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-        <li class="page-item"><a class="page-link" href="#">3</a></li>
-        <li class="page-item">
+        <li class="page-item active" data-page="1"><a class="page-link" href="#">1</a></li>
+        <!-- Páginas adicionales se agregarán dinámicamente -->
+        <li class="page-item" id="nextPage">
           <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
         </li>
       </ul>
     </nav>
-  </div>
-</div>
-</div>
-
-<!-- Modal de confirmación para rechazar garantía -->
-<div class="modal fade" id="rejectWarrantyModal" tabindex="-1" aria-labelledby="rejectWarrantyModalLabel"
-  aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="rejectWarrantyModalLabel">Confirmar rechazo de garantía</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>¿Está seguro que desea rechazar esta solicitud de garantía?</p>
-        <div class="mb-3">
-          <label for="rejectReason" class="form-label">Motivo del rechazo:</label>
-          <textarea class="form-control" id="rejectReason" rows="3" required></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-1 text-white"></i>Cancelar
-        </button>
-        <button type="button" class="btn btn-danger" id="confirmReject">Rechazar Garantía</button>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/static/js/warranty_management.js"></script>
+<script src="{{ url_for('static', filename='js/warranty.js') }}"></script>
 {% endblock %}

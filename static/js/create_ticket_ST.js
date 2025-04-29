@@ -6,13 +6,20 @@
 /***** Funciones Globales *****/
 
 /**
- * Muestra un toast (notificación pequeña) usando SweetAlert2.
- * @param {string} icon - Tipo de ícono ('success', 'error', 'info', etc.).
- * @param {string} title - Texto a mostrar.
- * @param {string} [position='top-end'] - Posición en la pantalla.
- * @param {number} [timer=3000] - Tiempo en milisegundos.
+ * Muestra un toast de Bootstrap con el mensaje proporcionado
+ * @param {string} icon - Ícono a mostrar (success, error, warning, info)
+ * @param {string} title - Título del mensaje
+ * @param {string} position - Posición del toast
+ * @param {number} timer - Tiempo en milisegundos
  */
 function showToast(icon, title, position = 'top-end', timer = 3000) {
+    // Verificar si Swal está disponible
+    if (typeof Swal === 'undefined') {
+        console.error('SweetAlert2 no está disponible. Mostrando alerta estándar.');
+        alert(title);
+        return;
+    }
+    
     const Toast = Swal.mixin({
         toast: true,
         position: position,
@@ -24,9 +31,12 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
             toast.addEventListener('mouseleave', Swal.resumeTimer);
         }
     });
-    Toast.fire({ icon: icon, title: title });
-}
 
+    Toast.fire({
+        icon: icon,
+        title: title
+    });
+}
 
 /**
  * Muestra una alerta de éxito para la creación del ticket.
@@ -54,63 +64,78 @@ function showSuccessTicketAlert() {
  * @returns {boolean} - True si el email es válido.
  */
 function validateEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
 }
 
 /**
- * Formatea un número con separadores de miles (punto).
- * @param {number|string} number - El número a formatear.
- * @returns {string} - El número formateado.
+ * Formatea un número con separadores de miles (puntos en formato colombiano)
+ * @param {number|string} number - Número a formatear
+ * @returns {string} Número formateado con separadores de miles
  */
 function formatNumberWithThousands(number) {
+    // Si no es un valor válido, devolver 0
+    if (number === undefined || number === null || isNaN(number)) return '0';
+
+    // Si es string, convertir a número eliminando separadores existentes
     if (typeof number === 'string') {
-        number = parseFloat(number.replace(/\./g, '')) || 0;
+        // Eliminar puntos existentes para evitar problemas con diferentes formatos
+        number = parseInt(number.replace(/\./g, ''), 10) || 0;
+    } else {
+        // Si es número, asegurar que sea entero
+        number = Math.floor(number);
     }
+    
+    // Formatear usando el formato colombiano (punto como separador de miles)
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 /**
- * Elimina los separadores de miles de un número formateado.
- * @param {string} formattedNumber - El número con separadores.
- * @returns {number} - El número sin formato.
+ * Elimina los separadores de miles de un número
+ * @param {string} formattedNumber - Número con formato (separadores de miles)
+ * @returns {number} Número sin formato
  */
 function unformatNumber(formattedNumber) {
     if (!formattedNumber) return 0;
-    return parseFloat(formattedNumber.replace(/\./g, "")) || 0;
+    
+    // Convertir a string si no lo es
+    const strValue = formattedNumber.toString();
+    
+    // Eliminar todos los puntos (separadores de miles)
+    return parseInt(strValue.replace(/\./g, ''), 10) || 0;
 }
 
 /**
- * Aplica formato de miles a un campo de entrada.
- * @param {HTMLElement} input - El elemento de entrada.
+ * Aplica formato de miles a un input al escribir
+ * @param {HTMLInputElement} input - Input a formatear
  */
 function applyThousandsFormatting(input) {
     if (!input) return;
-    if (input.value && !isNaN(parseFloat(input.value))) {
-        input.value = formatNumberWithThousands(input.value);
+
+    // Guardar posición del cursor
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const originalLength = input.value.length;
+
+    // Formatear valor
+    let value = input.value.replace(/[^\d]/g, '');
+    if (value) {
+        input.value = formatNumberWithThousands(value);
+    } else {
+        input.value = '0';
     }
-    input.addEventListener('input', function () {
-        const cursorPos = this.selectionStart;
-        const originalLength = this.value.length;
-        let value = this.value.replace(/[^\d]/g, '');
-        if (value) {
-            this.value = formatNumberWithThousands(value);
-        } else {
-            this.value = '';
-        }
-        const newLength = this.value.length;
-        const posDiff = newLength - originalLength;
-        this.setSelectionRange(cursorPos + posDiff, cursorPos + posDiff);
-    });
+    
+    // Reposicionar cursor
+    const newLength = input.value.length;
+    const cursorAdjust = newLength - originalLength;
+    
+    if (document.activeElement === input) {
+        input.setSelectionRange(start + cursorAdjust, end + cursorAdjust);
+    }
 }
 
 /***** Validaciones en Tiempo Real *****/
 
-/**
- * Adjunta validaciones en tiempo real a campos específicos.
- * Se agregan listeners "input" para mostrar o quitar la clase "is-invalid"
- * según se cumplan o no las condiciones.
- */
 /**
  * Muestra un mensaje de error personalizado para un campo
  * @param {HTMLElement} input - El elemento de entrada
@@ -272,18 +297,6 @@ function attachEnhancedRealTimeValidation() {
         }
     });
     
-    // Validación para campos select
-    const selectFields = [
-        {
-            id: 'reference',
-            required: true,
-            errorMsg: 'Seleccione una referencia de producto'
-        },
-        {
-            id: 'technical_name',
-            errorMsg: 'Seleccione un técnico válido'
-        }
-    ];
     
     selectFields.forEach(fieldInfo => {
         const select = document.getElementById(fieldInfo.id);
@@ -295,17 +308,6 @@ function attachEnhancedRealTimeValidation() {
                     removeValidationError(this);
                 }
             });
-            
-            // Para select2, necesitamos un evento adicional
-            if ($(select).data('select2')) {
-                $(select).on('select2:select select2:unselect', function() {
-                    if (fieldInfo.required && (!this.value || this.value === '')) {
-                        showValidationError(this, fieldInfo.errorMsg);
-                    } else {
-                        removeValidationError(this);
-                    }
-                });
-            }
             
             // Validación inicial
             if (fieldInfo.required) {
@@ -331,17 +333,6 @@ function attachEnhancedRealTimeValidation() {
                         removeValidationError(this);
                     }
                 });
-                
-                // Para select2
-                if ($(partSelect).data('select2')) {
-                    $(partSelect).on('select2:select select2:unselect', function() {
-                        if (!this.value || this.value === '') {
-                            showValidationError(this, 'Seleccione un repuesto');
-                        } else {
-                            removeValidationError(this);
-                        }
-                    });
-                }
             }
             
             // Validar cantidad
@@ -392,6 +383,7 @@ function setupTechnicianStateRestriction() {
     const technicianSelect = document.getElementById('technical_name');
     const stateSelect = document.getElementById('state');
     const stateDisplay = document.getElementById('state_display');
+    const technicianDocumentInput = document.getElementById('technical_document');
     
     if (!technicianSelect || !stateSelect) return;
     
@@ -409,8 +401,22 @@ function setupTechnicianStateRestriction() {
         // Actualizar el estado basado en la selección del técnico
         if (hasTechnician) {
             stateSelect.value = "Asignado";
+            
+            // Obtener y asignar el documento del técnico seleccionado
+            if (technicianDocumentInput) {
+                const selectedOption = this.options[this.selectedIndex];
+                const technicianDocument = selectedOption.getAttribute('data-document') || '';
+                technicianDocumentInput.value = technicianDocument;
+                
+                // Asegurarse de que se ha asignado correctamente el documento
+                console.log("Técnico seleccionado: " + this.value);
+                console.log("Documento asignado: " + technicianDocument);
+            }
         } else {
             stateSelect.value = "Sin asignar";
+            if (technicianDocumentInput) {
+                technicianDocumentInput.value = '';
+            }
         }
         
         // Actualizar el campo de visualización
@@ -420,95 +426,20 @@ function setupTechnicianStateRestriction() {
         stateSelect.dispatchEvent(new Event('change'));
     });
     
-    // Inicializar el estado de visualización
+    // Inicializar el estado de visualización al cargar la página
     updateStateDisplay();
+    
+    // Ejecutar el evento change al inicio para asegurar consistencia
+    if (technicianSelect.value && technicianSelect.value !== '') {
+        technicianSelect.dispatchEvent(new Event('change'));
+    }
 }
 
-
-
-/***** Inicialización al Cargar el DOM *****/
-document.addEventListener("DOMContentLoaded", function () {
-
-    // Llamar a la función de validación en tiempo real
-    attachEnhancedRealTimeValidation();
-
-    /***** 1. Mostrar alerta si el ticket fue creado *****/
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_created') === 'success') {
-        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    /***** 2. Inicialización de Select2 *****/
-    if (document.getElementById('reference')) {
-        $('#reference').select2({
-            width: '100%',
-            placeholder: "Seleccione una referencia",
-            allowClear: true
-        });
-    }
-    $('.searchable-select').not('#state, #city, #priority, #technical_name, #technical_document, #product_code').select2({
-        width: '100%',
-        placeholder: "Seleccione una opción",
-        allowClear: true
-    });
-    $('#reference').on('select2:select', function (e) {
-        this.dispatchEvent(new Event('change'));
-    });
-
-    setupTechnicianStateRestriction();
-
-    /***** 3. Auto-completar campos *****/
-    // Actualizar documento del técnico y cambiar estado a "Asignado"
-    const technicianSelect = document.getElementById('technical_name');
-    const technicianDocumentInput = document.getElementById('technical_document');
-    const stateSelect = document.getElementById('state');
-    if (technicianSelect && technicianDocumentInput && stateSelect) {
-        technicianSelect.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Asignado") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            } else {
-                technicianDocumentInput.value = '';
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === "Sin asignar") {
-                        stateSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-            }
-        });
-        if (technicianSelect.value) {
-            const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
-            if (selectedOption && selectedOption.value && (!technicianDocumentInput.value || technicianDocumentInput.value.trim() === '')) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-            }
-        }
-    }
-
-    // Actualizar el código del producto al cambiar la referencia
-    const referenceElem = document.getElementById('reference');
-    const productCodeInput = document.getElementById('product_code');
-    if (referenceElem && productCodeInput) {
-        referenceElem.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            productCodeInput.value = (selectedOption && selectedOption.value) ? (selectedOption.getAttribute('data-code') || '') : '';
-        });
-        if (referenceElem.value) {
-            const selectedOption = referenceElem.options[referenceElem.selectedIndex];
-            if (selectedOption && selectedOption.value && !productCodeInput.value) {
-                productCodeInput.value = selectedOption.getAttribute('data-code') || '';
-            }
-        }
-    }
-
-    /***** 4. Gestión de Problemas del Dispositivo *****/
+/**
+ * Configura el selector de problemas del dispositivo
+ */
+function setupProblemsSelector() {
+    console.log("Configurando selector de problemas...");
     const searchProblems = document.getElementById('searchProblems');
     const problemCheckboxes = document.querySelectorAll('.problem-checkbox');
     const problemOptions = document.querySelectorAll('.problem-option');
@@ -516,6 +447,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const selectAllProblemsBtn = document.getElementById('selectAllProblems');
     const clearProblemsBtn = document.getElementById('clearProblems');
 
+    // Verificar que los elementos existan
+    if (!searchProblems) console.warn("Elemento searchProblems no encontrado");
+    if (!problemCheckboxes.length) console.warn("No se encontraron checkboxes de problemas");
+    if (!selectedProblemsTextarea) console.warn("Textarea de problemas seleccionados no encontrado");
+    if (!selectAllProblemsBtn) console.warn("Botón selectAllProblems no encontrado");
+    if (!clearProblemsBtn) console.warn("Botón clearProblems no encontrado");
+
+    // Función para actualizar el textarea con los problemas seleccionados
     function updateSelectedProblems() {
         if (!selectedProblemsTextarea || !problemCheckboxes.length) return;
         let selectedProblems = [];
@@ -530,8 +469,9 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedProblemsTextarea.value = selectedProblems.join(', ');
     }
 
+    // Configurar búsqueda de problemas
     if (searchProblems && problemOptions.length) {
-        searchProblems.addEventListener('input', function () {
+        searchProblems.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
             problemOptions.forEach(option => {
                 const label = option.querySelector('label');
@@ -542,25 +482,25 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
     }
-    if (problemCheckboxes.length) {
-        problemCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelectedProblems);
-        });
-        updateSelectedProblems();
-    }
-    if (selectAllProblemsBtn) {
-        selectAllProblemsBtn.addEventListener('click', function () {
+
+    // Configurar eventos para los checkboxes
+    problemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedProblems);
+    });
+
+    // Configurar botón "Seleccionar Todos"
+    if (selectAllProblemsBtn && problemCheckboxes.length) {
+        selectAllProblemsBtn.addEventListener('click', function() {
             problemCheckboxes.forEach(checkbox => {
-                const option = checkbox.closest('.problem-option');
-                if (option && option.style.display !== 'none') {
-                    checkbox.checked = true;
-                }
+                checkbox.checked = true;
             });
             updateSelectedProblems();
         });
     }
-    if (clearProblemsBtn) {
-        clearProblemsBtn.addEventListener('click', function () {
+
+    // Configurar botón "Limpiar Selección"
+    if (clearProblemsBtn && problemCheckboxes.length) {
+        clearProblemsBtn.addEventListener('click', function() {
             problemCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
             });
@@ -568,297 +508,1082 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    /***** 5. Gestión de Repuestos (Tabla de Repuestos) *****/
+    // Inicializar el textarea con los problemas seleccionados
+    updateSelectedProblems();
+    
+    console.log("Configuración de selector de problemas completada");
+}
+
+/**
+ * Configura la tabla de repuestos
+ */
+function setupPartsTable() {
     const partsTable = document.getElementById('partsTable');
     const addPartBtn = document.getElementById('addPartBtn');
-    const partRowTemplate = document.getElementById('partRowTemplate');
-    if (partsTable && addPartBtn && partRowTemplate) {
-        const partsTableBody = partsTable.querySelector('tbody');
-        const noPartsRow = document.getElementById('noPartsRow');
-        const serviceValueInput = document.getElementById('service_value');
-        const spareValueInput = document.getElementById('spare_value');
-        const totalInput = document.getElementById('total');
-
-        // Aplicar formato a campos de valores
-        if (serviceValueInput) applyThousandsFormatting(serviceValueInput);
-        if (spareValueInput) applyThousandsFormatting(spareValueInput);
-        if (totalInput) applyThousandsFormatting(totalInput);
-
-        function editPartTotal(row) {
-            const quantity = parseFloat(row.querySelector('.part-quantity').value) || 0;
-            const unitValue = unformatNumber(row.querySelector('.part-unit-value').value);
-            const totalValue = quantity * unitValue;
-            const totalValueInput = row.querySelector('.part-total-value');
-            totalValueInput.value = formatNumberWithThousands(totalValue);
-            updateTotals();
-        }
-        function updateTotals() {
-            let spareTotal = 0;
-            document.querySelectorAll('.part-total-value').forEach(input => {
-                spareTotal += unformatNumber(input.value);
-            });
-            if (spareValueInput) spareValueInput.value = formatNumberWithThousands(spareTotal);
-            const serviceValue = unformatNumber(serviceValueInput?.value) || 0;
-            if (totalInput) totalInput.value = formatNumberWithThousands(serviceValue + spareTotal);
-        }
-        function editRowIndices() {
-            const rows = partsTableBody.querySelectorAll('.part-row');
-            rows.forEach((row, index) => {
-                row.querySelector('.part-index').textContent = index + 1;
-            });
-        }
-        function setupExistingRows() {
-            const existingRows = partsTableBody.querySelectorAll('.part-row');
-            existingRows.forEach(row => {
-                $(row.querySelector('select')).select2({
-                    width: '100%',
-                    placeholder: "Seleccione un repuesto",
-                    allowClear: true
+    
+    if (!partsTable || !addPartBtn) {
+        console.error("Faltan elementos necesarios para configurar la tabla de repuestos");
+        return;
+    }
+    
+    // Agregar evento para botón de agregar repuesto
+    addPartBtn.addEventListener('click', function() {
+        const newRow = addNewPartRow();
+        
+        if (newRow) {
+            // Configurar botón de búsqueda de repuestos en la nueva fila
+            const searchButton = newRow.querySelector('.select-part');
+            if (searchButton) {
+                searchButton.addEventListener('click', function() {
+                    currentEditingRow = this.closest('tr');
+                    const searchPartsModal = new bootstrap.Modal(document.getElementById('searchPartsModal'));
+                    if (searchPartsModal) {
+                        searchPartsModal.show();
+                    }
                 });
-                applyThousandsFormatting(row.querySelector('.part-unit-value'));
-                applyThousandsFormatting(row.querySelector('.part-total-value'));
-                row.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(row));
-                row.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(row));
-                row.querySelector('.remove-part').addEventListener('click', () => {
+            }
+            
+            // Configurar evento para actualizar total al cambiar cantidad
+            const quantityInput = newRow.querySelector('.part-quantity');
+            if (quantityInput) {
+                quantityInput.addEventListener('input', function() {
+                    updateRowTotal(this.closest('tr'));
+    });
+            }
+            
+            // Configurar evento para formatear y actualizar precio unitario
+            const unitValueInput = newRow.querySelector('.part-unit-value');
+            if (unitValueInput) {
+                unitValueInput.addEventListener('input', function() {
+                    applyThousandsFormatting(this);
+                    updateRowTotal(this.closest('tr'));
+                });
+                
+                unitValueInput.addEventListener('focus', function() {
+                    if (this.value === '0') {
+                        this.value = '';
+                    }
+                });
+                
+                unitValueInput.addEventListener('blur', function() {
+                    this.value = formatNumberWithThousands(unformatNumber(this.value));
+                    updateRowTotal(this.closest('tr'));
+                });
+            }
+            
+            // Configurar botón de eliminar
+            const removeButton = newRow.querySelector('.remove-part');
+            if (removeButton) {
+                removeButton.addEventListener('click', function() {
+                    const row = this.closest('tr');
+    
+                    // Preguntar antes de eliminar
                     Swal.fire({
                         title: '¿Eliminar repuesto?',
                         text: '¿Estás seguro de eliminar este repuesto?',
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
                         confirmButtonText: 'Sí, eliminar',
                         cancelButtonText: 'Cancelar'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             row.remove();
-                            editRowIndices();
-                            updateTotals();
-                            if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                                const emptyRow = document.createElement('tr');
-                                emptyRow.id = 'noPartsRow';
-                                emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                                partsTableBody.appendChild(emptyRow);
+                            
+                            // Si no quedan filas, mostrar la fila de "no hay repuestos"
+    const noPartsRow = document.getElementById('noPartsRow');
+                            const remainingRows = partsTable.querySelectorAll('tbody .part-row');
+                            
+                            if (noPartsRow && remainingRows.length === 0) {
+                                noPartsRow.style.display = '';
                             }
-                            showToast('success', 'Repuesto eliminado correctamente', 'top-end');
+                            
+                            // Actualizar índices y totales
+                            updateRowIndices();
+                            updatePartsTotals();
                         }
                     });
                 });
-            });
-            updateTotals();
-        }
-        setupExistingRows();
-        addPartBtn.addEventListener('click', function () {
-            if (noPartsRow) {
-                noPartsRow.remove();
             }
-            const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
-            partsTableBody.appendChild(newRow);
-            $(newRow.querySelector('select')).select2({
-                width: '100%',
-                placeholder: "Seleccione un repuesto",
-                allowClear: true
+        }
+    });
+
+    // Configurar modal de búsqueda de repuestos
+    const modalPartSearch = document.getElementById('modalPartSearch');
+    if (modalPartSearch) {
+        modalPartSearch.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            if (searchTerm.length >= 3) {
+                searchParts(searchTerm);
+            } else {
+    const initialSearchMessage = document.getElementById('initialSearchMessage');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+                const searchResultsLoader = document.getElementById('searchResultsLoader');
+                const searchResultsList = document.getElementById('searchResultsList');
+                
+                if (initialSearchMessage) initialSearchMessage.style.display = 'block';
+                if (noResultsMessage) noResultsMessage.style.display = 'none';
+                if (searchResultsLoader) searchResultsLoader.style.display = 'none';
+                if (searchResultsList) {
+                    searchResultsList.style.display = 'none';
+                    searchResultsList.innerHTML = '';
+                }
+            }
+        });
+    }
+
+    // Configurar botón para limpiar búsqueda
+    const clearSearchBtn = document.getElementById('clearSearch');
+    if (clearSearchBtn && modalPartSearch) {
+            clearSearchBtn.addEventListener('click', function() {
+                    modalPartSearch.value = '';
+                    modalPartSearch.focus();
+                
+            const initialSearchMessage = document.getElementById('initialSearchMessage');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            const searchResultsLoader = document.getElementById('searchResultsLoader');
+                const searchResultsList = document.getElementById('searchResultsList');
+            
+            if (initialSearchMessage) initialSearchMessage.style.display = 'block';
+            if (noResultsMessage) noResultsMessage.style.display = 'none';
+            if (searchResultsLoader) searchResultsLoader.style.display = 'none';
+                if (searchResultsList) {
+                    searchResultsList.style.display = 'none';
+                    searchResultsList.innerHTML = '';
+                }
             });
-            applyThousandsFormatting(newRow.querySelector('.part-unit-value'));
-            applyThousandsFormatting(newRow.querySelector('.part-total-value'));
-            newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
-            newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
-            newRow.querySelector('.remove-part').addEventListener('click', () => {
+        }
+        
+    // Configurar eventos para filas existentes (para el caso de edición)
+    const existingRows = partsTable.querySelectorAll('tbody .part-row');
+    existingRows.forEach(row => {
+        // Configurar botón de búsqueda
+        const searchButton = row.querySelector('.select-part');
+        if (searchButton) {
+            searchButton.addEventListener('click', function() {
+                currentEditingRow = this.closest('tr');
+                const searchPartsModal = new bootstrap.Modal(document.getElementById('searchPartsModal'));
+                if (searchPartsModal) {
+                    searchPartsModal.show();
+                }
+            });
+                }
+                
+        // Configurar cantidad
+        const quantityInput = row.querySelector('.part-quantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function() {
+                updateRowTotal(this.closest('tr'));
+            });
+        }
+        
+        // Configurar precio unitario
+        const unitValueInput = row.querySelector('.part-unit-value');
+        if (unitValueInput) {
+            // Formatear valor inicial
+            unitValueInput.value = formatNumberWithThousands(unformatNumber(unitValueInput.value));
+            
+            unitValueInput.addEventListener('input', function() {
+                applyThousandsFormatting(this);
+                updateRowTotal(this.closest('tr'));
+            });
+            
+            unitValueInput.addEventListener('focus', function() {
+                if (this.value === '0') {
+                    this.value = '';
+                }
+            });
+            
+            unitValueInput.addEventListener('blur', function() {
+                this.value = formatNumberWithThousands(unformatNumber(this.value));
+                updateRowTotal(this.closest('tr'));
+            });
+        }
+        
+        // Configurar botón de eliminar
+        const removeButton = row.querySelector('.remove-part');
+        if (removeButton) {
+            removeButton.addEventListener('click', function() {
+                const rowToRemove = this.closest('tr');
+            
+                // Preguntar antes de eliminar
                 Swal.fire({
                     title: '¿Eliminar repuesto?',
                     text: '¿Estás seguro de eliminar este repuesto?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
                     confirmButtonText: 'Sí, eliminar',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        newRow.remove();
-                        editRowIndices();
-                        updateTotals();
-                        if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                            const emptyRow = document.createElement('tr');
-                            emptyRow.id = 'noPartsRow';
-                            emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                            partsTableBody.appendChild(emptyRow);
+                        rowToRemove.remove();
+                        
+                        // Si no quedan filas, mostrar la fila de "no hay repuestos"
+                        const noPartsRow = document.getElementById('noPartsRow');
+                        const remainingRows = partsTable.querySelectorAll('tbody .part-row');
+                        
+                        if (noPartsRow && remainingRows.length === 0) {
+                            noPartsRow.style.display = '';
                         }
-                        showToast('success', 'Repuesto eliminado correctamente', 'top-end');
+                        
+                        // Actualizar índices y totales
+                        updateRowIndices();
+                        updatePartsTotals();
                     }
                 });
             });
-            editRowIndices();
-            showToast('success', 'Repuesto agregado correctamente', 'top-end');
+    }
+
+        // Actualizar totales iniciales
+        updateRowTotal(row);
+    });
+}
+
+/**
+ * Actualiza los índices de las filas
+ */
+    function updateRowIndices() {
+    const partsTable = document.getElementById('partsTable');
+    if (!partsTable) return;
+    
+        const rows = partsTable.querySelectorAll('tbody .part-row');
+        rows.forEach((row, index) => {
+            const indexCell = row.querySelector('.part-index');
+            if (indexCell) {
+                indexCell.textContent = index + 1;
+            }
         });
-        if (serviceValueInput) {
-            serviceValueInput.addEventListener('input', updateTotals);
+    }
+
+/**
+ * Actualiza el total de una fila de repuestos
+ * @param {HTMLElement} row - Fila a actualizar
+ */
+    function updateRowTotal(row) {
+        const quantityInput = row.querySelector('.part-quantity');
+        const unitValueInput = row.querySelector('.part-unit-value');
+        const totalValueInput = row.querySelector('.part-total-value');
+
+        if (quantityInput && unitValueInput && totalValueInput) {
+        const quantity = parseInt(quantityInput.value) || 0;
+            const unitValue = unformatNumber(unitValueInput.value) || 0;
+            const total = quantity * unitValue;
+
+            totalValueInput.value = formatNumberWithThousands(total);
+            
+            // Actualizar el total de repuestos
+            updatePartsTotals();
         }
     }
 
-    /***** 6. Validación y Envío del Formulario *****/
-    const ticketForm = document.querySelector('form');
-    if (ticketForm) {
-        ticketForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            let isValid = true;
-            let errorMessage = '';
-
-            // Validar Información del Cliente
-            const clientNames = document.getElementById('client_names');
-            const clientLastnames = document.getElementById('client_lastnames');
-            const documentField = document.getElementById('document');
-            const mail = document.getElementById('mail');
-
-            if (clientNames && !clientNames.value.trim()) {
-                isValid = false;
-                errorMessage += 'El nombre del cliente es requerido.<br>';
-                clientNames.classList.add('is-invalid');
-            } else if (clientNames) {
-                clientNames.classList.remove('is-invalid');
+/**
+ * Actualiza los totales de repuestos y el total general
+ */
+    function updatePartsTotals() {
+    const partsTable = document.getElementById('partsTable');
+    const spareValueInput = document.getElementById('spare_value');
+    const totalInput = document.getElementById('total');
+    const serviceValueInput = document.getElementById('service_value');
+    
+    if (!partsTable || !spareValueInput) return;
+    
+        let totalPartsValue = 0;
+    const rows = partsTable.querySelectorAll('tbody .part-row');
+        
+    rows.forEach(row => {
+            const totalValueInput = row.querySelector('.part-total-value');
+            if (totalValueInput) {
+                totalPartsValue += unformatNumber(totalValueInput.value) || 0;
             }
+        });
 
-            if (clientLastnames && !clientLastnames.value.trim()) {
-                isValid = false;
-                errorMessage += 'El apellido del cliente es requerido.<br>';
-                clientLastnames.classList.add('is-invalid');
-            } else if (clientLastnames) {
-                clientLastnames.classList.remove('is-invalid');
-            }
+        // Actualizar campo de valor de repuestos
+            spareValueInput.value = formatNumberWithThousands(totalPartsValue);
 
-            if (documentField && !documentField.value.trim()) {
-                isValid = false;
-                errorMessage += 'El documento del cliente es requerido.<br>';
-                documentField.classList.add('is-invalid');
-            } else if (documentField) {
-                documentField.classList.remove('is-invalid');
-            }
+        // Actualizar total general
+    if (totalInput && serviceValueInput) {
+            const serviceValue = unformatNumber(serviceValueInput.value) || 0;
+        const total = serviceValue + totalPartsValue;
 
-            if (mail) {
-                if (!mail.value.trim()) {
-                    isValid = false;
-                    errorMessage += 'El correo electrónico del cliente es requerido.<br>';
-                    mail.classList.add('is-invalid');
-                } else if (!validateEmail(mail.value.trim())) {
-                    isValid = false;
-                    errorMessage += 'El correo electrónico no tiene un formato válido.<br>';
-                    mail.classList.add('is-invalid');
-                } else {
-                    mail.classList.remove('is-invalid');
-                }
-            }
+            totalInput.value = formatNumberWithThousands(total);
+        }
+    }
 
-            // Validar Tipo de Servicio
-            const typeOfService = document.getElementById('type_of_service');
-            if (typeOfService && !typeOfService.value.trim()) {
-                isValid = false;
-                errorMessage += 'El tipo de servicio es requerido.<br>';
-                typeOfService.classList.add('is-invalid');
-            } else if (typeOfService) {
-                typeOfService.classList.remove('is-invalid');
-            }
+    /**
+ * Agrega una nueva fila de repuesto a la tabla
+ */
+function addNewPartRow() {
+    const partsTable = document.getElementById('partsTable');
+    const noPartsRow = document.getElementById('noPartsRow');
+    const partRowTemplate = document.getElementById('partRowTemplate');
+    
+    if (!partsTable || !partRowTemplate) {
+        console.error("Faltan elementos necesarios para agregar una fila");
+        return;
+    }
+    
+    // Ocultar fila de "no hay repuestos"
+    if (noPartsRow) {
+        noPartsRow.style.display = 'none';
+    }
+    
+    // Clonar la plantilla
+    const template = document.importNode(partRowTemplate.content, true);
+    
+    // Agregar la nueva fila a la tabla
+    partsTable.querySelector('tbody').appendChild(template);
+    
+    // Obtener la fila recién agregada
+    const newRow = partsTable.querySelector('tbody tr.part-row:last-child');
+    
+    // Actualizar el total inicial de la fila
+    updateRowTotal(newRow);
+    
+    return newRow;
+}
 
-            // Validar Valor del Servicio
-            const serviceValue = document.getElementById('service_value');
-            if (serviceValue && (!serviceValue.value || isNaN(serviceValue.value) || parseFloat(serviceValue.value) < 0)) {
-                isValid = false;
-                errorMessage += 'El valor del servicio debe ser un número positivo.<br>';
-                serviceValue.classList.add('is-invalid');
-            } else if (serviceValue) {
-                serviceValue.classList.remove('is-invalid');
-            }
+/**
+ * Selecciona un repuesto y actualiza la fila correspondiente
+ * @param {Object} partData - Datos del repuesto seleccionado
+ */
+function selectPartAndUpdateRow(partData) {
+    if (!currentEditingRow) {
+        console.error("No hay una fila seleccionada para actualizar");
+        return;
+    }
+    
+    // Configurar el select de repuestos
+    const select = currentEditingRow.querySelector('select[name="spare_part_code[]"]');
+    if (select) {
+        // Limpiar opciones actuales
+        select.innerHTML = '';
+        
+        // Crear la nueva opción con los datos del repuesto
+        const option = document.createElement('option');
+        option.value = partData.code;
+        option.textContent = `${partData.code} - ${partData.description}`;
+        option.selected = true;
+        
+        // Agregar opción al select
+        select.appendChild(option);
+    }
+    
+    // Actualizar el precio unitario
+    const unitValueInput = currentEditingRow.querySelector('.part-unit-value');
+    if (unitValueInput && partData.price) {
+        unitValueInput.value = formatNumberWithThousands(partData.price);
+    }
+    
+    // Recalcular el total de la fila
+    updateRowTotal(currentEditingRow);
+    
+    // Resaltar la fila brevemente
+    currentEditingRow.classList.add('bg-success-subtle');
+    setTimeout(() => {
+        currentEditingRow.classList.remove('bg-success-subtle');
+    }, 500);
+    }
 
-            if (!isValid) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de validación',
-                    html: errorMessage,
-                    confirmButtonText: 'Corregir'
-                });
+    /**
+ * Resalta términos de búsqueda en un texto
+ * @param {string} text - Texto donde buscar
+     * @param {string} term - Término a resaltar
+ * @returns {string} - Texto con término resaltado
+     */
+    function highlightSearchTerm(text, term) {
+        if (!text) return '';
+        if (!term) return text;
+
+        // Escapar caracteres especiales en el término de búsqueda
+        const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // Crear expresión regular para coincidencias insensibles a mayúsculas/minúsculas
+        const regex = new RegExp(`(${escapedTerm})`, 'gi');
+
+        // Reemplazar coincidencias con span resaltado
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    /**
+ * Busca repuestos según el término proporcionado
+     * @param {string} term - Término de búsqueda
+     */
+    function searchParts(term) {
+        // Referencias a elementos del DOM
+        const initialSearchMessage = document.getElementById('initialSearchMessage');
+        const searchResultsLoader = document.getElementById('searchResultsLoader');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        const searchResultsList = document.getElementById('searchResultsList');
+        const searchPartsModal = document.getElementById('searchPartsModal');
+
+        if (!searchResultsLoader || !initialSearchMessage || !noResultsMessage || !searchResults) {
+            console.error("Faltan elementos del modal de búsqueda");
                 return;
             }
 
-            Swal.fire({
-                title: '¿Crear nuevo ticket?',
-                text: '¿Estás seguro de crear este nuevo ticket de servicio técnico?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, crear ticket',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Creando ticket...',
-                        html: 'Por favor espera mientras se crea el nuevo ticket.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
+        // Validar término de búsqueda
+        if (!term || term.length < 3) {
+            searchResultsLoader.style.display = 'none';
+            initialSearchMessage.style.display = 'block';
+            noResultsMessage.style.display = 'none';
+            if (searchResultsList) searchResultsList.style.display = 'none';
+        return;
+    }
+
+        // Ocultar mensajes y mostrar loader
+        initialSearchMessage.style.display = 'none';
+        noResultsMessage.style.display = 'none';
+        searchResultsLoader.style.display = 'block';
+        
+        // Limpiar resultados anteriores
+        if (searchResultsList) {
+            searchResultsList.innerHTML = '';
+            searchResultsList.style.display = 'none';
+        }
+
+    // Crear FormData para enviar en la petición
+    const formData = new FormData();
+        formData.append('search', term);
+
+    // Enviar petición AJAX
+        console.log("Buscando repuestos con término:", term);
+        fetch('/search_spare_parts', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+                // Ocultar loader
+                searchResultsLoader.style.display = 'none';
+                
+                console.log("Resultados de búsqueda:", data);
+
+                // Verificar si hay resultados
+                if (!data.parts || data.parts.length === 0) {
+                    noResultsMessage.style.display = 'block';
+                    if (searchResultsList) searchResultsList.style.display = 'none';
+                    return;
+                }
+
+                // Mostrar contenedor de resultados
+                if (searchResultsList) {
+                    searchResultsList.style.display = 'block';
+                    searchResultsList.innerHTML = '';
+                }
+
+                // Agregar contador de resultados
+                const resultCount = document.createElement('div');
+                resultCount.className = 'col-12 mb-2';
+                resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.parts.length} repuestos</small>`;
+                searchResultsList.appendChild(resultCount);
+
+                // Crear una fila para los resultados
+                const row = document.createElement('div');
+                row.className = 'row g-3';
+                searchResultsList.appendChild(row);
+
+                // Agregar cada repuesto encontrado en columnas
+                data.parts.forEach(part => {
+                    // Crear columna para este repuesto (6 columnas en pantalla md)
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 mb-2';
+                    
+                    // Crear tarjeta para el repuesto
+                    const card = document.createElement('div');
+                    card.className = 'card h-100 shadow-sm part-card';
+                    
+                    // Agregar contenido a la tarjeta
+                    card.innerHTML = `
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0 fw-bold">${highlightSearchTerm(part.description, term)}</h6>
+                                <span class="badge bg-primary ms-2">Cód: ${highlightSearchTerm(part.code, term)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-success fw-bold">${part.price && part.price != '0' ? '$' + formatNumberWithThousands(part.price) : ''}</span>
+                                <button class="btn btn-sm btn-primary select-result">
+                                    <i class="fas fa-check me-1"></i>Seleccionar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Agregar datos al elemento para su uso posterior
+                    card.dataset.code = part.code;
+                    card.dataset.description = part.description;
+                    card.dataset.price = part.price || '0';
+                    card.dataset.id = part.id || '';
+                    card.dataset.stock = part.stock || '0';
+                    card.dataset.location = part.location || '';
+
+                    // Evento de clic para seleccionar un repuesto
+            card.querySelector('.select-result').addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                        const partData = {
+                            id: card.dataset.id,
+                            code: card.dataset.code,
+                            description: card.dataset.description,
+                            price: card.dataset.price,
+                            stock: parseInt(card.dataset.stock),
+                            location: card.dataset.location
+                        };
+                        selectPartAndUpdateRow(partData);
+                        
+                        // Cerrar modal
+                        const modal = bootstrap.Modal.getInstance(searchPartsModal);
+                        if (modal) modal.hide();
                     });
-                    // Desformatear los campos numéricos antes de enviar
-                    document.querySelectorAll('#service_value, #spare_value, #total, .part-unit-value, .part-total-value')
-                        .forEach(input => {
-                            input.value = unformatNumber(input.value);
-                        });
-                    ticketForm.removeEventListener('submit', arguments.callee);
-                    ticketForm.submit();
+
+                    // Agregar a la columna y luego a la fila
+                    col.appendChild(card);
+                    row.appendChild(col);
+                });
+                
+                // Agregar estilos adicionales para la tarjeta de resultados
+                if (!document.getElementById('part-card-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'part-card-styles';
+                    style.textContent = `
+                        .part-card {
+                            transition: all 0.2s ease;
+                            border: 1px solid #dee2e6;
+                        }
+                        .part-card:hover {
+                            transform: translateY(-3px);
+                            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+                            border-color: #6c757d;
+                        }
+                        .highlight {
+                            background-color: #ffeeba;
+                            padding: 0 2px;
+                            border-radius: 2px;
+                        }
+                        .search-input:focus {
+                            border-color: #80bdff;
+                            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+                        }
+                    `;
+                    document.head.appendChild(style);
+            }
+        })
+        .catch(error => {
+                console.error('Error al buscar repuestos:', error);
+                
+                // Ocultar loader y mostrar mensaje de error
+                searchResultsLoader.style.display = 'none';
+                
+                if (searchResultsList) {
+                    searchResultsList.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error al buscar repuestos: ${error.message}
+                        </div>
+                    `;
+                    searchResultsList.style.display = 'block';
+                } else {
+                    noResultsMessage.style.display = 'block';
+                    noResultsMessage.innerHTML = `
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                        <h5 class="text-danger">Error al buscar repuestos</h5>
+                        <p class="text-muted mb-0">${error.message}</p>
+                    `;
                 }
             });
+}
+
+/**
+ * Configura la funcionalidad de búsqueda de cliente
+ */
+function setupClientSearch() {
+    // Identificar elementos del DOM
+    const searchClientBtn = document.getElementById('searchClientBtn');
+    const documentInput = document.getElementById('document');
+    const documentFeedback = document.getElementById('documentFeedback');
+    const clientNamesInput = document.getElementById('client_names');
+    const clientLastnamesInput = document.getElementById('client_lastnames');
+    const phoneInput = document.getElementById('phone');
+    const mailInput = document.getElementById('mail');
+
+    // Configurar evento de búsqueda de cliente
+    if (searchClientBtn) {
+        searchClientBtn.addEventListener('click', function () {
+            const document = documentInput.value.trim();
+
+            // Limpiar errores previos
+            if (documentFeedback) {
+                documentFeedback.style.display = 'none';
+                documentFeedback.classList.remove('d-block');
+                documentInput.classList.remove('is-invalid');
+            }
+
+            if (!document) {
+                if (documentFeedback) {
+                    documentFeedback.textContent = 'Por favor, ingrese un número de documento';
+                    documentFeedback.style.display = 'block';
+                    documentInput.classList.add('is-invalid');
+                }
+                return;
+            }
+
+            // Extraer solo dígitos para validación básica
+            const digitsOnly = document.replace(/\D/g, '');
+
+            if (digitsOnly.length < 5) {
+                if (documentFeedback) {
+                    documentFeedback.textContent = 'El documento debe tener al menos 5 dígitos';
+                    documentFeedback.style.display = 'block';
+                    documentInput.classList.add('is-invalid');
+                }
+                return;
+            }
+
+            console.log(`Buscando cliente con documento: ${document}`);
+
+            // Crear FormData para enviar en la petición
+            const formData = new FormData();
+            formData.append('document', document);
+
+            // Mostrar indicador de carga
+            searchClientBtn.disabled = true;
+            searchClientBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+            // Enviar petición AJAX
+            fetch('/search_client', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Restaurar botón
+                    searchClientBtn.disabled = false;
+                    searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+
+                    console.log('Respuesta del servidor:', data);
+
+                    if (data.success) {
+                        // Mostrar datos del cliente
+                        if (data.client) {
+                            if (clientNamesInput) {
+                                const nombre1 = data.client.nombre1 || '';
+                                const nombre2 = data.client.nombre2 || '';
+                                // Eliminar espacios adicionales antes, después y dejar solo un espacio entre nombres
+                                const nombreCompleto = `${nombre1.trim()} ${nombre2.trim()}`.trim().replace(/\s+/g, ' ');
+                                clientNamesInput.value = nombreCompleto;
+                                clientNamesInput.readOnly = true;
+                                clientNamesInput.classList.add('bg-light');
+                            }
+
+                            if (clientLastnamesInput) {
+                                const apellido1 = data.client.apellido1 || '';
+                                const apellido2 = data.client.apellido2 || '';
+                                // Eliminar espacios adicionales antes, después y dejar solo un espacio entre apellidos
+                                const apellidoCompleto = `${apellido1.trim()} ${apellido2.trim()}`.trim().replace(/\s+/g, ' ');
+                                clientLastnamesInput.value = apellidoCompleto;
+                                clientLastnamesInput.readOnly = true;
+                                clientLastnamesInput.classList.add('bg-light');
+                            }
+
+                            if (phoneInput) {
+                                phoneInput.value = data.client.phone || '';
+                                phoneInput.readOnly = true;
+                                phoneInput.classList.add('bg-light');
+                            }
+
+                            if (mailInput) {
+                                mailInput.value = data.client.email || '';
+                                mailInput.readOnly = true;
+                                mailInput.classList.add('bg-light');
+                            }
+                        }
+
+                        // Mostrar notificación
+                        showToast('success', 'Cliente encontrado', 'top-end', 3000);
+                    } else {
+                        if (documentFeedback) {
+                            documentFeedback.textContent = 'Cliente no encontrado';
+                            documentFeedback.style.display = 'block';
+                            documentInput.classList.add('is-invalid');
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Restaurar botón
+                    searchClientBtn.disabled = false;
+                    searchClientBtn.innerHTML = '<i class="fas fa-search"></i>';
+
+                    console.error('Error en la búsqueda:', error);
+
+                    if (documentFeedback) {
+                        documentFeedback.textContent = `Error: ${error.message}`;
+                        documentFeedback.style.display = 'block';
+                        documentInput.classList.add('is-invalid');
+                    }
+                });
         });
     }
 
-    /***** 7. Confirmación al cambiar la referencia del producto *****/
-    const referenceSelect = document.getElementById('reference');
-    if (referenceSelect) {
-        let originalReference = referenceSelect.value;
-        let originalReferenceText = referenceSelect.options[referenceSelect.selectedIndex]?.text || 'Sin seleccionar';
-        referenceSelect.addEventListener('change', function () {
-            const newReference = this.value;
-            const newReferenceText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
-            if (newReference == originalReference ) {
-                Swal.fire({
-                    title: 'Cambiar referencia',
-                    text: `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Sí, cambiar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        originalReference = newReference;
-                        originalReferenceText = newReferenceText;
-                        const productCodeInput = document.getElementById('product_code');
-                        if (productCodeInput) {
-                            const selectedOption = this.options[this.selectedIndex];
-                            productCodeInput.value = (selectedOption && selectedOption.getAttribute('data-code')) || '';
-                        }
-                        const Toast = Swal.mixin({
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            timerProgressBar: true
-                        });
-                        Toast.fire({
-                            icon: 'success',
-                            title: `Referencia cambiada a "${newReferenceText}"`
-                        });
-                    } else {
-                        this.value = originalReference;
-                    }
-                });
+    // Buscar cliente al presionar Enter en el campo documento
+    if (documentInput) {
+        documentInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Evitar envío del formulario
+                if (searchClientBtn) searchClientBtn.click();
+            }
+        });
+
+        documentInput.addEventListener('input', function () {
+            if (documentFeedback) {
+                documentFeedback.style.display = 'none';
+                documentInput.classList.remove('is-invalid');
             }
         });
     }
+}
+
+/**
+ * Inicializa todos los componentes de la página
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Inicializando componentes de servicio técnico...");
+
+    // Inicializar búsqueda de cliente
+    setupClientSearch();
+
+    // Inicializar selector de problemas
+    setupProblemsSelector();
+
+    // Inicializar tabla de repuestos
+    setupPartsTable();
+
+    // Inicializar búsqueda de referencias
+    setupReferenceSearch();
+
+    // Inicializar formatos de moneda
+    setupMoneyHandling();
+    
+    // Inicializar restricción de técnico-estado
+    setupTechnicianStateRestriction();
+
+    // Inicializar validaciones en tiempo real
+    attachEnhancedRealTimeValidation();
+    
+    // Procesar mensajes flash si existen
+    if (typeof processFlashMessages === 'function') {
+        processFlashMessages();
+    }
+    
+    console.log("Componentes de servicio técnico inicializados correctamente");
 });
 
-// Asegurarse de que, al seleccionar con Select2, se dispare el evento change en el select de referencia
-$(document).ready(function () {
-    $('#reference').on('select2:select', function (e) {
-        this.dispatchEvent(new Event('change'));
+/**
+ * Configura el manejo de campos de moneda para formatear números
+ */
+function setupMoneyHandling() {
+    const serviceValueInput = document.getElementById('service_value');
+    
+    if (serviceValueInput) {
+        // Formatear valor inicial
+        serviceValueInput.value = formatNumberWithThousands(serviceValueInput.value);
+        
+        // Aplicar formato al escribir
+        serviceValueInput.addEventListener('input', function() {
+            applyThousandsFormatting(this);
+            updatePartsTotals();
+        });
+        
+        // Al perder el foco, asegurar que tenga formato
+        serviceValueInput.addEventListener('blur', function() {
+            if (!this.value || this.value === '0') {
+                this.value = '0';
+            } else {
+                this.value = formatNumberWithThousands(unformatNumber(this.value));
+            }
+            updatePartsTotals();
+        });
+        
+        // Al hacer foco, eliminar formato para facilitar la edición
+        serviceValueInput.addEventListener('focus', function() {
+            // Si el valor es 0, dejarlo como string vacío para facilitar la entrada
+            if (this.value === '0') {
+                this.value = '';
+            }
+        });
+    }
+}
+
+/**
+ * Procesa los mensajes flash y los muestra como notificaciones toast
+ */
+function processFlashMessages() {
+    // Buscar mensajes flash
+    const alerts = document.querySelectorAll('.alert');
+    
+    alerts.forEach(alert => {
+        let type = 'info';
+        
+        if (alert.classList.contains('alert-success')) {
+            type = 'success';
+        } else if (alert.classList.contains('alert-danger')) {
+            type = 'error';
+        } else if (alert.classList.contains('alert-warning')) {
+            type = 'warning';
+        }
+        
+        const message = alert.textContent;
+        
+        if (message && message.trim()) {
+            // Usar la función showToast para mostrar el mensaje
+            showToast(type, message);
+            
+            // Opcionalmente, remover el alert después de procesarlo
+            alert.remove();
+        }
     });
-});
+}
+
+/**
+ * Configura la funcionalidad de búsqueda de referencias
+ */
+function setupReferenceSearch() {
+    const searchReferenceBtn = document.getElementById('searchReferenceBtn');
+    const referenceInput = document.getElementById('reference');
+    const productCodeInput = document.getElementById('product_code');
+    const searchReferenceModal = document.getElementById('searchReferenceModal');
+    const modalReferenceSearch = document.getElementById('modalReferenceSearch');
+    const clearReferenceSearch = document.getElementById('clearReferenceSearch');
+    const referenceResultsList = document.getElementById('referenceResultsList');
+    const initialReferenceMessage = document.getElementById('initialReferenceMessage');
+    const referenceResultsLoader = document.getElementById('referenceResultsLoader');
+    const noReferenceResults = document.getElementById('noReferenceResults');
+
+    // Verificar si los elementos existen
+    if (!searchReferenceBtn || !referenceInput || !searchReferenceModal) {
+        console.error("Faltan elementos para la búsqueda de referencias");
+        return;
+    }
+
+    // Configurar botón de búsqueda de referencia
+    searchReferenceBtn.addEventListener('click', function() {
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(searchReferenceModal);
+        modal.show();
+    });
+
+    // Configurar botón para limpiar búsqueda
+    if (clearReferenceSearch) {
+        clearReferenceSearch.addEventListener('click', function() {
+            if (modalReferenceSearch) {
+                modalReferenceSearch.value = '';
+                modalReferenceSearch.focus();
+            }
+            // Restaurar estado inicial
+            if (initialReferenceMessage) initialReferenceMessage.style.display = 'block';
+            if (referenceResultsLoader) referenceResultsLoader.style.display = 'none';
+            if (noReferenceResults) noReferenceResults.style.display = 'none';
+            if (referenceResultsList) {
+                referenceResultsList.style.display = 'none';
+                referenceResultsList.innerHTML = '';
+            }
+        });
+    }
+
+    // Configurar búsqueda en el modal
+    if (modalReferenceSearch) {
+        // Variable para almacenar el timeout
+        let searchTimeout = null;
+
+        modalReferenceSearch.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            
+            // Ocultar/mostrar elementos según corresponda
+            if (searchTerm.length < 3) {
+                if (initialReferenceMessage) initialReferenceMessage.style.display = 'block';
+                if (referenceResultsLoader) referenceResultsLoader.style.display = 'none';
+                if (noReferenceResults) noReferenceResults.style.display = 'none';
+                if (referenceResultsList) {
+                    referenceResultsList.style.display = 'none';
+                    referenceResultsList.innerHTML = '';
+                }
+                return;
+            }
+            
+            // Limpiar timeout anterior
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Mostrar indicador de carga
+            if (initialReferenceMessage) initialReferenceMessage.style.display = 'none';
+            if (referenceResultsLoader) referenceResultsLoader.style.display = 'block';
+            if (noReferenceResults) noReferenceResults.style.display = 'none';
+            
+            // Establecer un timeout para evitar demasiadas peticiones (debounce)
+            searchTimeout = setTimeout(() => {
+                // Buscar referencias que coincidan
+                filterReferences(searchTerm);
+            }, 400);
+        });
+    }
+
+    // Configurar eventos para cerrar el modal
+    if (searchReferenceModal) {
+        searchReferenceModal.addEventListener('hidden.bs.modal', function() {
+            // Limpiar búsqueda al cerrar
+            if (modalReferenceSearch) modalReferenceSearch.value = '';
+            if (initialReferenceMessage) initialReferenceMessage.style.display = 'block';
+            if (referenceResultsLoader) referenceResultsLoader.style.display = 'none';
+            if (noReferenceResults) noReferenceResults.style.display = 'none';
+            if (referenceResultsList) {
+                referenceResultsList.style.display = 'none';
+                referenceResultsList.innerHTML = '';
+            }
+        });
+    }
+}
+
+/**
+ * Filtra las referencias según el término de búsqueda y muestra los resultados en el modal
+ * @param {string} searchTerm - Término de búsqueda
+ */
+function filterReferences(searchTerm) {
+    const referenceResultsList = document.getElementById('referenceResultsList');
+    const referenceResultsLoader = document.getElementById('referenceResultsLoader');
+    const noReferenceResults = document.getElementById('noReferenceResults');
+    const searchReferenceModal = document.getElementById('searchReferenceModal');
+    
+    if (!referenceResultsList || !referenceResultsLoader || !noReferenceResults) {
+        console.error("Faltan elementos para mostrar resultados de referencias");
+        return;
+    }
+    
+    // Crear FormData para enviar en la petición
+    const formData = new FormData();
+    formData.append('search', searchTerm);
+
+    // Enviar petición AJAX
+    fetch('/search_references', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Ocultar loader
+            referenceResultsLoader.style.display = 'none';
+            
+            if (!data.references || data.references.length === 0) {
+                // Mostrar mensaje si no hay resultados
+                noReferenceResults.style.display = 'block';
+                referenceResultsList.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar resultados
+            referenceResultsList.style.display = 'block';
+            referenceResultsList.innerHTML = '';
+            
+            // Crear contador de resultados
+            const resultCount = document.createElement('div');
+            resultCount.className = 'col-12 mb-2';
+            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.references.length} referencias</small>`;
+            referenceResultsList.appendChild(resultCount);
+            
+            // Crear fila para resultados
+            const row = document.createElement('div');
+            row.className = 'row g-3';
+            referenceResultsList.appendChild(row);
+            
+            // Agregar cada referencia como tarjeta
+            data.references.forEach(reference => {
+                const description = reference.description || '';
+                const code = reference.code || '';
+                
+                // Crear columna
+                const col = document.createElement('div');
+                col.className = 'col-md-6 mb-2';
+                
+                // Crear tarjeta
+                const card = document.createElement('div');
+                card.className = 'card h-100 shadow-sm reference-card';
+                card.dataset.description = description;
+                card.dataset.code = code;
+                
+                // Agregar contenido a la tarjeta
+                card.innerHTML = `
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 fw-bold">${highlightSearchTerm(description, searchTerm)}</h6>
+                        </div>
+                        <p class="card-text text-muted mb-1">Código: ${highlightSearchTerm(code, searchTerm)}</p>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button class="btn btn-sm btn-primary select-reference">
+                                <i class="fas fa-check me-1"></i>Seleccionar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Agregar evento para seleccionar esta referencia
+                card.querySelector('.select-reference').addEventListener('click', function() {
+                    selectReference(description, code);
+                    
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(searchReferenceModal);
+                    if (modal) modal.hide();
+                });
+                
+                // Agregar tarjeta a la columna y la columna a la fila
+                col.appendChild(card);
+                row.appendChild(col);
+            });
+        })
+        .catch(error => {
+            console.error('Error en la búsqueda de referencias:', error);
+            
+            // Ocultar loader y mostrar mensaje de error
+            referenceResultsLoader.style.display = 'none';
+            noReferenceResults.style.display = 'block';
+            noReferenceResults.innerHTML = `
+                <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                <h5 class="text-danger">Error al buscar referencias</h5>
+                <p class="text-muted mb-0">${error.message}</p>
+            `;
+            referenceResultsList.style.display = 'none';
+        });
+}
+
+/**
+ * Selecciona una referencia y actualiza el código de producto
+ * @param {string} referenceValue - Valor de la referencia a seleccionar
+ * @param {string} codeValue - Código del producto correspondiente
+ */
+function selectReference(referenceValue, codeValue) {
+    const referenceInput = document.getElementById('reference');
+    const productCodeInput = document.getElementById('product_code');
+    
+    if (!referenceInput || !productCodeInput) return;
+    
+    // Establecer el valor de la referencia
+    referenceInput.value = referenceValue;
+    
+    // Actualizar el código de producto
+    productCodeInput.value = codeValue;
+    
+    // Mostrar mensaje de éxito
+    showToast('success', 'Referencia seleccionada', 'top-end', 2000);
+}

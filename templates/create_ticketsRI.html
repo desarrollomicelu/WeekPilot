@@ -2,7 +2,6 @@
 {% extends "base.html" %}
 {% block title %}Reparacion interna{% endblock %}
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/internal_repair.css') }}">
 {% endblock %}
 
@@ -36,16 +35,6 @@
         </div>
         <div class="card-body">
           <div class="mb-3 row">
-            <label for="city" class="col-sm-3 col-form-label">Ciudad:</label>
-            <div class="col-sm-8">
-              <select id="city" name="city" class="form-select">
-                <option value="">Seleccione una ciudad</option>
-                <option value="Medellin">Medellín</option>
-                <option value="Bogota">Bogotá</option>
-              </select>
-            </div>
-          </div>
-          <div class="mb-3 row">
             <label for="technical_name" class="col-sm-3 col-form-label">Técnico:</label>
             <div class="col-sm-8">
               <select class="form-select" id="technical_name" name="technical_name">
@@ -61,21 +50,26 @@
           <div class="mb-3 row">
             <label for="documento" class="col-sm-3 col-form-label">Documento:</label>
             <div class="col-sm-8">
-              <input type="text" class="form-control" id="documento" name="documento" readonly>
+              <input type="text" class="form-control" id="documento" name="documento" disabled>
             </div>
           </div>
           <div class="mb-3 row">
             <label for="state" class="col-sm-3 col-form-label">Estado:</label>
             <div class="col-sm-8">
-              <select id="state" name="state" class="form-control">
-                <option value="Sin asignar" selected>Sin asignar</option>
-                <option value="Asignado">Asignado</option>
-                <option value="En proceso">En proceso</option>
-                <option value="En Revision">En Revisión</option>
+              <input type="text" class="form-control" id="state_display" disabled>
+              <input type="hidden" id="state" name="state" value="Sin asignar">
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label for="city" class="col-sm-3 col-form-label">Ciudad:</label>
+            <div class="col-sm-8">
+              <select id="city" name="city" class="form-select">
+                <option value="">Seleccione una ciudad</option>
+                <option value="Medellin">Medellín</option>
+                <option value="Bogota">Bogotá</option>
               </select>
             </div>
           </div>
-          
           <div class="mb-3 row">
             <label for="priority" class="col-sm-3 col-form-label">Prioridad:</label>
             <div class="col-sm-8">
@@ -137,21 +131,21 @@
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table" id="partsTable">
+            <table class="table table-hover mb-0" id="partsTable">
               <thead class="table-light">
                 <tr>
-                  <th style="width:5%;">#</th>
-                  <th style="width:35%;">Descripción</th>
-                  <th style="width:15%;">Cantidad</th>
-                  <th style="width:20%;">Valor Unitario</th>
-                  <th style="width:15%;">Valor Total</th>
-                  <th style="width:10%;">Acciones</th>
+                  <th style="width: 30%;">Descripción</th>
+                  <th class="text-center" style="width: 5%;">Cant.</th>
+                  <th class="text-center" style="width: 20%;">V. Unit</th>
+                  <th class="text-center" style="width: 20%;">V. Total</th>
+                  <th class="text-center" style="width: 5%;">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr id="noPartsRow">
-                  <td colspan="6" class="text-center py-3">
-                    No se han agregado repuestos para este servicio.
+                  <td colspan="5" class="text-center py-4">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No se han agregado repuestos para este servicio.</p>
                   </td>
                 </tr>
               </tbody>
@@ -176,7 +170,10 @@
             <div class="row">
               <div class="col-sm-6 mb-3">
                 <label for="reference" class="form-label">Referencia</label>
-                <select class="form-select searchable-select" id="reference" name="reference">
+                <div class="mb-2">
+                  <input type="text" class="form-control form-control-sm" id="searchReference" placeholder="Buscar referencia...">
+                </div>
+                <select class="form-select" id="reference" name="reference" size="5" style="height: auto; overflow-y: auto;">
                   <option value="">Seleccione una referencia</option>
                   {% for item in product_info %}
                   <option value="{{ item.DESCRIPCIO }}" data-code="{{ item.CODIGO }}">
@@ -255,26 +252,33 @@
 <!-- Template para nueva fila de repuesto -->
 <template id="partRowTemplate">
   <tr class="part-row">
-    <td class="part-index"></td>
     <td>
-      <select class="form-select searchable-select" name="spare_part_code[]" required>
-        <option value="" disabled selected>Seleccione un repuesto</option>
-        {% for spare in spare_parts %}
-        <option value="{{ spare.code }}">{{ spare.code }} - {{ spare.description }}</option>
-        {% endfor %}
-      </select>
+      <div class="input-group">
+        <select class="form-select" name="spare_part_code[]" required>
+          <option value="" disabled selected>Seleccione un repuesto</option>
+        </select>
+        <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
     </td>
-    <td>
+    <td class="text-center" style="width: 5%;">
       <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
     </td>
     <td>
-      <input type="text" class="form-control part-unit-value currency-input" name="part_unit_value[]" value="0" required>
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
+      </div>
     </td>
-    <td>
-      <input type="text" class="form-control part-total-value currency-input" name="part_total_value[]" value="0" readonly>
+    <td style="width: 40%;">
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+      </div>
     </td>
-    <td>
-      <button type="button" class="btn btn-sm btn-danger remove-part">
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-danger remove-part" title="Eliminar repuesto">
         <i class="fas fa-trash-alt"></i>
       </button>
     </td>
@@ -292,11 +296,63 @@
   {% endwith %}
 </div>
 
+<!-- Modal de búsqueda de repuestos -->
+<div class="modal fade" id="searchPartsModal" tabindex="-1" aria-labelledby="searchPartsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="searchPartsModalLabel">
+          <i class="fas fa-search me-2 text-primary"></i>Buscar Repuestos
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-4">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" class="form-control search-input" id="modalPartSearch"
+              placeholder="Ingrese código o descripción del repuesto...">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <small class="form-text text-muted">Mínimo 3 caracteres para iniciar búsqueda</small>
+        </div>
+        <div id="searchResults" class="mt-3">
+          <div id="initialSearchMessage" class="text-center py-5">
+            <h5 class="text-muted mb-2">Buscar Repuestos</h5>
+            <p class="text-muted mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda</p>
+          </div>
+          <div id="searchResultsLoader" class="text-center py-5" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Buscando...</span>
+            </div>
+            <h5 class="text-primary mb-0">Buscando repuestos...</h5>
+          </div>
+          <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+            <h5 class="text-muted mb-2">No se encontraron resultados</h5>
+            <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
+          </div>
+          <div id="searchResultsList" class="search-results-container" style="display: none;">
+            <!-- Los resultados se insertarán aquí dinámicamente -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-<script src="{{ url_for('static', filename='js/toast-notifications.js') }}"></script>
-<script src="{{ url_for('static', filename=('js/internal_repair.js')) }}"></script>
+<script src="{{ url_for('static', filename='js/internal_repair.js') }}"></script>
 
 {% endblock %}

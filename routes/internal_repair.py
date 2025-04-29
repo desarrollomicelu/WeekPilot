@@ -8,7 +8,7 @@ from utils.access_control import role_required
 
 # Importa las funciones desde el módulo de servicios para romper el ciclo
 from models.problemsTickets import Problems_tickets
-from services.queries import get_spare_name, get_product_information, get_sertec, get_technicians
+from services.queries import get_spare_name, get_product_information, get_sertec, get_technicians, execute_query
 # Importa los modelos
 from models.employees import Empleados
 from models.clients import Clients_tickets
@@ -610,3 +610,73 @@ def update_ticket_progress():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
+# Ruta para buscar repuestos dinámicamente
+@internal_repair_bp.route("/search_spare_parts", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_spare_parts():
+    """
+    Busca repuestos según un término de búsqueda,
+    retornando sólo los resultados coincidentes, no todos los repuestos.
+    """
+    search_term = request.form.get("search", "").strip().lower()
+    
+    if not search_term or len(search_term) < 3:
+        return jsonify({
+            "success": False,
+            "message": "Ingrese al menos 3 caracteres para buscar"
+        }), 400
+    
+    try:
+        # Obtener los repuestos directamente de la fuente (base de datos)
+        query = f'''
+        SELECT CODIGO, DESCRIPCIO
+        FROM MTMERCIA
+        WHERE CODLINEA = 'ST' AND 
+        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
+        ORDER BY 
+            CASE 
+                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
+                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
+                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
+                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
+                ELSE 5
+            END
+        '''
+        
+        # Ejecutar la consulta
+        results = execute_query(query)
+        
+        # Procesar resultados
+        spare_parts = []
+        for row in results:
+            if len(spare_parts) >= 30:  # Limitar a 30 resultados
+                break
+                
+            spare_parts.append({
+                "code": row[0].strip() if row[0] else "",
+                "description": row[1].strip() if row[1] else ""
+            })
+        
+        # Verificar si hay resultados
+        if not spare_parts:
+            return jsonify({
+                "success": True,
+                "parts": [],
+                "count": 0,
+                "message": "No se encontraron repuestos con ese criterio"
+            })
+            
+        return jsonify({
+            "success": True,
+            "parts": spare_parts,
+            "count": len(spare_parts)
+        })
+    
+    except Exception as e:
+        print(f"Error al buscar repuestos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error al buscar repuestos: {str(e)}"
+        }), 500
