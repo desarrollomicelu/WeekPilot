@@ -4,6 +4,8 @@ $(document).ready(function () {
     // Inicializar tooltips
     $('[data-toggle="tooltip"]').tooltip();
 
+
+
     // Filtro de búsqueda para referencias
     $('#searchReference').on('input', function() {
         const searchText = $(this).val().toLowerCase();
@@ -108,6 +110,36 @@ $(document).ready(function () {
 
     // Configurar búsqueda en el modal de repuestos
     setupSearchPartsModal();
+
+    $('#searchProductBtn').on('click', function() {
+        // Mostrar el modal de búsqueda de productos
+        $('#searchProductsModal').modal('show');
+    });
+    
+    // Configurar el modal de búsqueda de productos
+    $('#searchProductsModal').on('shown.bs.modal', function() {
+        $('#modalProductSearch').val('').focus();
+        $('#initialProductSearchMessage').show();
+        $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+    });
+    
+    // Configurar la búsqueda de productos
+    $('#modalProductSearch').on('input', function() {
+        const searchTerm = $(this).val().trim();
+        if (searchTerm.length >= 3) {
+            searchProducts(searchTerm);
+        } else {
+            $('#initialProductSearchMessage').show();
+            $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+        }
+    });
+    
+    // Limpiar búsqueda de productos
+    $('#clearProductSearch').on('click', function() {
+        $('#modalProductSearch').val('');
+        $('#initialProductSearchMessage').show();
+        $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+    });
     
     // Evento delegado para los botones de búsqueda de repuestos
     $(document).on('click', '.select-part', function() {
@@ -459,7 +491,7 @@ function updateTotal() {
 
 // Función para formatear números con comas para miles
 function formatNumberWithCommas(number) {
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 // Formatear moneda en un campo
@@ -527,6 +559,9 @@ function showToast(type, message) {
     });
 }
 
+// Variable global para rastrear qué fila se está editando actualmente
+let currentEditingRow = null;
+
 // Configurar el modal de búsqueda de repuestos
 function setupSearchPartsModal() {
     // Verificar que el modal existe
@@ -537,7 +572,7 @@ function setupSearchPartsModal() {
     
     // Configurar la búsqueda al escribir en el campo
     $('#modalPartSearch').on('input', function() {
-            const searchTerm = $(this).val().trim();
+        const searchTerm = $(this).val().trim();
         if (searchTerm.length >= 3) {
             searchParts(searchTerm);
         } else {
@@ -565,6 +600,131 @@ function setupSearchPartsModal() {
         $('#searchResultsLoader').hide();
         $('#searchResultsList').hide().empty();
         $('#modalPartSearch').focus();
+    });
+}
+
+// Función para buscar repuestos
+function searchParts(searchTerm) {
+    // Referencias a elementos del DOM
+    const searchResultsLoader = $('#searchResultsLoader');
+    const initialSearchMessage = $('#initialSearchMessage');
+    const noResultsMessage = $('#noResultsMessage');
+    const searchResultsList = $('#searchResultsList');
+    
+    // Mostrar loader, ocultar otros mensajes
+    searchResultsLoader.show();
+    initialSearchMessage.hide();
+    noResultsMessage.hide();
+    searchResultsList.hide().empty();
+    
+    // Crear el objeto FormData para enviar los datos
+    const formData = new FormData();
+    formData.append('search', searchTerm);
+    
+    // Realizar petición fetch a la URL
+    fetch('/search_spare_parts', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Ocultar loader
+        searchResultsLoader.hide();
+        
+        console.log("Resultados de búsqueda de repuestos:", data);
+
+        // Verificar si hay resultados
+        if (!data.parts || data.parts.length === 0) {
+            noResultsMessage.show();
+            return;
+        }
+        
+        // Crear o mostrar el contenedor de resultados
+        let resultsContainer = document.querySelector('#searchResultsList');
+        resultsContainer.style.display = 'block';
+        resultsContainer.innerHTML = '';
+        
+        // Crear una fila para los resultados
+        const row = document.createElement('div');
+        row.className = 'row g-3';
+        resultsContainer.appendChild(row);
+
+        // Agregar contador de resultados
+        const resultCount = document.createElement('div');
+        resultCount.className = 'col-12 mb-2';
+        resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.parts.length} repuestos</small>`;
+        row.appendChild(resultCount);
+
+        // Añadir cada repuesto como una tarjeta
+        data.parts.forEach(part => {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'col-md-6';
+            
+            colDiv.innerHTML = `
+                <div class="card mb-2 shadow-sm search-result-card" 
+                     data-code="${part.code}" 
+                     data-description="${part.description}">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${part.code} - ${part.description}</h6>
+                            </div>
+                            <button class="btn btn-sm btn-primary select-result">
+                                <i class="fas fa-check me-1"></i>Seleccionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            row.appendChild(colDiv);
+        });
+        
+        // Agregar evento de clic a las tarjetas
+        $('.search-result-card').on('click', function() {
+            const code = $(this).data('code');
+            const description = $(this).data('description');
+            
+            // Actualizar la fila con los datos seleccionados
+            updatePartRow(currentEditingRow, {
+                code: code,
+                description: description
+            });
+            
+            // Cerrar el modal
+            $('#searchPartsModal').modal('hide');
+        });
+        
+        // Evento para los botones de seleccionar
+        $('.select-result').on('click', function(e) {
+            e.stopPropagation(); // Evitar que se propague al card
+            const card = $(this).closest('.search-result-card');
+            const code = card.data('code');
+            const description = card.data('description');
+    
+            // Actualizar la fila con los datos seleccionados
+            updatePartRow(currentEditingRow, {
+                code: code,
+                description: description
+            });
+            
+            // Cerrar el modal
+            $('#searchPartsModal').modal('hide');
+        });
+    })
+    .catch(error => {
+        searchResultsLoader.hide();
+        console.error('Error al buscar repuestos:', error);
+        noResultsMessage.show().html(`
+            <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+            <h5 class="text-danger">Error al buscar repuestos</h5>
+            <p class="text-muted mb-0">Intente nuevamente</p>
+        `);
     });
 }
 
@@ -616,12 +776,6 @@ function updatePartRow(row, partData) {
     // Agregar la opción seleccionada
     const option = new Option(`${partData.code} - ${partData.description}`, partData.code, true, true);
     select.append(option);
-    
-    // Actualizar el valor unitario si viene un precio
-    if (partData.price) {
-        const unitValueInput = $row.find('.part-unit-value');
-        unitValueInput.val(formatNumberWithCommas(partData.price));
-    }
     
     // Recalcular el total de la fila
     updateRowTotal($row);
@@ -696,95 +850,106 @@ function addNewPartRow() {
         });
     });
     
+    // Configurar el botón de búsqueda para abrir el modal
+    $lastRow.find('.select-part').on('click', function() {
+        // Guardar la fila actual para actualización posterior
+        currentEditingRow = $(this).closest('tr');
+        // Mostrar el modal de búsqueda
+        $('#searchPartsModal').modal('show');
+    });
+    
     // Actualizar totales
     updateRowTotal($lastRow);
     
     return $lastRow;
 }
 
-// Variable global para rastrear qué fila se está editando actualmente
-let currentEditingRow = 0;
-
-// Función para buscar repuestos
-function searchParts(searchTerm) {
-    // Referencias a elementos del DOM
-    const searchResultsLoader = $('#searchResultsLoader');
-    const initialSearchMessage = $('#initialSearchMessage');
-    const noResultsMessage = $('#noResultsMessage');
-    const searchResultsList = $('#searchResultsList');
+// Validar la tabla de repuestos
+function validatePartsTable() {
+    let isValid = true;
     
-    // Mostrar loader, ocultar otros mensajes
+    $('#partsTable tbody tr.part-row').each(function() {
+        const $row = $(this);
+        const spareCode = $row.find('select[name="spare_part_code[]"]').val();
+        const quantity = $row.find('.part-quantity').val();
+        const unitValue = unformatValue($row.find('.part-unit-value').val());
+        
+        if (!spareCode) {
+            isValid = false;
+            $row.addClass('table-danger');
+        } else if (!quantity || quantity < 1) {
+            isValid = false;
+            $row.find('.part-quantity').addClass('is-invalid');
+        } else if (!unitValue || unitValue <= 0) {
+            isValid = false;
+            $row.find('.part-unit-value').addClass('is-invalid');
+        } else {
+            $row.removeClass('table-danger');
+            $row.find('.part-quantity, .part-unit-value').removeClass('is-invalid');
+        }
+    });
+    
+    return isValid;
+}
+
+// Función para buscar productos
+function searchProducts(searchTerm) {
+    const searchResultsLoader = $('#productSearchResultsLoader');
+    const initialSearchMessage = $('#initialProductSearchMessage');
+    const noResultsMessage = $('#noProductResultsMessage');
+    const searchResultsList = $('#productSearchResultsList');
+    
     searchResultsLoader.show();
     initialSearchMessage.hide();
     noResultsMessage.hide();
     searchResultsList.hide().empty();
     
-    // Crear el objeto FormData para enviar los datos
     const formData = new FormData();
     formData.append('search', searchTerm);
     
-    // Realizar petición fetch a la nueva URL
-    fetch('/search_spare_parts', {
+    fetch('/search_products', {
         method: 'POST',
         body: formData
     })
     .then(response => {
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
-}
+        }
         return response.json();
     })
     .then(data => {
-        // Ocultar loader
         searchResultsLoader.hide();
         
-        console.log("Resultados de búsqueda:", data);
-
-        // Verificar si hay resultados
-        if (!data.parts || data.parts.length === 0) {
+        if (!data.products || data.products.length === 0) {
             noResultsMessage.show();
-        return;
-    }
-    
-        // Crear o mostrar el contenedor de resultados
-        let resultsContainer = document.querySelector('.search-results-container');
-        if (!resultsContainer) {
-            resultsContainer = document.createElement('div');
-            resultsContainer.className = 'search-results-container';
-            searchResultsList.appendChild(resultsContainer);
+            return;
         }
-        resultsContainer.style.display = 'block';
-        resultsContainer.innerHTML = '';
-    
-        // Crear una fila para los resultados
+        
+        searchResultsList.show().empty();
+        
         const row = document.createElement('div');
         row.className = 'row g-3';
-        resultsContainer.appendChild(row);
-
-        // Agregar contador de resultados
+        searchResultsList.append(row);
+        
         const resultCount = document.createElement('div');
         resultCount.className = 'col-12 mb-2';
-        resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.parts.length} repuestos</small>`;
+        resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.products.length} productos</small>`;
         row.appendChild(resultCount);
-
-        // Añadir cada repuesto como una tarjeta
-        data.parts.forEach(part => {
+        
+        data.products.forEach(product => {
             const colDiv = document.createElement('div');
             colDiv.className = 'col-md-6';
             
-            const formattedPrice = formatNumberWithCommas(part.price || 0);
-            
             colDiv.innerHTML = `
-                <div class="card mb-2 shadow-sm search-result-card" 
-                     data-code="${part.code}" 
-                     data-description="${part.description}" 
-                     data-price="${part.price || 0}">
+                <div class="card mb-2 shadow-sm product-result-card" 
+                     data-code="${product.CODIGO}" 
+                     data-description="${product.DESCRIPCIO}">
                     <div class="card-body py-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="mb-1">${part.code} - ${part.description}</h6>
+                                <h6 class="mb-1">${product.CODIGO} - ${product.DESCRIPCIO}</h6>
                             </div>
-                            <button class="btn btn-sm btn-primary select-result">
+                            <button class="btn btn-sm btn-primary select-product">
                                 <i class="fas fa-check me-1"></i>Seleccionar
                             </button>
                         </div>
@@ -795,51 +960,31 @@ function searchParts(searchTerm) {
             row.appendChild(colDiv);
         });
         
-        // Agregar evento de clic a las tarjetas
-        $('.search-result-card').on('click', function() {
-            const code = $(this).data('code');
-            const description = $(this).data('description');
-            const price = $(this).data('price') || 0;
-            
-            // Actualizar la fila con los datos seleccionados
-            updatePartRow(currentEditingRow, {
-                code: code,
-                description: description,
-                price: price
-            });
-            
-            // Cerrar el modal
-            $('#searchPartsModal').modal('hide');
+        // Evento para seleccionar un producto
+        $('.product-result-card').on('click', function() {
+            selectProduct($(this).data('code'), $(this).data('description'));
         });
         
-        // Evento para los botones de seleccionar
-        $('.select-result').on('click', function(e) {
-            e.stopPropagation(); // Evitar que se propague al card
-            const card = $(this).closest('.search-result-card');
-            const code = card.data('code');
-            const description = card.data('description');
-            const price = card.data('price') || 0;
-    
-            // Actualizar la fila con los datos seleccionados
-            updatePartRow(currentEditingRow, {
-                code: code,
-                description: description,
-                price: price
-            });
-            
-            // Cerrar el modal
-            $('#searchPartsModal').modal('hide');
+        $('.select-product').on('click', function(e) {
+            e.stopPropagation();
+            const card = $(this).closest('.product-result-card');
+            selectProduct(card.data('code'), card.data('description'));
         });
     })
     .catch(error => {
         searchResultsLoader.hide();
-        console.error('Error al buscar repuestos:', error);
+        console.error('Error al buscar productos:', error);
         noResultsMessage.show().html(`
             <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
-            <h5 class="text-danger">Error al buscar repuestos</h5>
+            <h5 class="text-danger">Error al buscar productos</h5>
             <p class="text-muted mb-0">Intente nuevamente</p>
         `);
     });
 }
 
-
+// Función para seleccionar un producto
+function selectProduct(code, description) {
+    $('#product_code').val(code);
+    $('#reference').val(description);
+    $('#searchProductsModal').modal('hide');
+}

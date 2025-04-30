@@ -611,72 +611,92 @@ def update_ticket_progress():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
-# Ruta para buscar repuestos dinámicamente
+@internal_repair_bp.route("/search_products", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_products():
+    """
+    Ruta para buscar productos basados en un término de búsqueda.
+    Similar a la búsqueda de repuestos pero para productos.
+    """
+    search_term = request.form.get('search', '')
+    
+    if not search_term or len(search_term) < 3:
+        return jsonify({'products': []})
+    
+    # Obtener todos los productos
+    all_products = get_product_information()
+    
+    # Filtrar productos basados en el término de búsqueda
+    filtered_products = []
+    search_term = search_term.lower()
+    
+    for product in all_products:
+        code = product['CODIGO'].lower()
+        description = product['DESCRIPCIO'].lower()
+        
+        if search_term in code or search_term in description:
+            filtered_products.append(product)
+    
+    # Ordenar resultados para que los más relevantes aparezcan primero
+    # (los que comienzan con el término de búsqueda)
+    def sort_key(product):
+        code = product['CODIGO'].lower()
+        description = product['DESCRIPCIO'].lower()
+        
+        if code.startswith(search_term):
+            return 0
+        elif description.startswith(search_term):
+            return 1
+        else:
+            return 2
+    
+    filtered_products.sort(key=sort_key)
+    
+    return jsonify({'products': filtered_products})
+
 @internal_repair_bp.route("/search_spare_parts", methods=["POST"])
 @login_required
 @role_required("Admin")
 def search_spare_parts():
     """
-    Busca repuestos según un término de búsqueda,
-    retornando sólo los resultados coincidentes, no todos los repuestos.
+    Ruta para buscar repuestos basados en un término de búsqueda.
     """
-    search_term = request.form.get("search", "").strip().lower()
+    search_term = request.form.get('search', '')
     
     if not search_term or len(search_term) < 3:
-        return jsonify({
-            "success": False,
-            "message": "Ingrese al menos 3 caracteres para buscar"
-        }), 400
+        return jsonify({'parts': []})
     
-    try:
-        # Obtener los repuestos directamente de la fuente (base de datos)
-        query = f'''
-        SELECT CODIGO, DESCRIPCIO
-        FROM MTMERCIA
-        WHERE CODLINEA = 'ST' AND 
-        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
-        ORDER BY 
-            CASE 
-                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
-                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
-                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
-                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
-                ELSE 5
-            END
-        '''
-        
-        # Ejecutar la consulta
-        results = execute_query(query)
-        
-        # Procesar resultados
-        spare_parts = []
-        for row in results:
-            if len(spare_parts) >= 30:  # Limitar a 30 resultados
-                break
-                
-            spare_parts.append({
-                "code": row[0].strip() if row[0] else "",
-                "description": row[1].strip() if row[1] else ""
-            })
-        
-        # Verificar si hay resultados
-        if not spare_parts:
-            return jsonify({
-                "success": True,
-                "parts": [],
-                "count": 0,
-                "message": "No se encontraron repuestos con ese criterio"
-            })
-            
-        return jsonify({
-            "success": True,
-            "parts": spare_parts,
-            "count": len(spare_parts)
-        })
+    # Obtener todos los repuestos
+    all_spare_parts = get_spare_parts()
     
-    except Exception as e:
-        print(f"Error al buscar repuestos: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": f"Error al buscar repuestos: {str(e)}"
-        }), 500
+    # Filtrar repuestos basados en el término de búsqueda
+    filtered_parts = []
+    search_term = search_term.lower()
+    
+    for part in all_spare_parts:
+        code = part['code'].lower()
+        description = part['description'].lower()
+        
+        if search_term in code or search_term in description:
+            filtered_parts.append(part)
+    
+    # Ordenar resultados para que los más relevantes aparezcan primero
+    # (los que comienzan con el término de búsqueda)
+    def sort_key(part):
+        code = part['code'].lower()
+        description = part['description'].lower()
+        
+        if code.startswith(search_term):
+            return 0
+        elif description.startswith(search_term):
+            return 1
+        else:
+            return 2
+    
+    filtered_parts.sort(key=sort_key)
+    
+    # Limitar a 50 resultados para evitar sobrecarga
+    filtered_parts = filtered_parts[:50]
+    
+    return jsonify({'parts': filtered_parts})
