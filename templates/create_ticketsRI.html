@@ -50,13 +50,13 @@
           <div class="mb-3 row">
             <label for="documento" class="col-sm-3 col-form-label">Documento:</label>
             <div class="col-sm-8">
-              <input type="text" class="form-control" id="documento" name="documento" disabled>
+              <input type="text" class="form-control" id="documento" name="documento" readonly>
             </div>
           </div>
           <div class="mb-3 row">
             <label for="state" class="col-sm-3 col-form-label">Estado:</label>
             <div class="col-sm-8">
-              <input type="text" class="form-control" id="state_display" disabled>
+              <input type="text" class="form-control" id="state_display" readonly>
               <input type="hidden" id="state" name="state" value="Sin asignar">
             </div>
           </div>
@@ -255,39 +255,44 @@
 
           <hr class="my-4">
           <!-- Valores Financieros -->
-          <div class="mb-3 row">
-            <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
-            <div class="col-sm-7">
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="text" class="form-control currency-input" id="service_value" name="service_value" value="0"
-                  required>
-                <input type="hidden" id="service_value_raw" name="service_value_raw" value="0">
+          <div class="mb-3">
+            <h6 class="mb-3">Valores</h6>
+            <div class="row">
+              <!-- Valor del Servicio -->
+              <div class="col-md-6 mb-3">
+                <label for="service_value" class="form-label">Valor del Servicio</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control text-end formatted-number" id="service_value"
+                    name="service_value" value="0" required>
+                  <input type="hidden" name="service_value_raw" id="service_value_raw" value="0">
+                </div>
+              </div>
+
+              <!-- Valor de Repuestos -->
+              <div class="col-md-6 mb-3">
+                <label for="spare_value" class="form-label">Valor de Repuestos</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control text-end formatted-number" id="spare_value" name="spare_value"
+                    value="0" readonly>
+                  <input type="hidden" name="spare_value_raw" id="spare_value_raw" value="0">
+                </div>
+              </div>
+
+              <!-- TOTAL -->
+              <div class="col-md-6 mb-3">
+                <label for="total" class="form-label fw-bold">TOTAL</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="text" class="form-control text-end fw-bold formatted-number" id="total" name="total"
+                    value="0" readonly>
+                  <input type="hidden" name="total_raw" id="total_raw" value="0">
+                </div>
               </div>
             </div>
           </div>
-          <div class="mb-3 row">
-            <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
-            <div class="col-sm-7">
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="text" class="form-control currency-input" id="spare_value" name="spare_value" value="0"
-                  readonly>
-                <input type="hidden" id="spare_value_raw" name="spare_value_raw" value="0">
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
-            <div class="col-sm-7">
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="text" class="form-control fw-bold currency-input" id="total" name="total" value="0"
-                  readonly>
-                <input type="hidden" id="total_raw" name="total_raw" value="0">
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -312,7 +317,7 @@
     <td>
       <div class="input-group">
         <select class="form-select" name="spare_part_code[]" required>
-          <option value="" disabled selected>Seleccione un repuesto</option>
+          <option value="" readonly selected>Seleccione un repuesto</option>
         </select>
         <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
           <i class="fas fa-search"></i>
@@ -325,13 +330,17 @@
     <td>
       <div class="input-group">
         <span class="input-group-text">$</span>
-        <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
+        <input type="text" class="form-control text-end part-unit-value formatted-number" name="part_unit_value[]"
+          value="0" required>
+        <input type="hidden" name="part_unit_value_raw[]" value="0">
       </div>
     </td>
     <td style="width: 40%;">
       <div class="input-group">
         <span class="input-group-text">$</span>
-        <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+        <input type="text" class="form-control text-end part-total-value formatted-number" name="part_total_value[]"
+          value="0" readonly>
+        <input type="hidden" name="part_total_value_raw[]" value="0">
       </div>
     </td>
     <td class="text-center">
@@ -342,58 +351,6 @@
   </tr>
 </template>
 
-<!-- Modal de búsqueda de repuestos -->
-<div class="modal fade" id="searchPartsModal" tabindex="-1" aria-labelledby="searchPartsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="searchPartsModalLabel">
-          <i class="fas fa-search me-2 text-primary"></i>Buscar Repuestos
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-4">
-          <div class="input-group">
-            <span class="input-group-text">
-              <i class="fas fa-search text-muted"></i>
-            </span>
-            <input type="text" class="form-control search-input" id="modalPartSearch"
-              placeholder="Ingrese código o descripción del repuesto...">
-            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <small class="form-text text-muted">Mínimo 3 caracteres para iniciar búsqueda</small>
-        </div>
-        <div id="searchResults" class="mt-3">
-          <div id="initialSearchMessage" class="text-center py-5">
-            <h5 class="text-muted mb-2">Buscar Repuestos</h5>
-            <p class="text-muted mb-0">Ingrese al menos 3 caracteres para iniciar la búsqueda</p>
-          </div>
-          <div id="searchResultsLoader" class="text-center py-5" style="display: none;">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Buscando...</span>
-            </div>
-            <h5 class="text-primary mb-0">Buscando repuestos...</h5>
-          </div>
-          <div id="noResultsMessage" class="text-center py-5" style="display: none;">
-            <h5 class="text-muted mb-2">No se encontraron resultados</h5>
-            <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
-          </div>
-          <div id="searchResultsList" class="search-results-container" style="display: none;">
-            <!-- Los resultados se insertarán aquí dinámicamente -->
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          <i class="fas fa-times me-1"></i>Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
 <div class="d-none">
