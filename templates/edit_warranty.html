@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}">
+    <form method="POST" action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}" id="warrantyForm">
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
             <!-- Información del Cliente (solo lectura) -->
@@ -249,15 +249,17 @@
                                         <td>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" 
-                                                    value="{{ spare.unit_price }}" required>
+                                                <input type="text" class="form-control text-end part-unit-value formatted-number" name="part_unit_value[]" 
+                                                    value="{{ '{:,.0f}'.format(spare.unit_price).replace(',', '.') if spare.unit_price else '0' }}" required>
+                                                <input type="hidden" name="part_unit_value_raw[]" value="{{ spare.unit_price if spare.unit_price else 0 }}">
                                             </div>
                                         </td>
                                         <td>
                                             <div class="input-group">
                                                 <span class="input-group-text">$</span>
-                                                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" 
-                                                    value="{{ spare.total_price }}" readonly>
+                                                <input type="text" class="form-control text-end part-total-value formatted-number" name="part_total_value[]" 
+                                                    value="{{ '{:,.0f}'.format(spare.total_price).replace(',', '.') if spare.total_price else '0' }}" readonly>
+                                                <input type="hidden" name="part_total_value_raw[]" value="{{ spare.total_price if spare.total_price else 0 }}">
                                             </div>
                                         </td>
                                         <td class="text-center">
@@ -332,36 +334,59 @@
                         <h5 class="mb-0">Valores</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Valores Financieros -->
+                        <!-- Apartado para agregar comentarios -->
+                        <div class="mb-4">
+                            <label for="comment" class="form-label">
+                                <i class="fas fa-comment text-primary me-1"></i> Agregar Comentario
+                            </label>
+                            <textarea id="comment" name="comment" class="form-control" rows="3"
+                                placeholder="Escribe aquí tus observaciones, diagnóstico o comentarios sobre la garantía..."
+                                aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
+                            <div id="commentHelp" class="form-text text-muted">
+                                Puede incluir detalles adicionales o información relevante para la garantía.
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Valor del Servicio -->
                         <div class="mb-3 row">
                             <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end" id="service_value" name="service_value"
-                                        min="0" value="{{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}" required>
+                                    <input type="text" class="form-control text-end formatted-number" id="service_value" name="service_value"
+                                        data-original-value="{{ ticket.service_value }}"
+                                        value="{{ '{:,.0f}'.format(ticket.service_value).replace(',', '.') if ticket.service_value else '0' }}" required>
+                                    <input type="hidden" name="service_value_raw" id="service_value_raw" value="{{ ticket.service_value if ticket.service_value else 0 }}">
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Valor de Repuestos -->
                         <div class="mb-3 row">
                             <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end" id="spare_value" name="spare_value" 
-                                        value="{{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}" min="0" readonly>
+                                    <input type="text" class="form-control text-end formatted-number" id="spare_value" name="spare_value" 
+                                        data-original-value="{{ ticket.spare_value }}"
+                                        value="{{ '{:,.0f}'.format(ticket.spare_value).replace(',', '.') if ticket.spare_value else '0' }}" readonly>
+                                    <input type="hidden" name="spare_value_raw" id="spare_value_raw" value="{{ ticket.spare_value if ticket.spare_value else 0 }}">
                                 </div>
                             </div>
                         </div>
 
+                        <!-- TOTAL -->
                         <div class="row">
                             <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
                             <div class="col-sm-7">
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control text-end fw-bold" id="total" name="total" 
-                                        value="{{ "{:,.0f}".format(ticket.total).replace(',', '.') }}" min="0" readonly>
+                                    <input type="text" class="form-control text-end fw-bold formatted-number" id="total" name="total" 
+                                        data-original-value="{{ ticket.total }}"
+                                        value="{{ '{:,.0f}'.format(ticket.total).replace(',', '.') if ticket.total else '0' }}" readonly>
+                                    <input type="hidden" name="total_raw" id="total_raw" value="{{ ticket.total if ticket.total else 0 }}">
                                 </div>
                             </div>
                         </div>
@@ -387,7 +412,7 @@
                 <i class="fas fa-times me-2"></i>Cancelar
             </a>
             <div>
-                <button type="submit" class="btn btn-success">
+                <button type="button" id="saveButton" class="btn btn-success">
                     <i class="fas fa-save me-2"></i>Guardar Cambios
                 </button>
             </div>
@@ -402,6 +427,9 @@
             <div class="input-group">
                 <select class="form-select" name="spare_part_code[]" required>
                     <option value="" disabled selected>Seleccione un repuesto</option>
+                    {% for part in spare_parts %}
+                    <option value="{{ part.code }}">{{ part.code }} - {{ part.description }}</option>
+                    {% endfor %}
                 </select>
                 <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
                     <i class="fas fa-search"></i>
@@ -414,13 +442,15 @@
         <td>
             <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
+                <input type="text" class="form-control text-end part-unit-value formatted-number" name="part_unit_value[]" value="0" required>
+                <input type="hidden" name="part_unit_value_raw[]" value="0">
             </div>
         </td>
         <td style="width: 40%;">
             <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+                <input type="text" class="form-control text-end part-total-value formatted-number" name="part_total_value[]" value="0" readonly>
+                <input type="hidden" name="part_total_value_raw[]" value="0">
             </div>
         </td>
         <td class="text-center">
@@ -470,7 +500,7 @@
                         <h5 class="text-muted mb-2">No se encontraron resultados</h5>
                         <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
                     </div>
-                    <div id="searchResultsList" class="search-results-container" style="display: none;">
+                    <div id="searchResultsList" style="display: none;">
                         <!-- Los resultados se insertarán aquí dinámicamente -->
                     </div>
                 </div>
@@ -487,6 +517,47 @@
 <!-- Se incluye jQuery y Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- SweetAlert2 para notificaciones -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    /* Estilos personalizados para SweetAlert2 */
+    .colored-toast {
+        background-color: #fff !important;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .colored-toast .swal2-title {
+        color: #212529 !important;
+    }
+    /* Estilos adicionales para consistencia */
+    .swal2-popup {
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* Estilos para búsqueda de repuestos */
+    .part-card {
+        transition: all 0.2s ease;
+        border: 1px solid #dee2e6;
+    }
+    .part-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        border-color: #6c757d;
+    }
+    .highlight {
+        background-color: #ffeeba;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+    .search-input:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .search-results-container {
+        max-height: 350px;
+        overflow-y: auto;
+        margin-top: 10px;
+    }
+</style>
 <script src="{{ url_for('static', filename='js/edit_warranty.js') }}"></script>
 
 {% endblock %}
