@@ -17,8 +17,34 @@
         </div>
     </div>
 
+    <!-- Área de mensajes de validación y estado -->
+    <div id="validation-summary" class="alert alert-danger mb-3" style="display: none;">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Hay errores que impiden actualizar el ticket:</h5>
+        <ul id="validation-errors" class="mb-0">
+            <!-- Los errores se cargarán dinámicamente -->
+        </ul>
+    </div>
+    
+    <div id="form-status-area" class="mb-3" style="display: none;">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center">
+                    <div id="form-status-spinner" class="me-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Procesando...</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 id="form-status-title" class="mb-1">Procesando información</h5>
+                        <p id="form-status-message" class="mb-0 text-muted">Por favor, espere mientras se actualizan los datos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <form method="POST" action="{{ url_for('technical_service.edit_ticket', ticket_id=ticket.id_ticket) }}"
-        enctype="multipart/form-data">
+        enctype="multipart/form-data" id="ticket-form">
 
         <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
         <div class="row mb-2">
@@ -32,38 +58,38 @@
                         <div class="mb-3 row">
                             <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_names" name="client_names"
-                                    value="{{ client.name }}" required>
+                                <input type="text" class="form-control bg-light" id="client_names" name="client_names"
+                                    value="{{ client.name }}" readonly>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="client_lastnames" name="client_lastnames"
-                                    value="{{ client.lastname }}" required>
+                                <input type="text" class="form-control bg-light" id="client_lastnames" name="client_lastnames"
+                                    value="{{ client.lastname }}" readonly>
                             </div>
                         </div>
 
                         <div class="mb-3 row">
                             <label for="document" class="col-sm-4 col-form-label">Documento</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="document" name="document"
-                                    value="{{ client.document }}" required>
+                                <input type="text" class="form-control bg-light" id="document" name="document"
+                                    value="{{ client.document }}" readonly>
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
                             <div class="col-sm-8">
-                                <input type="text" class="form-control" id="phone" name="phone"
-                                    value="{{ client.phone }}">
+                                <input type="text" class="form-control bg-light" id="phone" name="phone"
+                                    value="{{ client.phone }}" readonly>
                             </div>
                         </div>
                         <div class="mb-3 row">
                             <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
                             <div class="col-sm-8">
-                                <input type="mail" class="form-control" id="mail" name="mail" value="{{ client.mail }}"
-                                    required>
+                                <input type="mail" class="form-control bg-light" id="mail" name="mail" value="{{ client.mail }}"
+                                    readonly>
                             </div>
                         </div>
                     </div>
@@ -271,8 +297,8 @@
                                 <div class="col-sm-6 mb-3">
                                     <label for="reference" class="form-label">Referencia</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="reference" name="reference" readonly value="{{ ticket.reference }}">
-                                        <button type="button" class="btn btn-outline-primary" id="searchReferenceBtn" title="Buscar referencia">
+                                        <input type="text" class="form-control bg-light" id="reference" name="reference" readonly value="{{ ticket.reference }}">
+                                        <button type="button" class="btn btn-outline-primary" id="searchReferenceBtn" title="Buscar referencia" disabled>
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
@@ -281,15 +307,15 @@
                                 <!-- Campo de código de producto -->
                                 <div class="col-sm-6 mb-3">
                                     <label for="product_code" class="form-label">Código Producto</label>
-                                    <input type="text" class="form-control" id="product_code" name="product_code"
+                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
                                         value="{{ ticket.product_code }}" readonly>
                                 </div>
 
                                 <!-- Campo IMEI o Serial -->
                                 <div class="col-sm-6 mb-3">
                                     <label for="IMEI" class="form-label">IMEI o Serial</label>
-                                    <input type="text" class="form-control" id="IMEI" name="IMEI"
-                                        value="{{ ticket.IMEI }}">
+                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI"
+                                        value="{{ ticket.IMEI }}" readonly>
                                 </div>
 
                                 <!-- Campo de tipo de servicio -->
@@ -470,9 +496,9 @@
             <div class="input-group">
                 <select class="form-select" name="spare_part_code[]" required>
                     <option value="" disabled selected>Seleccione un repuesto</option>
-                    {% if part %}
-                    <option value="{{ part.code }}" selected>{{ part.description }}</option>
-                    {% endif %}
+                    {% for part in spare_parts %}
+                    <option value="{{ part.code }}">{{ part.code }} - {{ part.description }}</option>
+                    {% endfor %}
                 </select>
                 <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
                     <i class="fas fa-search"></i>
@@ -491,7 +517,7 @@
         <td style="width: 40%;">
             <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+                <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" value="0" readonly>
             </div>
         </td>
         <td class="text-center">

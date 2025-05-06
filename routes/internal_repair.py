@@ -19,15 +19,17 @@ from models.sparesTickets import Spares_tickets
 from decimal import Decimal
 from services.queries import get_spare_parts
 
-internal_repair_bp = Blueprint("internal_repair", __name__, template_folder="templates")
+internal_repair_bp = Blueprint(
+    "internal_repair", __name__, template_folder="templates")
+
 
 def get_common_data():
     """Obtiene todos los datos comunes necesarios para las vistas de tickets"""
     product_info = get_product_information()
-    
+
     reference = []
     product_code = []
-    
+
     for item in product_info:
         reference.append(item["DESCRIPCIO"])
         product_code.append(item["CODIGO"])
@@ -42,6 +44,7 @@ def get_common_data():
         'spare_parts': get_spare_parts()
     }
 
+
 @internal_repair_bp.route("/internal_repair", endpoint="internal_repair")
 @login_required
 @role_required("Admin")
@@ -50,12 +53,13 @@ def internal_repair():
     Ruta principal que muestra los datos de reparaciones internas en tablas.
     """
     # Obtener todos los tickets de reparación interna ordenados por fecha de creación (más recientes primero)
-    tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.desc()).all()
-    
+    tickets = Tickets.query.filter_by(type_of_service="1").order_by(
+        Tickets.creation_date.desc()).all()
+
     # Obtener datos adicionales que puedan ser necesarios para mostrar en la vista
     technicians = get_technicians()
     sertec = get_sertec()
-    
+
     return render_template(
         "internal_repair.html",
         repairs=tickets,  # Usar la misma lista para consistencia
@@ -63,6 +67,7 @@ def internal_repair():
         sertec=sertec,
         tickets=tickets
     )
+
 
 @internal_repair_bp.route("/create_ticketsRI", methods=["GET", "POST"], endpoint="create_ticketsRI")
 @login_required
@@ -72,7 +77,6 @@ def create_ticketsRI():
     Ruta para la creación de tickets de reparación interna.
     """
     # Datos auxiliares para el formulario
-
     common_data = get_common_data()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -80,7 +84,7 @@ def create_ticketsRI():
     reference = get_product_information()
     product_code = get_product_information()
     sertec = get_sertec()
-    
+
     problems_list = Problems.query.order_by(Problems.name).all()
     spare_parts = get_spare_parts()
 
@@ -95,45 +99,39 @@ def create_ticketsRI():
             assigned = request.form.get("assigned")
             reference_selected = request.form.get("reference")
             product_code_selected = request.form.get("product_code")
-            IMEI = request.form.get("IMEI") or ""  # Valor por defecto si es None
+            # Valor por defecto si es None
+            IMEI = request.form.get("IMEI") or ""
             service_value = request.form.get("service_value") or 0
             total = request.form.get("total") or 0
             spare_value = request.form.get("spare_value") or 0
-            
+
             if IMEI:
                 if not IMEI.isdigit():
                     flash("Error: El IMEI solo puede contener números.", "danger")
-                    return render_template(
-                        "create_ticketsRI.html",
-                        current_date=current_date,
-                        **common_data
-                    )
+                    return redirect(url_for("internal_repair.create_ticketsRI"))
 
                 if len(IMEI) != 15:
-                    flash("Error: El IMEI debe contener exactamente 15 caracteres.", "danger")
-                    return render_template(
-                        "create_ticketsRI.html",
-                        current_date=current_date,
-                        **common_data
-                    )
-            
-            # Validar campos obligatorios
-            if not all([city, technical_name, technical_document, state, priority, 
-                        reference_selected, product_code_selected]):
-                
-            
-                flash("Error: Todos los campos obligatorios deben ser completados.", "danger")
-                return redirect(url_for("internal_repair.create_ticketsRI"))
-            
+                    flash(
+                        "Error: El IMEI debe contener exactamente 15 caracteres.", "danger")
+                    return redirect(url_for("internal_repair.create_ticketsRI"))
+
             # Convertir valores a formato correcto
             try:
+                # Limpiar valores antes de convertir
+                service_value = service_value.replace('.', '').replace(
+                    ',', '.') if isinstance(service_value, str) else service_value
+                total = total.replace('.', '').replace(
+                    ',', '.') if isinstance(total, str) else total
+                spare_value = spare_value.replace('.', '').replace(
+                    ',', '.') if isinstance(spare_value, str) else spare_value
+
                 service_value = float(service_value)
                 total = float(total)
                 spare_value = float(spare_value)
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
-            
+
             # Convertir fecha si está presente
             if assigned and state == "Asignado":
                 try:
@@ -142,25 +140,26 @@ def create_ticketsRI():
                     assigned = datetime.now()
             else:
                 assigned = None
-            
+
             # Obtener problemas seleccionados
             selected_problem_ids = request.form.getlist("device_problems[]")
             if not selected_problem_ids:
                 flash("Error: Debe seleccionar al menos un problema.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
-                
+
             try:
-                selected_problem_ids = [int(pid) for pid in selected_problem_ids]
+                selected_problem_ids = [int(pid)
+                                        for pid in selected_problem_ids]
             except ValueError:
                 flash("Error: ID de problema inválido.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
-                
-            selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
-            
+
+            selected_problems = Problems.query.filter(
+                Problems.id.in_(selected_problem_ids)).all()
+
             if not selected_problems:
                 flash("Error: No se encontraron los problemas seleccionados.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
-            
 
             creation_date = datetime.now()
             assigned = None
@@ -169,7 +168,13 @@ def create_ticketsRI():
             finished = None
 
             if state == "Asignado":
-                    assigned = datetime.now()
+                assigned = datetime.now()
+            elif state == "Recibido":
+                received = datetime.now()
+            elif state == "En proceso":
+                in_progress = datetime.now()
+            elif state == "Terminado":
+                finished = datetime.now()
 
             # Crear nuevo ticket
             new_ticket = Tickets(
@@ -192,11 +197,11 @@ def create_ticketsRI():
                 total=total,
                 client=None
             )
-            
+
             # Agregar problemas al ticket
             for problem in selected_problems:
                 new_ticket.problems.append(problem)
-            
+
             # Guardar en la base de datos para obtener el id_ticket
             db.session.add(new_ticket)
             db.session.flush()  # Ejecuta la operación sin commit para obtener el id
@@ -210,9 +215,16 @@ def create_ticketsRI():
                 if i < len(quantities) and i < len(unit_prices) and i < len(total_prices):
                     spare_code = spare_codes[i]
                     quantity = int(quantities[i])
-                    unit_price = float(unit_prices[i])
-                    total_price = float(total_prices[i])
-                    
+
+                    # Limpiar valores antes de convertir
+                    unit_price_str = unit_prices[i].replace('.', '').replace(
+                        ',', '.') if isinstance(unit_prices[i], str) else unit_prices[i]
+                    total_price_str = total_prices[i].replace('.', '').replace(
+                        ',', '.') if isinstance(total_prices[i], str) else total_prices[i]
+
+                    unit_price = float(unit_price_str)
+                    total_price = float(total_price_str)
+
                     spare_ticket = Spares_tickets(
                         id_ticket=new_ticket.id_ticket,
                         spare_code=spare_code,
@@ -220,59 +232,64 @@ def create_ticketsRI():
                         unit_price=unit_price,
                         total_price=total_price
                     )
-                db.session.add(spare_ticket)
+                    # Corregir la indentación aquí
+                    db.session.add(spare_ticket)
 
-            new_ticket.spare_value = sum(float(price) for price in total_prices) if total_prices else 0
+            # Recalcular el valor total de repuestos y el total general
+            total_spare_value = sum(float(price.replace('.', '').replace(',', '.')) if isinstance(
+                price, str) else float(price) for price in total_prices) if total_prices else 0
+            new_ticket.spare_value = total_spare_value
             new_ticket.total = new_ticket.service_value + new_ticket.spare_value
-            
+
             # Confirmar todas las operaciones
             db.session.commit()
-            
+
             flash("Ticket de reparación interna creado correctamente", "success")
             # Redirigir a la página principal de reparaciones internas
             return redirect(url_for("internal_repair.internal_repair"))
-        
+
         except Exception as e:
             db.session.rollback()
             flash(f"Error al crear el ticket: {str(e)}", "danger")
             # Imprime el error en la consola para debug
             import traceback
             traceback.print_exc()
-    
+            return redirect(url_for("internal_repair.create_ticketsRI"))
+
     # Para el método GET, renderizamos el formulario de creación
     return render_template(
         "create_ticketsRI.html",
         current_date=current_date,
-            **common_data
-
+        **common_data
     )
-    
-    
-#------editar ticketRI
+
+
+# ------editar ticketRI
 @internal_repair_bp.route("/edit_tickets_RI/<int:ticket_id>", methods=["GET", "POST"])
 @login_required
 @role_required("Admin")
 def edit_tickets_RI(ticket_id):
-    spare_parts = get_spare_parts() 
+    spare_parts = get_spare_parts()
     """
     Ruta para editar tickets de reparación interna existentes.
     """
     # Obtener el ticket a editar
     ticket = Tickets.query.get_or_404(ticket_id)
-    
+
     # Verificar que el ticket no esté en estado "Terminado" o "Cancelado"
     if ticket.state in ["Terminado", "Cancelado"]:
-        flash(f"No se puede editar un ticket en estado '{ticket.state}'", "warning")
+        flash(
+            f"No se puede editar un ticket en estado '{ticket.state}'", "warning")
         return redirect(url_for("internal_repair.detail_RI", ticket_id=ticket_id))
-    
+
     selected_problem_ids = [problem.id for problem in ticket.problems]
     ticket_spares = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
-    
+
     # Verificar que sea un ticket de reparación interna
     if ticket.type_of_service != "1":
         flash("Este ticket no es de reparación interna", "danger")
         return redirect(url_for("internal_repair.internal_repair"))
-    
+
     # Obtener datos auxiliares para el formulario
     technicians = get_technicians()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -280,19 +297,23 @@ def edit_tickets_RI(ticket_id):
     product_code = get_product_information()
     sertec = get_sertec()
     problems_list = Problems.query.order_by(Problems.name).all()
-    
+
     if request.method == "POST":
         try:
             # Obtener datos del formulario
             city = request.form.get("city", ticket.city)
-            technical_name = request.form.get("technical_name", ticket.technical_name)
-            technical_document = request.form.get("documento", ticket.technical_document)
+            technical_name = request.form.get(
+                "technical_name", ticket.technical_name)
+            technical_document = request.form.get(
+                "documento", ticket.technical_document)
             state = request.form.get("state", ticket.state)
             priority = request.form.get("priority", ticket.priority)
-            reference_selected = request.form.get("reference", ticket.reference)
-            product_code_selected = request.form.get("product_code", ticket.product_code)
+            reference_selected = request.form.get(
+                "reference", ticket.reference)
+            product_code_selected = request.form.get(
+                "product_code", ticket.product_code)
             IMEI = request.form.get("IMEI", ticket.IMEI) or ""
-            
+
             # Validar IMEI
             if IMEI and not IMEI.isdigit():
                 flash("Error: El IMEI solo puede contener números.", "danger")
@@ -301,34 +322,39 @@ def edit_tickets_RI(ticket_id):
             if IMEI and len(IMEI) > 15:
                 flash("Error: El IMEI no puede tener más de 15 caracteres.", "danger")
                 return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
-            
+
             # Convertir valores numéricos
             try:
-                service_value = float(request.form.get("service_value", ticket.service_value))
-                spare_value = float(request.form.get("spare_value", ticket.spare_value))
+                service_value = float(request.form.get(
+                    "service_value", ticket.service_value))
+                spare_value = float(request.form.get(
+                    "spare_value", ticket.spare_value))
                 total = float(request.form.get("total", ticket.total))
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
                 return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
-            
+
             # Obtener problemas seleccionados
             selected_problem_ids = request.form.getlist("device_problems[]")
             if not selected_problem_ids:
                 # Si no se selecciona ningún problema, mantener los existentes
-                selected_problem_ids = [problem.id for problem in ticket.problems]
-                
+                selected_problem_ids = [
+                    problem.id for problem in ticket.problems]
+
             try:
-                selected_problem_ids = [int(pid) for pid in selected_problem_ids]
+                selected_problem_ids = [int(pid)
+                                        for pid in selected_problem_ids]
             except ValueError:
                 flash("Error: ID de problema inválido.", "danger")
                 return redirect(url_for("internal_repair.edit_tickets_RI", ticket_id=ticket_id))
-                
-            selected_problems = Problems.query.filter(Problems.id.in_(selected_problem_ids)).all()
-            
+
+            selected_problems = Problems.query.filter(
+                Problems.id.in_(selected_problem_ids)).all()
+
             if not selected_problems:
                 # Si no se encuentran problemas, usar los existentes
                 selected_problems = ticket.problems
-            
+
             # Actualizar el ticket
             ticket.state = state
             ticket.priority = priority
@@ -341,7 +367,7 @@ def edit_tickets_RI(ticket_id):
             ticket.spare_value = spare_value
             ticket.service_value = service_value
             ticket.total = total
-            
+
             # Actualizar fechas según el estado
             if state == "Asignado" and not ticket.assigned:
                 ticket.assigned = datetime.now()
@@ -351,12 +377,13 @@ def edit_tickets_RI(ticket_id):
                 ticket.in_progress = datetime.now()
             elif state == "Terminado" and not ticket.finished:
                 ticket.finished = datetime.now()
-            
+
             # Actualizar problemas asociados
             ticket.problems = selected_problems
 
             spare_parts = get_spare_parts()
-            current_spare_tickets = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
+            current_spare_tickets = Spares_tickets.query.filter_by(
+                id_ticket=ticket_id).all()
 
             for spare_ticket in current_spare_tickets:
                 for spare_part in spare_parts:
@@ -374,7 +401,8 @@ def edit_tickets_RI(ticket_id):
             # Si no se proporcionan repuestos, mantener los existentes
             if not spare_codes:
                 db.session.commit()
-                flash("Ticket de reparación interna actualizado correctamente", "success")
+                flash(
+                    "Ticket de reparación interna actualizado correctamente", "success")
                 return redirect(url_for("internal_repair.internal_repair"))
 
             # Eliminar repuestos existentes
@@ -382,36 +410,36 @@ def edit_tickets_RI(ticket_id):
 
             total_spare_value = 0
             for i in range(len(spare_codes)):
-                    if i < len(quantities) and i < len(unit_prices) and i < len(total_prices):
-                        spare_code = spare_codes[i]
-                        quantity = int(quantities[i])
-                        unit_price = float(unit_prices[i])
-                        total_price = float(total_prices[i])
-                        
-                        spare_ticket = Spares_tickets(
-                            id_ticket=ticket_id,
-                            spare_code=spare_code,
-                            quantity=quantity,
-                            unit_price=unit_price,
-                            total_price=total_price
-                        )
-                        db.session.add(spare_ticket)
-                        total_spare_value += total_price
+                if i < len(quantities) and i < len(unit_prices) and i < len(total_prices):
+                    spare_code = spare_codes[i]
+                    quantity = int(quantities[i])
+                    unit_price = float(unit_prices[i])
+                    total_price = float(total_prices[i])
+
+                    spare_ticket = Spares_tickets(
+                        id_ticket=ticket_id,
+                        spare_code=spare_code,
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        total_price=total_price
+                    )
+                    db.session.add(spare_ticket)
+                    total_spare_value += total_price
 
             ticket.spare_value = total_spare_value
             ticket.total = ticket.service_value + ticket.spare_value
-                    
+
             # Guardar cambios
             db.session.commit()
             flash("Ticket de reparación interna actualizado correctamente", "success")
             return redirect(url_for("internal_repair.internal_repair"))
-        
+
         except Exception as e:
             db.session.rollback()
             flash(f"Error al actualizar el ticket: {str(e)}", "danger")
             import traceback
             traceback.print_exc()
-    
+
     # Para el método GET, renderizamos el formulario de edición
     return render_template(
         "edit_tickets_RI.html",
@@ -426,7 +454,8 @@ def edit_tickets_RI(ticket_id):
         spare_parts=spare_parts,
         ticket_spares=ticket_spares
     )
-    
+
+
 @internal_repair_bp.route("/detail_RI/<int:ticket_id>", methods=["GET"], endpoint="detail_RI")
 @login_required
 @role_required("Admin")
@@ -436,26 +465,29 @@ def detalle_RI(ticket_id):
     """
     # Obtener el ticket específico
     ticket = Tickets.query.get_or_404(ticket_id)
-    
+
     # Verificar que sea un ticket de reparación interna
     if ticket.type_of_service != "1":
         flash("Este ticket no es de reparación interna", "danger")
         return redirect(url_for("internal_repair.internal_repair"))
-    
+
     # Obtener problemas asociados
     problemas_ticket = ticket.problems
-    
+
     # Obtener repuestos asociados directamente de Spares_tickets
-    repuestos_ticket = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
-    
+    repuestos_ticket = Spares_tickets.query.filter_by(
+        id_ticket=ticket_id).all()
+
     return render_template(
-        "detail_RI.html", 
-        ticket=ticket, 
+        "detail_RI.html",
+        ticket=ticket,
         problemas_ticket=problemas_ticket,
         repuestos_ticket=repuestos_ticket
     )
-    
+
 # Ruta para actualizar el estado vía AJAX
+
+
 @internal_repair_bp.route("/update_ticket_status_ajax", methods=["POST"])
 @login_required
 @role_required("Admin")
@@ -466,16 +498,17 @@ def update_ticket_status_ajax():
         ticket_id = request.form.get('ticket_id')
         # Aceptar tanto 'state' como 'status' para compatibilidad con todos los módulos
         new_status = request.form.get('state') or request.form.get('status')
-        
+
         if not ticket_id or not new_status:
             return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
-            
+
         ticket = Tickets.query.get_or_404(ticket_id)
-        
+
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
-        print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
-        
+        print(
+            f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
+
         # Definir el orden de los estados (de menor a mayor progreso)
         state_order = {
             "Sin asignar": 1,
@@ -485,17 +518,17 @@ def update_ticket_status_ajax():
             "Terminado": 5,
             "Cancelado": 5  # Mismo nivel que Terminado
         }
-        
+
         # Validar que no sea un retroceso de estado
         if state_order.get(new_status, 0) < state_order.get(previous_status, 0):
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': f'No se permite cambiar el estado de "{previous_status}" a "{new_status}". No se permite retroceder en el flujo de estados.'
             }), 400
-        
+
         # Actualizar estado y obtener timestamp usando el método del modelo
         timestamp = ticket.update_state(new_status)
-        
+
         # Marcar explícitamente el campo modificado según el estado
         from sqlalchemy.orm.attributes import flag_modified
         if new_status == "Asignado":
@@ -504,35 +537,39 @@ def update_ticket_status_ajax():
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":
             flag_modified(ticket, "in_revision")
-            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+            print(
+                f"Flagged in_revision as modified. Value: {ticket.in_revision}")
         elif new_status == "Terminado":
             flag_modified(ticket, "finished")
         elif new_status == "Recibido":
             flag_modified(ticket, "received")
-        
+
         # Guardar cambios en la base de datos
         db.session.commit()
-        
+
         # Verificar después del commit (para depuración)
         if new_status == "En Revision":
             ticket_verificado = Tickets.query.get(ticket_id)
-            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
-        
+            print(
+                f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
+
         # Formatear la hora para mostrarla en la UI
         formatted_time = timestamp.strftime("%d/%m/%Y %H:%M:%S")
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
             'status': new_status,
             'timestamp': formatted_time
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
-    
-# Ruta para la vista del tecnico 
+
+# Ruta para la vista del tecnico
+
+
 @internal_repair_bp.route("/technicianRI_view", methods=["GET"], endpoint="technicianRI_view")
 @login_required
 @role_required("Admin")
@@ -541,16 +578,19 @@ def technician_view():
     Ruta para que los técnicos vean sus tickets asignados.
     """
     # Obtener el nombre del técnico actual (del usuario logueado)
-    #current_user_name = current_user.name  # Ajusta esto según tu modelo de usuario
-    
+    # current_user_name = current_user.name  # Ajusta esto según tu modelo de usuario
+
     # Obtener todos los tickets asignados al técnico actual
-    assigned_tickets = Tickets.query.filter_by(type_of_service="1").order_by(Tickets.creation_date.asc()).all()
-    
+    assigned_tickets = Tickets.query.filter_by(
+        type_of_service="1").order_by(Tickets.creation_date.asc()).all()
+
     return render_template(
         "view_technicalRI.html",
         assigned_tickets=assigned_tickets,
         is_technician_view=True  # Añadimos esta variable para controlar la vista
     )
+
+
 @internal_repair_bp.route("/update_ticket_progress", methods=["POST"])
 @login_required
 @role_required("Admin")
@@ -560,22 +600,22 @@ def update_ticket_progress():
         ticket_id = request.json.get('ticket_id')
         new_status = request.json.get('status')
         notes = request.json.get('notes', '')  # Opcional: notas de progreso
-        
+
         if not ticket_id or not new_status:
             return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
-            
+
         ticket = Tickets.query.get_or_404(ticket_id)
-        
+
         # Verificar que sea un ticket de reparación interna
         if ticket.type_of_service != "1":
             return jsonify({'success': False, 'message': 'Este ticket no es de reparación interna'}), 400
-        
+
         # Guardar el estado anterior para el mensaje
         previous_status = ticket.state
-        
+
         # Actualizar estado y obtener timestamp usando el método del modelo
         timestamp = ticket.update_state(new_status)
-        
+
         # Marcar explícitamente el campo modificado según el estado
         from sqlalchemy.orm.attributes import flag_modified
         if new_status == "Asignado":
@@ -584,99 +624,124 @@ def update_ticket_progress():
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":
             flag_modified(ticket, "in_revision")
-            print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
+            print(
+                f"Flagged in_revision as modified. Value: {ticket.in_revision}")
         elif new_status == "Terminado":
             flag_modified(ticket, "finished")
         elif new_status == "Recibido":
             flag_modified(ticket, "received")
-        
+
         # Aquí podrías guardar las notas en una tabla de historial si lo necesitas
-        
+
         # Guardar cambios en la base de datos
         db.session.commit()
-        
+
         # Verificar después del commit (para depuración)
         if new_status == "En Revision":
             ticket_verificado = Tickets.query.get(ticket_id)
-            print(f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
-        
+            print(
+                f"Timestamp in_revision después del commit: {ticket_verificado.in_revision}")
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'Estado actualizado de "{previous_status}" a "{new_status}"',
             'ticket_id': ticket_id,
             'new_status': new_status
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
 
-# Ruta para buscar repuestos dinámicamente
+
+@internal_repair_bp.route("/search_products", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_products():
+    """
+    Ruta para buscar productos basados en un término de búsqueda.
+    Similar a la búsqueda de repuestos pero para productos.
+    """
+    search_term = request.form.get('search', '')
+
+    if not search_term or len(search_term) < 3:
+        return jsonify({'products': []})
+
+    # Obtener todos los productos
+    all_products = get_product_information()
+
+    # Filtrar productos basados en el término de búsqueda
+    filtered_products = []
+    search_term = search_term.lower()
+
+    for product in all_products:
+        code = product['CODIGO'].lower()
+        description = product['DESCRIPCIO'].lower()
+
+        if search_term in code or search_term in description:
+            filtered_products.append(product)
+
+    # Ordenar resultados para que los más relevantes aparezcan primero
+    # (los que comienzan con el término de búsqueda)
+    def sort_key(product):
+        code = product['CODIGO'].lower()
+        description = product['DESCRIPCIO'].lower()
+
+        if code.startswith(search_term):
+            return 0
+        elif description.startswith(search_term):
+            return 1
+        else:
+            return 2
+
+    filtered_products.sort(key=sort_key)
+
+    return jsonify({'products': filtered_products})
+
+
 @internal_repair_bp.route("/search_spare_parts", methods=["POST"])
 @login_required
 @role_required("Admin")
 def search_spare_parts():
     """
-    Busca repuestos según un término de búsqueda,
-    retornando sólo los resultados coincidentes, no todos los repuestos.
+    Ruta para buscar repuestos basados en un término de búsqueda.
     """
-    search_term = request.form.get("search", "").strip().lower()
-    
+    search_term = request.form.get('search', '')
+
     if not search_term or len(search_term) < 3:
-        return jsonify({
-            "success": False,
-            "message": "Ingrese al menos 3 caracteres para buscar"
-        }), 400
-    
-    try:
-        # Obtener los repuestos directamente de la fuente (base de datos)
-        query = f'''
-        SELECT CODIGO, DESCRIPCIO
-        FROM MTMERCIA
-        WHERE CODLINEA = 'ST' AND 
-        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
-        ORDER BY 
-            CASE 
-                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
-                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
-                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
-                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
-                ELSE 5
-            END
-        '''
-        
-        # Ejecutar la consulta
-        results = execute_query(query)
-        
-        # Procesar resultados
-        spare_parts = []
-        for row in results:
-            if len(spare_parts) >= 30:  # Limitar a 30 resultados
-                break
-                
-            spare_parts.append({
-                "code": row[0].strip() if row[0] else "",
-                "description": row[1].strip() if row[1] else ""
-            })
-        
-        # Verificar si hay resultados
-        if not spare_parts:
-            return jsonify({
-                "success": True,
-                "parts": [],
-                "count": 0,
-                "message": "No se encontraron repuestos con ese criterio"
-            })
-            
-        return jsonify({
-            "success": True,
-            "parts": spare_parts,
-            "count": len(spare_parts)
-        })
-    
-    except Exception as e:
-        print(f"Error al buscar repuestos: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": f"Error al buscar repuestos: {str(e)}"
-        }), 500
+        return jsonify({'parts': []})
+
+    # Obtener todos los repuestos
+    all_spare_parts = get_spare_parts()
+
+    # Filtrar repuestos basados en el término de búsqueda
+    filtered_parts = []
+    search_term = search_term.lower()
+
+    for part in all_spare_parts:
+        code = part['code'].lower()
+        description = part['description'].lower()
+
+        if search_term in code or search_term in description:
+            filtered_parts.append(part)
+
+    # Ordenar resultados para que los más relevantes aparezcan primero
+    # (los que comienzan con el término de búsqueda)
+    def sort_key(part):
+        code = part['code'].lower()
+        description = part['description'].lower()
+
+        if code.startswith(search_term):
+            return 0
+        elif description.startswith(search_term):
+            return 1
+        else:
+            return 2
+
+    filtered_parts.sort(key=sort_key)
+
+    # Limitar a 50 resultados para evitar sobrecarga
+    filtered_parts = filtered_parts[:50]
+
+    return jsonify({'parts': filtered_parts})
+

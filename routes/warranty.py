@@ -93,11 +93,16 @@ def create_warranty():
         # Valores financieros
         try:
             # Limpiar separadores de miles (puntos) antes de convertir a float
-            service_value_str = request.form.get("service_value", "0").replace(".", "")
-            spare_value_str = request.form.get("spare_value", "0").replace(".", "")
+            service_value_str = request.form.get("service_value_raw", request.form.get("service_value", "0"))
+            spare_value_str = request.form.get("spare_value_raw", request.form.get("spare_value", "0"))
             
-            service_value = float(service_value_str or 0)
-            spare_value = float(spare_value_str or 0)
+            # Limpiar posibles separadores
+            service_value_str = str(service_value_str).replace(".", "").replace(",", ".")
+            spare_value_str = str(spare_value_str).replace(".", "").replace(",", ".")
+            
+            # Convertir a Decimal para mayor precisión
+            service_value = Decimal(service_value_str or "0")
+            spare_value = Decimal(spare_value_str or "0")
             total = service_value + spare_value
         except ValueError:
             flash(
@@ -224,8 +229,9 @@ def create_warranty():
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")
         total_prices = request.form.getlist("part_total_value[]")
-
-        total_spare_value = 0  # Valor por defecto si no hay repuestos
+        
+        # Usar Decimal para evitar errores de tipos
+        total_spare_value = Decimal("0")  # Valor por defecto si no hay repuestos
 
         # Solo procesar repuestos si hay códigos de repuestos enviados
         if spare_codes and any(code.strip() for code in spare_codes):
@@ -236,18 +242,34 @@ def create_warranty():
                         quantity = int(quantities[i]) if i < len(quantities) and quantities[i] else 1
                         if quantity <= 0:
                             quantity = 1  # Valor por defecto si es negativo o cero
-                            
-                        # Limpiar separadores de miles del valor unitario
-                        unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
-                        unit_price_val = float(unit_price_str or 0)
-                        if unit_price_val < 0:
-                            unit_price_val = 0  # No permitir valores negativos
                         
-                        # Limpiar separadores de miles del valor total
-                        total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
-                        total_price_val = float(total_price_str or 0)
+                        # Obtener valores sin formato de los campos ocultos si existen
+                        unit_price_raw = request.form.getlist("part_unit_value_raw[]")
+                        total_price_raw = request.form.getlist("part_total_value_raw[]")
+                        
+                        if i < len(unit_price_raw) and unit_price_raw[i]:
+                            # Usar el valor sin formato si está disponible
+                            unit_price_val = Decimal(str(unit_price_raw[i] or "0"))
+                        else:
+                            # Limpiar separadores de miles del valor unitario como respaldo
+                            unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
+                            unit_price_str = unit_price_str.replace(",", ".")
+                            unit_price_val = Decimal(unit_price_str or "0")
+                        
+                        if unit_price_val < 0:
+                            unit_price_val = Decimal("0")  # No permitir valores negativos
+                        
+                        if i < len(total_price_raw) and total_price_raw[i]:
+                            # Usar el valor sin formato si está disponible
+                            total_price_val = Decimal(str(total_price_raw[i] or "0"))
+                        else:
+                            # Limpiar separadores de miles del valor total como respaldo
+                            total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
+                            total_price_str = total_price_str.replace(",", ".")
+                            total_price_val = Decimal(total_price_str or "0")
+                        
                         if not total_price_val:
-                            total_price_val = quantity * unit_price_val
+                            total_price_val = Decimal(str(quantity)) * unit_price_val
 
                         spare_ticket = Spares_tickets(
                             id_ticket=new_ticket.id_ticket,
@@ -261,13 +283,14 @@ def create_warranty():
                         # Sumar al total de repuestos
                         total_spare_value += total_price_val
                         
-                    except (ValueError, IndexError):
+                    except (ValueError, IndexError) as e:
                         # En lugar de mostrar error, simplemente continuar con el siguiente repuesto
+                        print(f"Error procesando repuesto {i}: {e}")
                         continue
 
         # Actualizar totales
         new_ticket.spare_value = total_spare_value
-        new_ticket.total = new_ticket.service_value + Decimal(str(total_spare_value))
+        new_ticket.total = new_ticket.service_value + total_spare_value
         db.session.commit()
 
         flash("Ticket creado correctamente", "success")
@@ -376,12 +399,20 @@ def edit_warranty(ticket_id):
 
         try:
             # Limpiar separadores de miles (puntos) antes de convertir a float
-            service_value_str = request.form.get("service_value", "0").replace(".", "")
-            spare_value_str = request.form.get("spare_value", "0").replace(".", "")
+            service_value_str = request.form.get("service_value_raw", request.form.get("service_value", "0"))
+            spare_value_str = request.form.get("spare_value_raw", request.form.get("spare_value", "0"))
             
-            ticket.service_value = float(service_value_str or 0)
-            ticket.spare_value = float(spare_value_str or 0)
-            ticket.total = ticket.service_value + ticket.spare_value
+            # Limpiar posibles separadores
+            service_value_str = str(service_value_str).replace(".", "").replace(",", ".")
+            spare_value_str = str(spare_value_str).replace(".", "").replace(",", ".")
+            
+            # Convertir a Decimal para mayor precisión
+            service_value = Decimal(service_value_str or "0")
+            spare_value = Decimal(spare_value_str or "0")
+            
+            ticket.service_value = service_value
+            ticket.spare_value = spare_value
+            ticket.total = service_value + spare_value
         except ValueError:
             flash(
                 "Error: Los valores de la garantía y repuestos deben ser numéricos.", "danger")
@@ -406,8 +437,9 @@ def edit_warranty(ticket_id):
         quantities = request.form.getlist("part_quantity[]")
         unit_prices = request.form.getlist("part_unit_value[]")
         total_prices = request.form.getlist("part_total_value[]")
-
-        total_spare_value = 0  # Valor por defecto si no hay repuestos
+        
+        # Usar Decimal para evitar errores de tipos
+        total_spare_value = Decimal("0")  # Valor por defecto si no hay repuestos
 
         # Solo procesar repuestos si hay códigos de repuestos enviados
         if spare_codes and any(code.strip() for code in spare_codes):
@@ -419,17 +451,33 @@ def edit_warranty(ticket_id):
                         if quantity <= 0:
                             quantity = 1  # Valor por defecto si es negativo o cero
                         
-                        # Limpiar separadores de miles del valor unitario
-                        unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
-                        unit_price_val = float(unit_price_str or 0)
-                        if unit_price_val < 0:
-                            unit_price_val = 0  # No permitir valores negativos
+                        # Obtener valores sin formato de los campos ocultos si existen
+                        unit_price_raw = request.form.getlist("part_unit_value_raw[]")
+                        total_price_raw = request.form.getlist("part_total_value_raw[]")
                         
-                        # Limpiar separadores de miles del valor total
-                        total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
-                        total_price_val = float(total_price_str or 0)
+                        if i < len(unit_price_raw) and unit_price_raw[i]:
+                            # Usar el valor sin formato si está disponible
+                            unit_price_val = Decimal(str(unit_price_raw[i] or "0"))
+                        else:
+                            # Limpiar separadores de miles del valor unitario como respaldo
+                            unit_price_str = unit_prices[i].replace(".", "") if i < len(unit_prices) and unit_prices[i] else "0"
+                            unit_price_str = unit_price_str.replace(",", ".")
+                            unit_price_val = Decimal(unit_price_str or "0")
+                        
+                        if unit_price_val < 0:
+                            unit_price_val = Decimal("0")  # No permitir valores negativos
+                        
+                        if i < len(total_price_raw) and total_price_raw[i]:
+                            # Usar el valor sin formato si está disponible
+                            total_price_val = Decimal(str(total_price_raw[i] or "0"))
+                        else:
+                            # Limpiar separadores de miles del valor total como respaldo
+                            total_price_str = total_prices[i].replace(".", "") if i < len(total_prices) and total_prices[i] else "0"
+                            total_price_str = total_price_str.replace(",", ".")
+                            total_price_val = Decimal(total_price_str or "0")
+                        
                         if not total_price_val:
-                            total_price_val = quantity * unit_price_val
+                            total_price_val = Decimal(str(quantity)) * unit_price_val
 
                         spare_ticket = Spares_tickets(
                             id_ticket=ticket.id_ticket,
@@ -443,13 +491,14 @@ def edit_warranty(ticket_id):
                         # Sumar al total de repuestos
                         total_spare_value += total_price_val
                         
-                    except (ValueError, IndexError):
+                    except (ValueError, IndexError) as e:
                         # En lugar de mostrar error, simplemente continuar con el siguiente repuesto
+                        print(f"Error procesando repuesto {i}: {e}")
                         continue
 
         # Actualizar totales
         ticket.spare_value = total_spare_value
-        ticket.total = ticket.service_value + Decimal(str(total_spare_value))
+        ticket.total = ticket.service_value + total_spare_value
         db.session.commit()
 
         # Procesar imágenes a eliminar
@@ -656,7 +705,7 @@ def search_client():
         return jsonify({"success": False, "message": f"Error al buscar cliente: {str(e)}"}), 500
 
 # Ruta para buscar repuestos dinámicamente
-@warranty_bp.route("/search_spare_parts", methods=["POST"])
+@warranty_bp.route("/api/search_spare_parts", methods=["GET", "POST"])
 @login_required
 @role_required("Admin")
 def search_spare_parts():
@@ -664,7 +713,11 @@ def search_spare_parts():
     Busca repuestos según un término de búsqueda,
     retornando sólo los resultados coincidentes, no todos los repuestos.
     """
-    search_term = request.form.get("search", "").strip().lower()
+    # Obtener término de búsqueda según método de la solicitud
+    if request.method == "POST":
+        search_term = request.form.get("search", "").strip().lower()
+    else:  # GET
+        search_term = request.args.get("term", "").strip().lower()
     
     if not search_term or len(search_term) < 3:
         return jsonify({
@@ -677,7 +730,7 @@ def search_spare_parts():
         # Esta función ahora solo traerá los resultados que coincidan con la búsqueda
         # en lugar de traer todos los repuestos y filtrarlos después
         query = f'''
-        SELECT CODIGO, DESCRIPCIO
+        SELECT CODIGO, DESCRIPCIO, P_DESVENTA, EXISTENCIA
         FROM MTMERCIA
         WHERE CODLINEA = 'ST' AND 
         (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
@@ -700,12 +753,86 @@ def search_spare_parts():
             if len(spare_parts) >= 30:  # Limitar a 30 resultados
                 break
                 
+            # Convertir a Decimal para precisión
+            price = Decimal(str(row[2])) if row[2] is not None else Decimal('0')
+            stock = Decimal(str(row[3])) if row[3] is not None else Decimal('0')
+            
+            spare_parts.append({
+                "code": row[0].strip() if row[0] else "",
+                "description": row[1].strip() if row[1] else "",
+                "price": float(price),  # Convertir a float para JSON
+                "stock": int(stock)     # Convertir a int para JSON
+            })
+        
+        # Verificar si hay resultados
+        if not spare_parts:
+            return jsonify({
+                "success": True,
+                "parts": [],
+                "count": 0,
+                "message": "No se encontraron repuestos con ese criterio"
+            })
+            
+        return jsonify({
+            "success": True,
+            "parts": spare_parts,
+            "count": len(spare_parts)
+        })
+    
+    except Exception as e:
+        print(f"Error al buscar repuestos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error al buscar repuestos: {str(e)}"
+        }), 500
+
+# Ruta original para búsqueda de repuestos (para compatibilidad)
+@warranty_bp.route("/search_spare_parts", methods=["POST"])
+@login_required
+@role_required("Admin")
+def search_spare_parts_original():
+    """
+    Ruta original para búsqueda de repuestos.
+    Mantiene compatibilidad con código antiguo.
+    """
+    # Redirigir a la nueva implementación
+    search_term = request.form.get("search", "").strip().lower()
+    
+    if not search_term or len(search_term) < 3:
+        return jsonify({
+            "success": False,
+            "message": "Ingrese al menos 3 caracteres para buscar"
+        }), 400
+    
+    try:
+        # Usar la misma lógica que en la nueva implementación
+        query = f'''
+        SELECT CODIGO, DESCRIPCIO
+        FROM MTMERCIA
+        WHERE CODLINEA = 'ST' AND 
+        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
+        ORDER BY 
+            CASE 
+                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
+                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
+                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
+                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
+                ELSE 5
+            END
+        '''
+        
+        results = execute_query(query)
+        
+        spare_parts = []
+        for row in results:
+            if len(spare_parts) >= 30:
+                break
+                
             spare_parts.append({
                 "code": row[0].strip() if row[0] else "",
                 "description": row[1].strip() if row[1] else ""
             })
         
-        # Verificar si hay resultados
         if not spare_parts:
             return jsonify({
                 "success": True,

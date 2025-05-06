@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% block title %}Detalle de Garantía #{{ ticket.id_ticket }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* Estilos para la página de detalles de garantía */
+    .form-control-plaintext {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .date-card .card {
+        transition: transform 0.2s ease;
+        min-width: 120px;
+    }
+
+    .date-card .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .list-group-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+    <!-- Cabecera -->
+    <div class="row align-items-center mb-2">
+        <div class="col-md-6">
+            <h2 class="mb-0">
+                <i class="fas fa-shield-alt text-primary me-2"></i>Detalle de Garantía #{{ ticket.id_ticket }}
+            </h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Volver
+            </a>
+            <a href="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-2 text-white"></i> Editar Garantía
+            </a>
+        </div>
+    </div>
+
+    <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
+    <div class="row mb-2">
+        <!-- Información del Cliente -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-2 h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Nombres:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ client.name }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Apellidos:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ client.lastname }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Documento:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ client.document }}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Teléfono:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ client.phone }}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Correo electrónico:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ client.mail }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Detalles del Ticket -->
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-2 h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles de la Garantía</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Técnico:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ ticket.technical_name or 'Sin asignar' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Documento:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ ticket.technical_document or 'N/A' }}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Estado:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">
+                                <span
+                                    class="badge {% if ticket.state == 'Terminado' %}bg-success{% elif ticket.state == 'En proceso' %}bg-warning text-dark{% elif ticket.state == 'Asignado' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ ticket.state }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Ciudad:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">{{ ticket.city }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label fw-bold">Prioridad:</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">
+                                <span
+                                    class="badge {% if ticket.priority == 'Alta' %}bg-danger{% elif ticket.priority == 'Media' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                    {{ ticket.priority }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 2: Fechas y Tiempos -->
+    <div class="row mb-2">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2 text-primary"></i>Fechas y Tiempos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between">
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Creación</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.creation_date.strftime('%d/%m/%Y') if ticket.creation_date else 'N/A'
+                                        }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.creation_date.strftime('%H:%M:%S') if ticket.creation_date else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Asignado</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.assigned.strftime('%d/%m/%Y') if ticket.assigned else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.assigned.strftime('%H:%M:%S') if ticket.assigned else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">En Proceso</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.in_progress.strftime('%d/%m/%Y') if ticket.in_progress else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.in_progress.strftime('%H:%M:%S') if ticket.in_progress else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">En Revision</h6>
+                                    <p class="mb-0 fw-bold in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%d/%m/%Y') if ticket.in_revision else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted in_revision-timestamp">
+                                        {{ ticket.in_revision.strftime('%H:%M:%S') if ticket.in_revision else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="date-card mb-3">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body text-center p-2">
+                                    <h6 class="text-muted mb-1">Terminado</h6>
+                                    <p class="mb-0 fw-bold">
+                                        {{ ticket.finished.strftime('%d/%m/%Y') if ticket.finished else 'N/A' }}
+                                    </p>
+                                    <small class="text-muted">
+                                        {{ ticket.finished.strftime('%H:%M:%S') if ticket.finished else '' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /.d-flex -->
+                </div><!-- /.card-body -->
+            </div><!-- /.card -->
+        </div><!-- /.col-md-12 -->
+    </div><!-- /.row -->
+
+    <!-- Fila 3: Información de Factura -->
+    <div class="row mb-2">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Información de Factura</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-bold">Código Producto:</label>
+                            <p>{{ ticket.product_code or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-bold">Serie/IMEI:</label>
+                            <p>{{ ticket.IMEI or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <label class="form-label fw-bold">Número de Factura:</label>
+                            <p>{{ ticket.invoice_number or 'N/A' }}</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Referencia:</label>
+                            <p>{{ ticket.reference or 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 4: Repuestos Utilizados -->
+    <div class="row mb-2">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 45%;">Descripción</th>
+                                    <th class="text-center" style="width: 10%;">Cantidad</th>
+                                    <th class="text-end" style="width: 20%;">Valor Unitario</th>
+                                    <th class="text-end" style="width: 20%;">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set spare_tickets = ticket.get_spare_parts() %}
+                                {% if spare_tickets %}
+                                {% for spare in spare_tickets %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        {% if spare_parts is defined and spare_parts %}
+                                        {% set found = false %}
+                                        {% for part in spare_parts %}
+                                        {% if part.code == spare.spare_code %}
+                                        {% set found = true %}
+                                        <span class="fw-bold">{{ part.code }}</span> - {{ part.description }}
+                                        {% endif %}
+                                        {% endfor %}
+                                        {% if not found %}
+                                        <span class="fw-bold">{{ spare.spare_code }}</span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="fw-bold">{{ spare.spare_code }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ spare.quantity }}</td>
+                                    <td class="text-end">${{ "{:,.0f}".format(spare.unit_price).replace(',', '.') }}
+                                    </td>
+                                    <td class="text-end">${{ "{:,.0f}".format(spare.total_price).replace(',', '.') }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">No se han agregado repuestos para esta
+                                        garantía.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="4" class="text-end fw-bold">Total Repuestos:</td>
+                                    <td class="text-end fw-bold">${{ "{:,.0f}".format(ticket.spare_value).replace(',',
+                                        '.') }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Comentarios -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment text-primary me-2"></i>Comentarios
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if ticket.comment %}
+                    <div class="comment-container p-3 bg-light rounded">
+                        <p class="mb-0">{{ ticket.comment }}</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-comment-slash fa-2x mb-3"></i>
+                        <p>No hay comentarios para esta garantía.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Fila 5: Problemas del Dispositivo y Valores -->
+    <div class="row mb-2">
+        <!-- Problemas del Dispositivo y Comentarios -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Problemas -->
+                    <div class="mb-4">
+                        <h6 class="mb-3 border-bottom pb-2">Listado de Problemas</h6>
+                        {% if ticket.problems %}
+                        <ul class="list-group">
+                            {% for problem in ticket.problems %}
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                                {{ problem.name }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No se han registrado problemas para este dispositivo.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Valores -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Valores</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Valores Financieros -->
+                    <div class="mb-3 row">
+                        <label class="col-sm-6 col-form-label fw-bold">Valor del Servicio:</label>
+                        <div class="col-sm-6">
+                            <p class="form-control-plaintext text-end">${{
+                                "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-6 col-form-label fw-bold">Valor de Repuestos:</label>
+                        <div class="col-sm-6">
+                            <p class="form-control-plaintext text-end">${{
+                                "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row bg-light py-2 rounded">
+                        <label class="col-sm-6 col-form-label fw-bold">TOTAL:</label>
+                        <div class="col-sm-6">
+                            <p class="form-control-plaintext fw-bold fs-5 text-end">${{
+                                "{:,.0f}".format(ticket.total).replace(',', '.') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="d-flex justify-content-between my-2">
+        <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+        <div>
+            <a href="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-2 text-white"></i>Editar Garantía
+            </a>
+            <!-- Botón para enviar correo -->
+            {% if ticket.state == "Terminado" and client.mail %}
+            <button type="button" class="btn btn-info ms-2" id="sendEmailBtn">
+                <i class="fas fa-envelope me-2"></i>Enviar Correo
+            </button>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Modal de confirmación para enviar correo -->
+    <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendEmailModalLabel">Confirmar envío de correo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que deseas enviar un correo de notificación al cliente?</p>
+                    <p><strong>Destinatario:</strong> {{ client.mail }}</p>
+
+                    <!-- Indicador de carga (oculto por defecto) -->
+                    <div id="emailLoadingIndicator" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Enviando correo...</span>
+                        </div>
+                        <p class="mt-2">Enviando correo, por favor espere...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1 text-white"></i>Cancelar
+                    </button>
+                    <form id="sendEmailForm"
+                        action="{{ url_for('warranty.send_email_notification', ticket_id=ticket.id_ticket) }}"
+                        method="post">
+                        <button type="submit" id="sendEmailButton" class="btn btn-primary">Enviar Correo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificaciones -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="emailToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header" id="emailToastHeader">
+                <strong class="me-auto" id="emailToastTitle">Notificación</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="emailToastMessage">
+                <!-- El mensaje se insertará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor para mensajes flash (invisible) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message d-none" data-message="{{ message }}" data-category="{{ category }}"></div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/view_detail_warranty.js') }}"></script>
+
+    {% endblock %}
