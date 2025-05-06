@@ -1,4 +1,4 @@
- // El archivo toast-notifications.js ahora maneja todas las notificaciones
+// El archivo toast-notifications.js ahora maneja todas las notificaciones
 
 $(document).ready(function () {
     // Inicializar tooltips
@@ -687,23 +687,63 @@ function addNewPartRow() {
     }
 
     // Crear una nueva fila a partir de la plantilla
-    const newRow = document.importNode(template.content, true);
-
-    // Agregar la nueva fila a la tabla
-    $('#partsTable tbody').append(newRow);
-
-    // Configurar eventos para la nueva fila (ahora usando la fila recién agregada)
-    const $lastRow = $('#partsTable tbody tr.part-row').last();
-
-    // Inicializar los campos formateados
-    $lastRow.find('.formatted-number').each(function () {
-        formatCurrency($(this));
+    const content = template.content.cloneNode(true);
+    const newRow = content.querySelector('tr');
+    
+    // Agregar la fila a la tabla
+    const tbody = document.querySelector('#partsTable tbody');
+    if (tbody) {
+        tbody.appendChild(newRow);
+    }
+    
+    // Configurar la nueva fila con jQuery
+    const $newRow = $(newRow);
+    
+    // Si estamos en la página de edición y existe la función de configuración específica, usarla
+    if (typeof window.setupNewSpareRow === 'function') {
+        window.setupNewSpareRow(newRow);
+    } else {
+        // Configuración estándar para la página de creación
+        $newRow.find('.part-unit-value').val('0');
+        $newRow.find('.part-total-value').val('0');
+        
+        // Configurar eventos para actualizar el total de la fila
+        $newRow.find('.part-quantity, .part-unit-value').on('input change', function() {
+            updateRowTotal($newRow);
+        });
+        
+        // Configurar evento para eliminar la fila
+        $newRow.find('.remove-part').on('click', function() {
+            $newRow.remove();
+            updateRowIndices();
+            updatePartsTotals();
+            
+            // Mostrar la fila "no hay repuestos" si no hay más filas
+            if ($('#partsTable tbody tr.part-row').length === 0) {
+                $('#noPartsRow').show();
+            }
+        });
+        
+        // Configurar el select de repuestos si existe
+        const $select = $newRow.find('select[name="spare_part_code[]"]');
+        if ($select.length) {
+            $select.on('change', function() {
+                // Actualizar datos del repuesto seleccionado si es necesario
+                updateRowTotal($newRow);
+            });
+        }
+    }
+    
+    // Actualizar índices de las filas
+    updateRowIndices();
+    
+    // Configurar botón de búsqueda de repuestos
+    $newRow.find('.select-part').on('click', function() {
+        currentEditingRow = $newRow;
+        $('#searchPartsModal').modal('show');
     });
-
-    // Actualizar totales
-    updateRowTotal($lastRow);
-
-    return $lastRow;
+    
+    return $newRow;
 }
 
 
@@ -851,7 +891,7 @@ function searchParts(searchTerm) {
                                         <div>
                                             <h6 class="mb-1">${part.code} - ${part.description}</h6>
                                         </div>
-                                        <button class="btn btn-sm btn-primary select-result">
+                                        <button type="button" class="btn btn-sm btn-primary select-result">
                                             <i class="fas fa-check me-1"></i>Seleccionar
                                         </button>
                                     </div>

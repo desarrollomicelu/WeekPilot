@@ -183,14 +183,14 @@
                     <div class="input-group">
                       <span class="input-group-text">$</span>
                       <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]"
-                        value="{{ '%d'|format(spare_ticket.unit_price|int) }}" required>
+                        value="{{ '{:,.0f}'.format(spare_ticket.unit_price|int).replace(',', '.') }}" required>
                     </div>
                   </td>
                   <td>
                     <div class="input-group">
                       <span class="input-group-text">$</span>
                       <input type="text" class="form-control text-end part-total-value" name="part_total_value[]"
-                        value="{{ '%d'|format(spare_ticket.total_price|int) }}" readonly>
+                        value="{{ '{:,.0f}'.format(spare_ticket.total_price|int).replace(',', '.') }}" readonly>
                     </div>
                   </td>
 
@@ -261,7 +261,7 @@
               <div class="input-group">
                 <span class="input-group-text">$</span>
                 <input type="text" class="form-control" id="service_value" name="service_value" 
-                       value="{{ ticket.service_value|int }}" min="0" required>
+                       value="{{ '{:,.0f}'.format(ticket.service_value|int).replace(',', '.') }}" min="0" required>
               </div>
             </div>
           </div>
@@ -271,7 +271,7 @@
               <div class="input-group">
                 <span class="input-group-text">$</span>
                 <input type="text" class="form-control" id="spare_value" name="spare_value" 
-                       value="{{ '%d'|format(ticket.spare_value|int) }}" min="0" readonly>
+                       value="{{ '{:,.0f}'.format(ticket.spare_value|int).replace(',', '.') }}" min="0" readonly>
               </div>
             </div>
           </div>
@@ -281,7 +281,7 @@
               <div class="input-group">
                 <span class="input-group-text">$</span>
                 <input type="text" class="form-control fw-bold" id="total" name="total" 
-                       value="{{ '%d'|format(ticket.total|int) }}" readonly>
+                       value="{{ '{:,.0f}'.format(ticket.total|int).replace(',', '.') }}" readonly>
               </div>
             </div>
           </div>
@@ -290,6 +290,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Tarjeta con formulario para comentarios -->
+  <div class="card shadow-sm border-0 mb-2">
+    <div class="card-header bg-light">
+      <h5 class="mb-0"><i class="fas fa-comment text-primary me-1"></i>Agregar Comentario</h5>
+    </div>
+    <div class="card-body">
+      <label for="comment" class="form-label">Observaciones, diagnóstico o comentarios sobre el servicio</label>
+      <textarea id="comment" name="comment" class="form-control" rows="3" placeholder="Escribe aquí tus observaciones, diagnóstico o comentarios sobre el servicio..." aria-describedby="commentHelp">{{ ticket.comment if ticket.comment != None else '' }}</textarea>
+      <div id="commentHelp" class="form-text text-muted">
+        Puede incluir detalles adicionales o información relevante para el ticket.
+      </div>
+    </div>
   </div>
 
   <!-- Fila 5: Botones de acción -->
@@ -327,10 +340,10 @@
         <input type="text" class="form-control text-end part-unit-value" name="part_unit_value[]" value="0" required>
       </div>
     </td>
-    <td style="width: 40%;">
+    <td>
       <div class="input-group">
         <span class="input-group-text">$</span>
-        <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" readonly>
+        <input type="text" class="form-control text-end part-total-value" name="part_total_value[]" value="0" readonly>
       </div>
     </td>
     <td class="text-center">
@@ -382,6 +395,12 @@
           </div>
           <div id="searchResultsList" class="search-results-container" style="display: none;">
             <!-- Los resultados se insertarán aquí dinámicamente -->
+            <!-- Asegúrate que los botones de seleccionar repuesto tengan type='button' -->
+            <!-- Ejemplo de resultado dinámico:
+            <button type="button" class="btn btn-sm btn-primary select-result">
+              <i class="fas fa-check me-1"></i>Seleccionar
+            </button>
+            -->
           </div>
         </div>
       </div>
@@ -453,6 +472,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ url_for('static', filename='js/internal_repair.js') }}"></script>
+<script src="{{ url_for('static', filename='js/edit_ri.js') }}"></script>
 
 
 {% endblock %}

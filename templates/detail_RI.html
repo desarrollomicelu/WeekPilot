@@ -244,23 +244,46 @@
                     <div class="mb-3 row">
                         <label class="col-sm-6 col-form-label fw-bold">Valor del Servicio:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.service_value) }}</p>
+                            <p class="form-control-plaintext">${{ '{:,.0f}'.format(ticket.service_value|int).replace(',', '.') }}</p>
                         </div>
                     </div>
-
                     <div class="mb-3 row">
                         <label class="col-sm-6 col-form-label fw-bold">Valor de Repuestos:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext">${{ "{:,.0f}".format(ticket.spare_value) }}</p>
+                            <p class="form-control-plaintext">${{ '{:,.0f}'.format(ticket.spare_value|int).replace(',', '.') }}</p>
                         </div>
                     </div>
-
                     <div class="row bg-light py-2 rounded">
                         <label class="col-sm-6 col-form-label fw-bold">TOTAL:</label>
                         <div class="col-sm-6">
-                            <p class="form-control-plaintext fw-bold fs-5">${{ "{:,.0f}".format(ticket.total) }}</p>
+                            <p class="form-control-plaintext fw-bold fs-5 text-end">${{ '{:,.0f}'.format(ticket.total|int).replace(',', '.') }}</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Comentarios -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comment text-primary me-2"></i>Comentario
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if ticket.comment %}
+                    <div class="comment-container p-3 bg-light rounded">
+                        <p class="mb-0">{{ ticket.comment }}</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-comment-slash fa-2x mb-3"></i>
+                        <p>No hay comentarios para este ticket.</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
