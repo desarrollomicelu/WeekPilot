@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.orm.attributes import flag_modified
 import json
 # Importa las funciones desde el módulo de servicios
+from config import execute_query
 from models.problemsTickets import Problems_tickets
 from services.queries import get_product_information, get_sertec, get_spare_name, get_technicians, get_spare_parts
 from services.ticket_email_service import TicketEmailService
@@ -432,9 +433,7 @@ def edit_ticket(ticket_id):
     client = Clients_tickets.query.filter_by(id_client=ticket.client).first()
 
     # Obtener repuestos del ticket
-    current_spare_tickets = Spares_tickets.query.filter_by(
-        id_ticket=ticket_id).all()
-
+    ticket_spares = Spares_tickets.query.filter_by(id_ticket=ticket_id).all()
     # Obtener datos auxiliares
     technicians = get_technicians()
     product_info = get_product_information()
@@ -551,7 +550,7 @@ def edit_ticket(ticket_id):
         product_info=product_info,
         spare_parts=spare_parts,
         problems=problems_list,
-        current_spare_tickets=current_spare_tickets,
+        ticket_spares=ticket_spares,
         ms_authenticated=ms_authenticated,
         ticket_images=ticket_images,
         ticket_images_json=ticket_images_json
@@ -721,48 +720,70 @@ def search_products():
     
     return jsonify({'products': filtered_products})
 
+# Ruta original para búsqueda de repuestos (para compatibilidad)
 @technical_service_bp.route("/search_spare_parts", methods=["POST"])
 @login_required
 @role_required("Admin")
-def search_spare_parts():
+def search_spare_parts_original():
     """
-    Ruta para buscar repuestos basados en un término de búsqueda.
+    Ruta original para búsqueda de repuestos.
+    Mantiene compatibilidad con código antiguo.
     """
-    search_term = request.form.get('search', '')
+    # Redirigir a la nueva implementación
+    search_term = request.form.get("search", "").strip().lower()
     
     if not search_term or len(search_term) < 3:
-        return jsonify({'parts': []})
+        return jsonify({
+            "success": False,
+            "message": "Ingrese al menos 3 caracteres para buscar"
+        }), 400
     
-    # Obtener todos los repuestos
-    all_spare_parts = get_spare_parts()
-    
-    # Filtrar repuestos basados en el término de búsqueda
-    filtered_parts = []
-    search_term = search_term.lower()
-    
-    for part in all_spare_parts:
-        code = part['code'].lower()
-        description = part['description'].lower()
+    try:
+        # Usar la misma lógica que en la nueva implementación
+        query = f'''
+        SELECT CODIGO, DESCRIPCIO
+        FROM MTMERCIA
+        WHERE CODLINEA = 'ST' AND 
+        (LOWER(CODIGO) LIKE '%{search_term}%' OR LOWER(DESCRIPCIO) LIKE '%{search_term}%')
+        ORDER BY 
+            CASE 
+                WHEN LOWER(CODIGO) = '{search_term}' THEN 1
+                WHEN LOWER(CODIGO) LIKE '{search_term}%' THEN 2
+                WHEN LOWER(DESCRIPCIO) = '{search_term}' THEN 3
+                WHEN LOWER(DESCRIPCIO) LIKE '{search_term}%' THEN 4
+                ELSE 5
+            END
+        '''
         
-        if search_term in code or search_term in description:
-            filtered_parts.append(part)
-    
-    # Ordenar resultados para que los más relevantes aparezcan primero
-    # (los que comienzan con el término de búsqueda)
-    def sort_key(part):
-        code = part['code'].lower()
-        description = part['description'].lower()
+        results = execute_query(query)
         
-        if code.startswith(search_term):
-            return 0
-        elif description.startswith(search_term):
-            return 1
-        else:
-            return 2
+        spare_parts = []
+        for row in results:
+            if len(spare_parts) >= 30:
+                break
+                
+            spare_parts.append({
+                "code": row[0].strip() if row[0] else "",
+                "description": row[1].strip() if row[1] else ""
+            })
+        
+        if not spare_parts:
+            return jsonify({
+                "success": True,
+                "parts": [],
+                "count": 0,
+                "message": "No se encontraron repuestos con ese criterio"
+            })
+            
+        return jsonify({
+            "success": True,
+            "parts": spare_parts,
+            "count": len(spare_parts)
+        })
     
-    filtered_parts.sort(key=sort_key)
-    
-    # Limitar a 50 resultados para evitar sobrecarga
-    filtered_parts = filtered_parts[:50]
-    
-    return jsonify({'parts': filtered_parts})
+    except Exception as e:
+        print(f"Error al buscar repuestos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error al buscar repuestos: {str(e)}"
+        }), 500
