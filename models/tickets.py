@@ -25,6 +25,7 @@ class Tickets(db.Model, UserMixin):
     creation_date = db.Column(
         db.DateTime, nullable=True, default=datetime.utcnow)
     assigned = db.Column(db.DateTime, nullable=True)
+    re_entry = db.Column(db.DateTime, nullable=True)
     received = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
     in_revision = db.Column(db.DateTime, nullable=True)
@@ -53,6 +54,8 @@ class Tickets(db.Model, UserMixin):
         
         if new_state == "Asignado":
             self.assigned = now
+        elif new_state == "Reingreso":
+            self.re_entry = now
         elif new_state == "En proceso":
             self.in_progress = now
         elif new_state == "En Revision":

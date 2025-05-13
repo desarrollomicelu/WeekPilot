@@ -40,12 +40,12 @@
     <div class="row">
       <div class="col-12">
         <div class="d-flex gap-2 flex-wrap justify-content-center">
-          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado'] %}
+          {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'Reingreso', 'En proceso', 'En Revision', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
           <label class="btn btn-outline-secondary" for="btn{{ status }}">
             <i
-              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% elif status == 'En Revision' %}search{% else %}check-circle{% endif %} me-1"></i>
+              class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Activos' %}bolt{% elif status == 'Sin asignar' %}user-times{% elif status == 'Asignado' %}user-check{% elif status == 'Reingreso' %}redo-alt{% elif status == 'En proceso' %}spinner{% elif status == 'En Revision' %}search{% else %}check-circle{% endif %} me-1"></i>
             {{ status }}
           </label>
           {% endfor %}
@@ -100,6 +100,7 @@
               <select class="form-select form-select-sm status-select" data-ticket-id="{{ ticket.id_ticket }}" data-original-state="{{ ticket.state }}">
                 <option value="Sin asignar" {% if ticket.state=='Sin asignar' %}selected{% endif %}>Sin asignar</option>
                 <option value="Asignado" {% if ticket.state=='Asignado' %}selected{% endif %}>Asignado</option>
+                <option value="Reingreso" {% if ticket.state=='Reingreso' %}selected{% endif %}>Reingreso</option>
                 <option value="En proceso" {% if ticket.state=='En proceso' %}selected{% endif %}>En proceso</option>
                 <option value="En Revision" {% if ticket.state=='En Revision' %}selected{% endif %}>En Revision</option>
                 <option value="Terminado" {% if ticket.state=='Terminado' %}selected{% endif %}>Terminado</option>

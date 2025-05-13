@@ -107,11 +107,247 @@ document.addEventListener("DOMContentLoaded", function () {
     $(document).ready(function () {
         // Definir el orden de los estados (de menor a mayor progreso)
         const stateOrder = {
-            "Pendiente": 1,
-            "En Revision": 2,
-            "Aprobada": 3,
-            "Rechazada": 3
+            "Sin asignar": 1,
+            "Asignado": 2,
+            "Reingreso": 3,
+            "En proceso": 4,
+            "En Revision": 5,
+            "Aprobada": 6,
+            "Rechazada": 6
         };
+
+        // Variables para seguimiento de filtros activos
+        let filteredStatus = 'Todos';
+        let currentCityFilter = 'todas';
+
+        // Inicializar: asignar data-city a las filas para optimizar búsquedas futuras
+        $('#ticketsTable tbody tr').each(function() {
+            const $row = $(this);
+            
+            // Extraer información para identificar la ciudad
+            const refText = $row.find('td').eq(1).text().trim();   // Columna de referencia
+            const clientText = $row.find('td').eq(2).text().trim(); // Columna del cliente
+            
+            // Combinar texto para buscar menciones de ciudades
+            const rowText = (refText + ' ' + clientText).toLowerCase();
+            
+            // Determinar la ciudad
+            let city = 'desconocida';
+            if (rowText.includes('medellín') || rowText.includes('medellin')) {
+                city = 'medellin';
+            } else if (rowText.includes('bogotá') || rowText.includes('bogota')) {
+                city = 'bogota';
+            }
+            
+            // Asignar atributo data-city
+            $row.attr('data-city', city);
+        });
+
+        // Filtrado por estado
+        $('input[name="filterStatus"]').on('change', function() {
+            filteredStatus = $(this).attr('id').replace('btn', '');
+            applyFilters();
+        });
+
+        // Filtrado por ciudad usando el dropdown
+        $('.city-filter').on('click', function(e) {
+            e.preventDefault();
+            
+            // Obtener la ciudad seleccionada
+            const city = $(this).data('city');
+            currentCityFilter = city;
+            
+            // Actualizar el texto del botón dropdown
+            if (city === 'todas') {
+                $('#selectedCityText').text('Ciudades');
+            } else {
+                const cityText = $(this).text();
+                $('#selectedCityText').text(cityText);
+            }
+            
+            // Mostrar indicador de carga
+            const $table = $('#ticketsTable');
+            const $tbody = $table.find('tbody');
+            $tbody.html('<tr><td colspan="10" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando tickets...</td></tr>');
+            
+            // Hacer petición AJAX al backend
+            $.ajax({
+                url: '/filter_by_city',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ city: city }),
+                success: function(response) {
+                    if (response.success) {
+                        // Reconstruir la tabla con los datos recibidos
+                        displayTickets(response.tickets);
+                        
+                        // Luego aplicar el filtro de estado actual si no es "Todos"
+                        if (filteredStatus !== 'Todos') {
+                            applyStatusFilter();
+                        }
+                        
+                        // Actualizar paginación
+                        setTimeout(updatePaginationAfterFilter, 100);
+                    } else {
+                        // Mostrar error
+                        showToast('error', response.message || 'Error al filtrar por ciudad');
+                        
+                        // Restablecer tabla vacía con mensaje
+                        $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error en filtro por ciudad:', error);
+                    showToast('error', 'Error al comunicarse con el servidor');
+                    
+                    // Restablecer tabla vacía con mensaje
+                    $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                }
+            });
+        });
+
+        // Función para aplicar todos los filtros activos
+        function applyFilters() {
+            console.log(`Aplicando filtros: Estado=${filteredStatus}, Ciudad=${currentCityFilter}`);
+            
+            // Si el filtro de ciudad no es "todas", necesitamos hacer una solicitud AJAX
+            if (currentCityFilter !== 'todas') {
+                // Simular clic en el elemento que tiene el data-city actual
+                $(`.city-filter[data-city="${currentCityFilter}"]`).trigger('click');
+            } else {
+                // Si estamos mostrando todas las ciudades, solo aplicamos el filtro de estado
+                applyStatusFilter();
+            }
+            
+            // Actualizar contadores y paginación
+            updateTicketCounter();
+            setTimeout(updatePaginationAfterFilter, 100);
+        }
+        
+        // Función para aplicar solo el filtro por estado
+        function applyStatusFilter() {
+            if (filteredStatus === 'Todos') {
+                // Mostrar todos los tickets
+                $('#ticketsTable tbody tr').not('#noResultsRow').show();
+            } else if (filteredStatus === 'Activos') {
+                // Mostrar tickets con estado diferente a "Terminado", "Aprobada" y "Rechazada"
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState !== 'Terminado' && ticketState !== 'Aprobada' && ticketState !== 'Rechazada');
+                });
+            } else {
+                // Filtrar por el estado específico seleccionado
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState === filteredStatus);
+                });
+            }
+            
+            // Actualizar contador de tickets visibles
+            updateTicketCounter();
+        }
+        
+        // Función para mostrar los tickets recibidos del servidor
+        function displayTickets(tickets) {
+            const $tbody = $('#ticketsTable tbody');
+            $tbody.empty();
+            
+            if (tickets.length === 0) {
+                // Mejorar el mensaje cuando no hay tickets
+                const cityText = $('#selectedCityText').text();
+                const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
+                
+                let message = 'No hay tickets';
+                if (currentCityFilter !== 'todas') {
+                    message += ` en ${cityText}`;
+                }
+                if (filteredStatus !== 'Todos') {
+                    message += ` con estado "${statusText}"`;
+                }
+                
+                $tbody.html(`
+                    <tr>
+                        <td colspan="10" class="text-center py-4">
+                            <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
+                            <p class="text-muted">${message}</p>
+                            <a href="/warranty/create_warranty" class="btn btn-secondary">
+                                <i class="fas fa-plus me-1 text-white"></i> Crear nueva garantía
+                            </a>
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+            
+            tickets.forEach(ticket => {
+                const row = `
+                <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city || 'desconocida'}">
+                    <td class="ps-2 fw-bold" style="width: 5%">#${ticket.id_ticket}</td>
+                    <td class="text-nowrap">${ticket.reference || 'N/A'}</td>
+                    <td class="text-nowrap">${ticket.client_name || 'N/A'}</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select" data-ticket-id="${ticket.id_ticket}" data-original-state="${ticket.state}">
+                            <option value="Sin asignar" ${ticket.state === 'Sin asignar' ? 'selected' : ''}>Sin asignar</option>
+                            <option value="Asignado" ${ticket.state === 'Asignado' ? 'selected' : ''}>Asignado</option>
+                            <option value="Reingreso" ${ticket.state === 'Reingreso' ? 'selected' : ''}>Reingreso</option>
+                            <option value="En proceso" ${ticket.state === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                            <option value="En Revision" ${ticket.state === 'En Revision' ? 'selected' : ''}>En Revision</option>
+                            <option value="Terminado" ${ticket.state === 'Terminado' ? 'selected' : ''}>Terminado</option>
+                        </select>
+                    </td>
+                    <td>
+                        <span class="badge ${ticket.priority === 'Alta' ? 'bg-danger' : ticket.priority === 'Media' ? 'bg-warning text-dark' : 'bg-success'}">
+                            ${ticket.priority}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            ${ticket.problems ? ticket.problems.split(',').map(p => `<span class="badge bg-secondary">${p.trim()}</span>`).join('') : '<span class="text-muted">N/A</span>'}
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <form action="/warranty/edit_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" 
+                                        ${ticket.state === 'Terminado' ? 'disabled title="No se puede editar un ticket en estado Terminado"' : ''}>
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </form>
+                            <form action="/warranty/view_detail_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                <button type="submit" class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                `;
+                $tbody.append(row);
+            });
+            
+            // Reinicializar listeners de eventos en los nuevos elementos
+            initializeWarrantyEvents();
+        }
+        
+        // Reinicializar eventos en elementos de la tabla
+        function initializeWarrantyEvents() {
+            // Reinstalar event handlers para los selectores de estado
+            $('.status-select').off('change').on('change', function() {
+                const $select = $(this);
+                const ticketId = $select.data('ticket-id');
+                const newStatus = $select.val();
+                const originalValue = $select.attr('data-original-state');
+                
+                // Aquí reutilizamos la lógica existente para el cambio de estado
+                const specialStatuses = ['Aprobada', 'Rechazada'];
+                
+                if (specialStatuses.includes(newStatus)) {
+                    showReasonDialog($select, ticketId, newStatus, originalValue);
+                } else {
+                    updateWarrantyStatus($select, ticketId, newStatus, originalValue);
+                }
+            });
+        }
 
         // Al cargar la página, guardar el estado original como atributo data-*
         $('.status-select').each(function() {
@@ -126,15 +362,28 @@ document.addEventListener("DOMContentLoaded", function () {
             $select.closest('tr').attr('data-status', currentState);
         });
 
+        // Mapeo de estados para timestamps
+        const stateTimestampMap = {
+            "Asignado": "assigned",
+            "Reingreso": "re_entry",
+            "En proceso": "in_progress",
+            "En Revision": "in_revision",
+            "Aprobada": "approved",
+            "Rechazada": "rejected"
+        };
+
         $('.status-select').on('change', function () {
             const $select = $(this);
             const ticketId = $select.data('ticket-id');
             const newStatus = $select.val();
             const originalValue = $select.attr('data-original-state');
             
-            // Validar si es un retroceso de estado
-            if (stateOrder[newStatus] < stateOrder[originalValue]) {
-                // Es un retroceso, mostrar error y revertir
+            // Validar si es un retroceso de estado (con excepciones específicas)
+            const isBackward = stateOrder[newStatus] < stateOrder[originalValue];
+            const isExceptionCase = (originalValue === "Asignado" && newStatus === "Reingreso");
+            
+            if (isBackward && !isExceptionCase) {
+                // Es un retroceso no permitido, mostrar error y revertir
                 Swal.fire({
                     icon: 'error',
                     title: 'Operación no permitida',
@@ -252,6 +501,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             editButton.addClass('disabled');
                             editButton.attr('title', 'No se puede editar una garantía en estado ' + newStatus);
                             editButton.attr('disabled', true);
+                        }
+                        
+                        // Actualizar el timestamp si está disponible
+                        if (response.timestamp) {
+                            const timestampField = stateTimestampMap[newStatus];
+                            if (timestampField) {
+                                console.log(`Estado actualizado a: ${newStatus}, campo timestamp: ${timestampField}`);
+                                const $timestamp = $row.find(`.${timestampField}-timestamp`);
+                                
+                                if ($timestamp.length) {
+                                    console.log(`Actualizando timestamp con valor: ${response.timestamp}`);
+                                    $timestamp.text(response.timestamp);
+                                    $timestamp.addClass('active-timestamp');
+                                } else {
+                                    console.log(`No se encontró elemento para mostrar el timestamp de ${newStatus}`);
+                                }
+                            } else {
+                                console.log(`No se encontró mapeo de timestamp para el estado ${newStatus}`);
+                            }
+                        } else {
+                            console.log('No se recibió información de timestamp en la respuesta');
                         }
                         
                         // Mover la fila al principio de la tabla

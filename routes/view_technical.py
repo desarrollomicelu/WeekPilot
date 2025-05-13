@@ -194,7 +194,7 @@ def update_ticket_status_ajax():
         return jsonify({'success': False, 'message': 'No tienes permisos para marcar tickets como Terminado'})
 
     # Estados permitidos para técnicos
-    allowed_states = ['Asignado', 'En proceso', 'En Revision']
+    allowed_states = ['Asignado', 'Reingreso', 'En proceso', 'En Revision']
     if current_user.cargo == 'servicioTecnico' and new_status not in allowed_states:
         return jsonify({'success': False, 'message': f'Solo puedes cambiar a los estados: {", ".join(allowed_states)}'})
 
@@ -210,6 +210,8 @@ def update_ticket_status_ajax():
         from sqlalchemy.orm.attributes import flag_modified
         if new_status == "Asignado":
             flag_modified(ticket, "assigned")
+        elif new_status == "Reingreso":
+            flag_modified(ticket, "re_entry")
         elif new_status == "En proceso":
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":

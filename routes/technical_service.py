@@ -179,6 +179,7 @@ def create_ticket():
             try:
                 creation_date = datetime.now()
                 assigned = None
+                re_entry = None
                 received = None
                 in_progress = None
                 in_revision = None
@@ -187,11 +188,14 @@ def create_ticket():
                 # Si el estado es "Asignado", registrar la fecha de asignación
                 if ticket_data["state"] == "Asignado":
                     assigned = datetime.now()
+                
+                if ticket_data["state"] == "Reingreso":
+                    re_entry = datetime.now()
 
                 if ticket_data["state"] == "Recibido":
                     received = datetime.now()
 
-                if ticket_data["state"] == "En Proceso":
+                if ticket_data["state"] == "En proceso":
                     in_progress = datetime.now()
 
                 if ticket_data["state"] == "En Revision":
@@ -255,6 +259,7 @@ def create_ticket():
                     client=client.id_client,
                     creation_date=creation_date,
                     assigned=assigned,
+                    re_entry=re_entry,
                     received=received,
                     in_progress=in_progress,
                     in_revision=in_revision,
@@ -585,16 +590,70 @@ def view_detail_ticket(ticket_id):
 def update_ticket_status_ajax():
     """Actualiza el estado de un ticket vía AJAX"""
     try:
-        ticket_id = request.form.get('ticket_id')
+        # Obtener parámetros con validación
+        ticket_id_raw = request.form.get('ticket_id')
         new_status = request.form.get('state') or request.form.get('status')
         
+        # Log para depuración
+        current_app.logger.info(f"AJAX Update - Datos recibidos en raw: ticket_id={ticket_id_raw}, new_status={new_status}")
+        print(f"AJAX Update - Datos recibidos en raw: ticket_id={ticket_id_raw}, new_status={new_status}")
+        print(f"Todos los datos del formulario: {dict(request.form)}")
+        
+        # Validación explícita del ticket_id
+        try:
+            ticket_id = int(ticket_id_raw) if ticket_id_raw else None
+            current_app.logger.info(f"Ticket ID convertido a entero: {ticket_id}")
+        except (ValueError, TypeError) as e:
+            error_msg = f"Ticket ID inválido: '{ticket_id_raw}' no es un número válido. Error: {str(e)}"
+            current_app.logger.error(error_msg)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 400
+        
+        # Validación de que tenemos datos completos
         if not ticket_id or not new_status:
-            return jsonify({'success': False, 'message': 'Faltan datos requeridos'}), 400
+            error_msg = f"Faltan datos requeridos: ticket_id={ticket_id}, new_status={new_status}"
+            current_app.logger.error(error_msg)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 400
             
-        ticket = Tickets.query.get_or_404(ticket_id)
+        # Validación de estados permitidos
+        valid_states = ["Sin asignar", "Asignado", "Reingreso", "En proceso", "En Revision", "Terminado", "Recibido"]
+        if new_status not in valid_states:
+            error_msg = f"Estado '{new_status}' no válido. Estados permitidos: {', '.join(valid_states)}"
+            current_app.logger.error(error_msg)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 400
+        
+        # Buscar el ticket en la base de datos
+        ticket = Tickets.query.get(ticket_id)
+        if not ticket:
+            error_msg = f"No se encontró el ticket con ID {ticket_id}"
+            current_app.logger.error(error_msg)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 404
         
         previous_status = ticket.state
         print(f"Actualizando ticket #{ticket_id} de estado '{previous_status}' a '{new_status}'")
+        
+        # Definir el orden de los estados (de menor a mayor progreso)
+        state_order = {
+            "Sin asignar": 1,
+            "Asignado": 2,
+            "Reingreso": 3,
+            "En proceso": 4,
+            "En Revision": 5,
+            "Terminado": 6
+        }
+        
+        # Validar que no sea un retroceso de estado (con excepción específica para Reingreso)
+        is_backward = state_order.get(new_status, 0) < state_order.get(previous_status, 0)
+        is_exception_case = (previous_status == "Asignado" and new_status == "Reingreso")
+        
+        if is_backward and not is_exception_case:
+            error_msg = f"No se permite cambiar el estado de \"{previous_status}\" a \"{new_status}\". No se permite retroceder en el flujo de estados."
+            current_app.logger.error(error_msg)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 400
         
         # Actualizar estado y obtener timestamp
         timestamp = ticket.update_state(new_status) 
@@ -602,6 +661,8 @@ def update_ticket_status_ajax():
         # Marcar explícitamente el campo modificado según el estado
         if new_status == "Asignado":
             flag_modified(ticket, "assigned")
+        elif new_status == "Reingreso":
+            flag_modified(ticket, "re_entry")
         elif new_status == "En proceso":
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":
@@ -613,7 +674,15 @@ def update_ticket_status_ajax():
             flag_modified(ticket, "received")
             
         # Guardar cambios en la base de datos
-        db.session.commit()
+        try:
+            db.session.commit()
+            print(f"Commit exitoso para ticket #{ticket_id}")
+        except Exception as commit_error:
+            db.session.rollback()
+            error_msg = f"Error al guardar cambios en la base de datos: {str(commit_error)}"
+            current_app.logger.error(error_msg, exc_info=True)
+            print(error_msg)
+            return jsonify({'success': False, 'message': error_msg}), 500
         
         # Verificar después del commit (para depuración)
         if new_status == "En Revision":
@@ -632,6 +701,9 @@ def update_ticket_status_ajax():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error en update_ticket_status_ajax: {str(e)}", exc_info=True)
+        print(f"Error en update_ticket_status_ajax: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': f'Error interno al actualizar estado: {str(e)}'}), 500
 
 
@@ -787,3 +859,47 @@ def search_spare_parts_original():
             "success": False,
             "message": f"Error al buscar repuestos: {str(e)}"
         }), 500
+
+# Filtrar tickets por ciudad
+@technical_service_bp.route("/filter_by_city", methods=["POST"])
+@login_required
+@role_required("Admin")
+def filter_by_city():
+    try:
+        city = request.json.get('city')
+        
+        if not city or city.lower() == 'todas':
+            # Si no hay ciudad o es "todas", devolvemos todos los tickets
+            tickets = Tickets.query.filter_by(type_of_service="0").order_by(
+                Tickets.creation_date.desc()).all()
+        else:
+            # Filtrar por la ciudad específica
+            city_name = "Medellín" if city.lower() == "medellin" else "Bogotá"
+            tickets = Tickets.query.filter_by(type_of_service="0", city=city_name).order_by(
+                Tickets.creation_date.desc()).all()
+        
+        # Convertir tickets a formato JSON
+        tickets_data = []
+        for ticket in tickets:
+            # Asegurarse de que client_info esté cargado
+            if not hasattr(ticket, 'client_info') or ticket.client_info is None:
+                ticket.client_info = Clients_tickets.query.get(ticket.client)
+            
+            # Crear diccionario con datos del ticket
+            ticket_dict = {
+                'id_ticket': ticket.id_ticket,
+                'document': ticket.client_info.document if ticket.client_info else "",
+                'technical_name': ticket.technical_name,
+                'state': ticket.state,
+                'priority': ticket.priority,
+                'service_value': float(ticket.service_value) if ticket.service_value else 0,
+                'spare_value': float(ticket.spare_value) if ticket.spare_value else 0,
+                'total': float(ticket.total) if ticket.total else 0,
+                'city': ticket.city
+            }
+            tickets_data.append(ticket_dict)
+        
+        return jsonify({'success': True, 'tickets': tickets_data})
+    except Exception as e:
+        current_app.logger.error(f"Error filtrando tickets por ciudad: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f"Error: {str(e)}"}), 500

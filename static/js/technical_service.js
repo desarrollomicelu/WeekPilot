@@ -110,14 +110,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const stateOrder = {
             "Sin asignar": 1,
             "Asignado": 2,
-            "En proceso": 3,
-            "En Revision": 4,
-            "Terminado": 5
+            "Reingreso": 3,
+            "En proceso": 4,
+            "En Revision": 5,
+            "Terminado": 6
         };
 
         // Mapeo de estados para timestamps
         const stateTimestampMap = {
             "Asignado": "assigned",
+            "Reingreso": "re_entry",
             "En proceso": "in_progress",
             "En Revision": "in_revision",
             "Terminado": "finished",
@@ -149,9 +151,15 @@ document.addEventListener("DOMContentLoaded", function () {
             const newStatus = $select.val();
             const originalValue = $select.attr('data-original-state');
             
-            // Validar si es un retroceso de estado
-            if (stateOrder[newStatus] < stateOrder[originalValue]) {
-                // Es un retroceso, mostrar error y revertir
+            console.log(`Intento de cambio de estado: ${originalValue} -> ${newStatus}`);
+            console.log(`Orden de estados: ${stateOrder[originalValue]} -> ${stateOrder[newStatus]}`);
+            
+            // Validar si es un retroceso de estado (con excepciones específicas)
+            const isBackward = stateOrder[newStatus] < stateOrder[originalValue];
+            const isExceptionCase = (originalValue === "Asignado" && newStatus === "Reingreso");
+            
+            if (isBackward && !isExceptionCase) {
+                // Es un retroceso no permitido, mostrar error y revertir
                 Swal.fire({
                     icon: 'error',
                     title: 'Operación no permitida',
@@ -193,18 +201,39 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Mostrar toast de carga
                     showToast('info', 'Actualizando estado...', 'top-end');
 
+                    // Datos a enviar
+                    const postData = {
+                        ticket_id: ticketId,
+                        state: newStatus    // Nombre del parámetro unificado con otros módulos
+                    };
+                    
+                    // Intentar obtener el token CSRF si existe
+                    const csrfToken = $('meta[name="csrf-token"]').attr('content') || '';
+                    if (csrfToken) {
+                        postData['csrf_token'] = csrfToken;
+                    }
+                    
+                    console.log("Enviando datos AJAX:", JSON.stringify(postData));
+
                     // Enviar solicitud AJAX con el parámetro state (compatible con todos los módulos)
                     $.ajax({
                         url: '/update_ticket_status_ajax',
                         method: 'POST',
-                        data: {
-                            ticket_id: ticketId,
-                            state: newStatus    // Nombre del parámetro unificado con otros módulos
+                        data: postData,
+                        // Intenta con contentType explícito
+                        // contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        beforeSend: function(xhr) {
+                            console.log("Iniciando petición AJAX...");
+                            // Si hay X-CSRFToken header disponible
+                            if (csrfToken) {
+                                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                            }
                         },
                         success: function (response) {
                             // Quitar indicador de carga
                             $select.removeClass('opacity-50');
                             $select.prop('disabled', false);
+                            console.log("Respuesta AJAX recibida:", response);
 
                             if (response.success) {
                                 // Actualizar el estado original
@@ -281,7 +310,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $select.val(originalValue);
                             }
                         },
-                        error: function (xhr) {
+                        error: function (xhr, status, error) {
                             // Quitar indicador de carga
                             $select.removeClass('opacity-50');
                             $select.prop('disabled', false);
@@ -289,11 +318,28 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Restaurar valor original
                             $select.val(originalValue);
                             
+                            // Información detallada en la consola
+                            console.error("Error AJAX:", {
+                                status: xhr.status,
+                                statusText: xhr.statusText,
+                                responseText: xhr.responseText,
+                                error: error
+                            });
+                            
                             // Mostrar mensaje de error
                             let errorMsg = 'Error al actualizar el estado';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMsg = xhr.responseJSON.message;
+                            } else if (xhr.status === 400) {
+                                errorMsg = 'Error 400: Datos enviados incorrectos';
+                            } else if (xhr.status === 403) {
+                                errorMsg = 'Error 403: No tienes permiso para realizar esta acción';
+                            } else if (xhr.status === 404) {
+                                errorMsg = 'Error 404: No se encontró el recurso solicitado';
+                            } else if (xhr.status === 500) {
+                                errorMsg = 'Error 500: Error interno del servidor';
                             }
+                            
                             showToast('error', errorMsg, 'top-end');
                         }
                     });
@@ -539,6 +585,359 @@ document.addEventListener("DOMContentLoaded", function () {
             editButton.attr('title', 'No se puede editar un ticket en estado Terminado');
             editButton.attr('disabled', true);
         }
+    });
+
+    // --- Filtrado por estado y otros criterios ---
+    $(document).ready(function () {
+        let filteredStatus = 'Todos';
+        let currentCityFilter = 'todas';
+
+        // Filtrado por estado
+        $('input[name="filterStatus"]').on('change', function() {
+            filteredStatus = $(this).attr('id').replace('btn', '');
+            applyFilters();
+        });
+
+        // Filtrado por ciudad usando el dropdown
+        $('.city-filter').on('click', function(e) {
+            e.preventDefault();
+            
+            // Obtener la ciudad seleccionada
+            const city = $(this).data('city');
+            currentCityFilter = city;
+            
+            // Actualizar el texto del botón dropdown
+            if (city === 'todas') {
+                $('#selectedCityText').text('Ciudades');
+            } else {
+                const cityText = $(this).text();
+                $('#selectedCityText').text(cityText);
+            }
+            
+            // Mostrar indicador de carga
+            const $table = $('#ticketsTable');
+            const $tbody = $table.find('tbody');
+            $tbody.html('<tr><td colspan="10" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando tickets...</td></tr>');
+            
+            // Hacer petición AJAX al backend
+            $.ajax({
+                url: '/filter_by_city',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ city: city }),
+                success: function(response) {
+                    if (response.success) {
+                        // Reconstruir la tabla con los datos recibidos
+                        displayTickets(response.tickets);
+                        
+                        // Luego aplicar el filtro de estado actual si no es "Todos"
+                        if (filteredStatus !== 'Todos') {
+                            applyStatusFilter();
+                        }
+                        
+                        // Actualizar paginación
+                        setTimeout(updatePaginationAfterFilter, 100);
+                    } else {
+                        // Mostrar error
+                        showToast('error', response.message || 'Error al filtrar por ciudad');
+                        
+                        // Restablecer tabla vacía con mensaje
+                        $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error en filtro por ciudad:', error);
+                    showToast('error', 'Error al comunicarse con el servidor');
+                    
+                    // Restablecer tabla vacía con mensaje
+                    $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                }
+            });
+        });
+        
+        // Función para aplicar ambos filtros (estado y ciudad)
+        function applyFilters() {
+            // Si el filtro de ciudad no es "todas", necesitamos hacer una solicitud AJAX
+            if (currentCityFilter !== 'todas') {
+                // Simular clic en el elemento que tiene el data-city actual
+                $(`.city-filter[data-city="${currentCityFilter}"]`).trigger('click');
+            } else {
+                // Si estamos mostrando todas las ciudades, solo aplicamos el filtro de estado
+                applyStatusFilter();
+            }
+            
+            // Actualizar contadores y paginación
+            updateTicketCounter();
+            setTimeout(updatePaginationAfterFilter, 100);
+        }
+        
+        // Función para mostrar los tickets recibidos del servidor
+        function displayTickets(tickets) {
+            const $tbody = $('#ticketsTable tbody');
+            $tbody.empty();
+            
+            if (tickets.length === 0) {
+                // Mejorar el mensaje cuando no hay tickets
+                const cityText = $('#selectedCityText').text();
+                const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
+                
+                let message = 'No hay tickets';
+                if (currentCityFilter !== 'todas') {
+                    message += ` en ${cityText}`;
+                }
+                if (filteredStatus !== 'Todos') {
+                    message += ` con estado "${statusText}"`;
+                }
+                
+                $tbody.html(`
+                    <tr>
+                        <td colspan="10" class="text-center py-4">
+                            <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
+                            <p class="text-muted">${message}</p>
+                            <a href="/technical_service/create_ticket" class="btn btn-secondary">
+                                <i class="fas fa-plus me-1 text-white"></i> Crear nuevo ticket
+                            </a>
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
+            
+            // Formatear valores numéricos
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('es-CO', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(value);
+            }
+            
+            tickets.forEach(ticket => {
+                const row = `
+                <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city}">
+                    <td class="ps-2 fw-bold">#${ticket.id_ticket}</td>
+                    <td>${ticket.document || 'N/A'}</td>
+                    <td>${ticket.technical_name ? ticket.technical_name.replace('.', ' ') : '<span class="badge bg-secondary">Sin asignar</span>'}</td>
+                    <td>
+                        <select class="form-select form-select-sm status-select" data-ticket-id="${ticket.id_ticket}" data-original-state="${ticket.state}">
+                            <option value="Sin asignar" ${ticket.state === 'Sin asignar' ? 'selected' : ''}>Sin asignar</option>
+                            <option value="Asignado" ${ticket.state === 'Asignado' ? 'selected' : ''}>Asignado</option>
+                            <option value="Reingreso" ${ticket.state === 'Reingreso' ? 'selected' : ''}>Reingreso</option>
+                            <option value="En proceso" ${ticket.state === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                            <option value="En Revision" ${ticket.state === 'En Revision' ? 'selected' : ''}>En Revision</option>
+                            <option value="Terminado" ${ticket.state === 'Terminado' ? 'selected' : ''}>Terminado</option>
+                        </select>
+                    </td>
+                    <td>
+                        <span class="badge ${ticket.priority === 'Alta' ? 'bg-danger' : ticket.priority === 'Media' ? 'bg-warning text-dark' : 'bg-success'}">
+                            ${ticket.priority}
+                        </span>
+                    </td>
+                    <td class="text-end">$${formatCurrency(ticket.service_value)}</td>
+                    <td class="text-end">$${formatCurrency(ticket.spare_value)}</td>
+                    <td class="text-end"><span class="badge bg-primary fs-6">$${formatCurrency(ticket.total)}</span></td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <form action="/technical_service/edit_ticket/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" 
+                                        ${ticket.state === 'Terminado' ? 'disabled title="No se puede editar un ticket en estado Terminado"' : ''}>
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </form>
+                            <form action="/technical_service/view_detail_ticket/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                <button type="submit" class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                `;
+                $tbody.append(row);
+            });
+            
+            // Reinicializar listeners de eventos en los nuevos elementos
+            initializeTicketEvents();
+        }
+        
+        // Reinicializar eventos en elementos de la tabla
+        function initializeTicketEvents() {
+            // Reinstalar event handlers para los selectores de estado
+            $('.status-select').off('change').on('change', function() {
+                const $select = $(this);
+                const ticketId = $select.data('ticket-id');
+                const newStatus = $select.val();
+                const originalValue = $select.attr('data-original-state');
+                
+                // Aquí reutilizamos la lógica existente para el cambio de estado
+                handleStatusChange($select, ticketId, newStatus, originalValue);
+            });
+        }
+        
+        // Función para manejar cambio de estado (extraída del código existente)
+        function handleStatusChange($select, ticketId, newStatus, originalValue) {
+            // Validar si es un retroceso de estado (con excepciones específicas)
+            const isBackward = stateOrder[newStatus] < stateOrder[originalValue];
+            const isExceptionCase = (originalValue === "Asignado" && newStatus === "Reingreso");
+            
+            if (isBackward && !isExceptionCase) {
+                // Es un retroceso no permitido, mostrar error y revertir
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Operación no permitida',
+                    text: `No se puede cambiar el estado de "${originalValue}" a "${newStatus}". No se permite retroceder en el flujo de estados.`,
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Entendido'
+                });
+                
+                // Restaurar el valor original
+                $select.val(originalValue);
+                return false;
+            }
+
+            // Texto de confirmación
+            let confirmText = `¿Estás seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`;
+            
+            // Si el estado es "Terminado", agregar advertencia
+            if (newStatus === "Terminado") {
+                confirmText += `\n\nIMPORTANTE: Una vez que el ticket esté en estado "Terminado", ya no podrá ser editado.`;
+            }
+
+            // Si no es retroceso, continuar con el flujo normal
+            // Preguntar al usuario
+            Swal.fire({
+                title: '¿Cambiar estado?',
+                text: confirmText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar indicador de carga
+                    $select.addClass('opacity-50');
+                    $select.prop('disabled', true);
+
+                    // Mostrar toast de carga
+                    showToast('info', 'Actualizando estado...', 'top-end');
+
+                    // Datos a enviar
+                    const postData = {
+                        ticket_id: ticketId,
+                        state: newStatus    // Nombre del parámetro unificado con otros módulos
+                    };
+                    
+                    // Intentar obtener el token CSRF si existe
+                    const csrfToken = $('meta[name="csrf-token"]').attr('content') || '';
+                    if (csrfToken) {
+                        postData['csrf_token'] = csrfToken;
+                    }
+
+                    // Enviar solicitud AJAX
+                    $.ajax({
+                        url: '/update_ticket_status_ajax',
+                        method: 'POST',
+                        data: postData,
+                        beforeSend: function(xhr) {
+                            if (csrfToken) {
+                                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                            }
+                        },
+                        success: function (response) {
+                            // Procesar respuesta de éxito...
+                            if (response.success) {
+                                // Actualizar UI con respuesta exitosa
+                                updateUIAfterStatusChange($select, newStatus, ticketId, response);
+                            } else {
+                                // Mostrar error y restaurar valor original
+                                showToast('error', response.message || 'Error al actualizar el estado', 'top-end');
+                                $select.val(originalValue);
+                            }
+                            // Quitar indicador de carga
+                            $select.removeClass('opacity-50');
+                            $select.prop('disabled', false);
+                        },
+                        error: function (xhr, status, error) {
+                            // Manejar error AJAX...
+                            console.error("Error AJAX:", { xhr, status, error });
+                            showToast('error', 'Error al actualizar el estado', 'top-end');
+                            $select.removeClass('opacity-50');
+                            $select.prop('disabled', false);
+                            $select.val(originalValue);
+                        }
+                    });
+                } else {
+                    // Si el usuario cancela, restaurar el valor original
+                    $select.val(originalValue);
+                }
+            });
+        }
+        
+        // Función para actualizar la UI después de un cambio de estado exitoso
+        function updateUIAfterStatusChange($select, newStatus, ticketId, response) {
+            // Actualizar el estado original
+            $select.attr('data-original-state', newStatus);
+            
+            // Actualizar el atributo data-status de la fila para los filtros
+            const $row = $select.closest('tr');
+            $row.attr('data-status', newStatus);
+            
+            // Si el estado cambia a Terminado, deshabilitar el botón de edición
+            if (newStatus === "Terminado") {
+                const editButton = $row.find('button.btn-outline-secondary');
+                editButton.addClass('disabled');
+                editButton.attr('title', 'No se puede editar un ticket en estado Terminado');
+                editButton.attr('disabled', true);
+            }
+            
+            // Mover la fila al principio de la tabla
+            $row.css('background-color', '#fffde7');
+            const $table = $('#ticketsTable tbody');
+            setTimeout(function() {
+                $row.fadeOut(300, function() {
+                    $table.prepend($row);
+                    $row.fadeIn(300);
+                    setTimeout(function() {
+                        $row.css('background-color', '');
+                        // Actualizar contador y paginación
+                        updateTicketCounter();
+                        updatePaginationAfterFilter();
+                        
+                        // Reaplica el filtro activo para que se muestre correctamente
+                        applyStatusFilter();
+                    }, 1500);
+                });
+            }, 300);
+            
+            // Mostrar notificación de éxito
+            showToast('success', 'Estado actualizado correctamente', 'top-end');
+        }
+        
+        // Aplicar filtro de estado
+        function applyStatusFilter() {
+            if (filteredStatus === 'Todos') {
+                // Mostrar todos los tickets
+                $('#ticketsTable tbody tr').show();
+            } else if (filteredStatus === 'Activos') {
+                // Mostrar todos los tickets que NO están en estado "Terminado"
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState !== 'Terminado');
+                });
+            } else {
+                // Filtrar por el estado específico seleccionado
+                $('#ticketsTable tbody tr').each(function () {
+                    const ticketState = $(this).attr('data-status');
+                    $(this).toggle(ticketState === filteredStatus);
+                });
+            }
+            // Actualizar contador
+            updateTicketCounter();
+        }
+
+        // Inicializar filtros
+        applyFilters();
     });
 }); // Fin del $(document).ready()
 

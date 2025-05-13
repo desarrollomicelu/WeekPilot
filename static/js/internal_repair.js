@@ -4,6 +4,22 @@ $(document).ready(function () {
     // Inicializar tooltips
     $('[data-toggle="tooltip"]').tooltip();
 
+    // Variables para seguimiento de filtros activos
+    let filteredStatus = 'Todos';
+    
+    // Hacer la variable de filtro accesible globalmente
+    window.filteredStatus = filteredStatus;
+
+    console.log('Documento listo. Inicializando eventos...');
+    
+    // Filtrado por estado
+    $('input[name="filterStatus"]').on('change', function() {
+        filteredStatus = $(this).attr('id').replace('btn', '');
+        // Actualizar también la variable global
+        window.filteredStatus = filteredStatus;
+        applyFilters();
+    });
+
     // Filtro de búsqueda para referencias
     $('#searchReference').on('input', function () {
         const searchText = $(this).val().toLowerCase();
@@ -95,32 +111,6 @@ $(document).ready(function () {
                 
                 // Actualizar el total
                 updatePartsTotals();
-            }
-        });
-    });
-
-    // Manejo de envío de formulario
-    $('#ticketForm').on('submit', function (e) {
-        e.preventDefault();
-
-        // Validar campos obligatorios
-        if (!validateForm()) {
-            return false;
-        }
-
-        // Mostrar modal de confirmación
-        Swal.fire({
-            title: '¿Crear ticket de reparación interna?',
-            text: "Se generará un nuevo ticket con la información proporcionada.",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sí, crear ticket',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                this.submit();
             }
         });
     });
@@ -310,24 +300,175 @@ $(document).ready(function () {
         setTimeout(updatePaginationAfterFilter, 100);
     });
 
-    // Filtrado por estado
-    $('input[name="filterStatus"]').on('change', function () {
-        const status = $(this).attr('id').replace('btn', '');
-
-        if (status === 'Todos') {
-            // Mostrar todas las filas
-            $('#ticketsTable tbody tr').show();
-        } else {
-            // Filtrar por estado
-            $('#ticketsTable tbody tr').each(function () {
-                const rowStatus = $(this).data('status');
-                $(this).toggle(status === rowStatus);
-            });
-        }
-
-        // Actualizar paginación después de filtrar
+    // Función para aplicar todos los filtros activos
+    function applyFilters() {
+        console.log(`Aplicando filtros: Estado=${filteredStatus}`);
+        
+        // Actualizar contadores y paginación
+        updateTicketCounter();
         setTimeout(updatePaginationAfterFilter, 100);
-    });
+    }
+    
+    // Función para aplicar solo el filtro por estado
+    function applyStatusFilter() {
+        if (filteredStatus === 'Todos') {
+            // Mostrar todos los tickets
+            $('#ticketsTable tbody tr').not('#noResultsRow').show();
+        } else {
+            // Mapear nombres plurales de botones a nombres singulares de estados en filas
+            const statusMap = {
+                'Todos': 'all',
+                'Sin asignar': 'Sin asignar',
+                'Asignados': 'Asignado',
+                'En Proceso': 'En proceso',
+                'En Revision': 'En Revision',
+                'Terminados': 'Terminado',
+                'Cancelados': 'Cancelado'
+            };
+            
+            // Estado mapeado (o el original si no hay mapeo)
+            const mappedStatus = statusMap[filteredStatus] || filteredStatus;
+            
+            if (mappedStatus === 'all') {
+                // Mostrar todas las filas
+                $('#ticketsTable tbody tr').not('#noResultsRow').show();
+            } else {
+                // Filtrar por estado
+                $('#ticketsTable tbody tr').each(function () {
+                    const rowStatus = $(this).attr('data-status');
+                    $(this).toggle(rowStatus === mappedStatus);
+                });
+            }
+        }
+        
+        // Actualizar contador de tickets visibles
+        updateTicketCounter();
+    }
+    
+    // Hacer global la función de filtrado por estado
+    window.applyStatusFilter = applyStatusFilter;
+
+    // Funcion global para mostrar tickets (accesible desde el HTML)
+    window.displayTickets = function(tickets) {
+        const $tbody = $('#ticketsTable tbody');
+        $tbody.empty();
+        
+        if (tickets.length === 0) {
+            // Mejorar el mensaje cuando no hay tickets
+            const cityText = $('#selectedCityText').text();
+            const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
+            
+            let message = 'No hay tickets de reparación interna';
+            if (cityText !== 'Ciudades') {
+                message += ` en ${cityText}`;
+            }
+            if (statusText !== 'Todos') {
+                message += ` con estado "${statusText}"`;
+            }
+            
+            $tbody.html(`
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
+                        <p class="text-muted">${message}</p>
+                        <a href="/internal_repair/create_ticketsRI" class="btn btn-secondary">
+                            <i class="fas fa-plus me-1 text-white"></i> Nueva reparación
+                        </a>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+        
+        tickets.forEach(ticket => {
+            const priorityClass = ticket.priority === 'Alta' ? 'bg-danger' : 
+                                 ticket.priority === 'Media' ? 'bg-warning text-dark' : 
+                                 'bg-success';
+                                 
+            const row = `
+            <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city || 'desconocida'}">
+                <td class="ps-2 fw-bold">#${ticket.id_ticket}</td>
+                <td class="multiline-cell" title="${ticket.reference || ''}">
+                    ${ticket.reference ? ticket.reference.replace(/seminuevo|Seminuevo|SEMINUEVO/g, "").trim() : 'N/A'}
+                </td>
+                <td class="multiline-cell">
+                    ${ticket.technical_name ? 
+                        `<span title="${ticket.technical_name.replace('.', ' ')}">
+                            ${ticket.technical_name.replace('.', ' ')}
+                        </span>` : 
+                        '<span class="badge bg-secondary">Sin asignar</span>'}
+                </td>
+                <td>
+                    <select class="form-select form-select-sm status-select" 
+                            data-ticket-id="${ticket.id_ticket}" 
+                            data-previous-status="${ticket.state}" 
+                            name="status">
+                        ${['Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado', 'Cancelado']
+                            .map(status => `<option value="${status}" ${ticket.state === status ? 'selected' : ''}>${status}</option>`)
+                            .join('')}
+                    </select>
+                </td>
+                <td>
+                    <span class="badge ${priorityClass}">
+                        ${ticket.priority}
+                    </span>
+                </td>
+                <td class="text-end">$${formatNumberWithCommas(ticket.service_value)}</td>
+                <td class="text-end">$${formatNumberWithCommas(ticket.spare_value)}</td>
+                <td class="text-end"><span class="badge bg-primary fs-6">$${formatNumberWithCommas(ticket.total)}</span></td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <a href="/internal_repair/edit_tickets_RI/${ticket.id_ticket}"
+                            class="btn btn-sm btn-outline-secondary ${ticket.state === 'Terminado' || ticket.state === 'Cancelado' ? 'disabled' : ''}" 
+                            ${ticket.state === 'Terminado' || ticket.state === 'Cancelado' ? 
+                                'aria-disabled="true" data-bs-toggle="tooltip" data-bs-placement="top" title="No se puede editar un ticket en estado ' + ticket.state + '"' : 
+                                ''}>
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="/internal_repair/detail_RI/${ticket.id_ticket}"
+                            class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            `;
+            $tbody.append(row);
+        });
+        
+        // Reinicializar tooltips y otros elementos interactivos
+        $('[data-bs-toggle="tooltip"]').tooltip();
+        
+        // Reinstalar event handlers para los selectores de estado
+        $('.status-select').off('change').on('change', function() {
+            const $select = $(this);
+            const ticketId = $select.data('ticket-id');
+            const newStatus = $select.val();
+            const previousStatus = $select.data('previous-status');
+            
+            // Mostrar modal de confirmación
+            Swal.fire({
+                title: '¿Cambiar estado?',
+                text: `¿Estás seguro de cambiar el estado de la reparación #${ticketId} a "${newStatus}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    updateRepairStatus($select, ticketId, newStatus, previousStatus);
+                } else {
+                    // Si el usuario cancela, restaurar el valor original
+                    $select.val(previousStatus);
+                }
+            });
+        });
+        
+        // Actualizar contador de tickets
+        updateTicketCounter();
+    };
 
     initPagination();
 
@@ -1076,5 +1217,92 @@ function showToast(type, message) {
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true
+    });
+}
+
+// Función para actualizar el estado de un ticket de reparación interna
+function updateRepairStatus($select, ticketId, newStatus, previousStatus) {
+    // Mostrar indicador de carga
+    $select.addClass('opacity-50');
+    $select.prop('disabled', true);
+
+    // Preparar datos
+    const data = {
+        ticket_id: ticketId,
+        state: newStatus  // Usar 'state' para mantener consistencia con el backend
+    };
+
+    // Realizar solicitud AJAX
+    $.ajax({
+        url: '/update_ticket_status_ajax',
+        method: 'POST',
+        data: data,
+        success: function(response) {
+            // Quitar indicador de carga
+            $select.removeClass('opacity-50');
+            $select.prop('disabled', false);
+            
+            if (response.success) {
+                // Actualizar atributos y estado en la interfaz
+                const $row = $select.closest('tr');
+                $row.attr('data-status', newStatus);
+                $select.attr('data-previous-status', newStatus);
+                
+                // Si es un estado final, deshabilitar botón de edición
+                if (newStatus === 'Terminado' || newStatus === 'Cancelado') {
+                    const $editBtn = $row.find('a.btn-outline-secondary');
+                    $editBtn.addClass('disabled');
+                    $editBtn.attr('aria-disabled', 'true');
+                    $editBtn.attr('data-bs-toggle', 'tooltip');
+                    $editBtn.attr('data-bs-placement', 'top');
+                    $editBtn.attr('title', `No se puede editar un ticket en estado ${newStatus}`);
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
+                
+                // Mover la fila al principio de la tabla
+                $row.css('background-color', '#fffde7');
+                const $table = $('#ticketsTable tbody');
+                setTimeout(function() {
+                    $row.fadeOut(300, function() {
+                        $table.prepend($row);
+                        $row.fadeIn(300);
+                        setTimeout(function() {
+                            $row.css('background-color', '');
+                            
+                            // Aplicar filtro activo
+                            const activeFilter = $('input[name="filterStatus"]:checked').attr('id').replace('btn', '');
+                            filterTickets(activeFilter);
+                            
+                            // Mostrar notificación si ya no es visible debido al filtro
+                            if (!$row.is(':visible') && activeFilter !== 'Todos') {
+                                showToast('info', `El ticket #${ticketId} se ha movido al filtro "${newStatus}"`, 5000);
+                            }
+                        }, 1500);
+                    });
+                }, 300);
+                
+                // Notificación de éxito
+                showToast('success', `Estado actualizado a "${newStatus}" correctamente`);
+            } else {
+                // Error al actualizar
+                $select.val(previousStatus);
+                showToast('error', response.message || 'Error al actualizar el estado');
+            }
+        },
+        error: function(xhr, status, error) {
+            // Quitar indicador de carga
+            $select.removeClass('opacity-50');
+            $select.prop('disabled', false);
+            
+            // Restaurar valor original
+            $select.val(previousStatus);
+            
+            // Mostrar error
+            let errorMessage = 'Error al actualizar el estado';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            showToast('error', errorMessage);
+        }
     });
 }

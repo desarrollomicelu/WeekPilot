@@ -1,6 +1,6 @@
 # routes/internal_repair.py
 
-from flask import Blueprint, render_template, request, url_for, flash, redirect, jsonify
+from flask import Blueprint, current_app, render_template, request, url_for, flash, redirect, jsonify
 from models.tickets import Tickets
 from flask_login import login_required
 from datetime import datetime
@@ -19,8 +19,7 @@ from models.sparesTickets import Spares_tickets
 from decimal import Decimal
 from services.queries import get_spare_parts
 
-internal_repair_bp = Blueprint(
-    "internal_repair", __name__, template_folder="templates")
+internal_repair_bp = Blueprint('internal_repair', __name__, url_prefix='/internal_repair')
 
 
 def get_common_data():
@@ -513,10 +512,11 @@ def update_ticket_status_ajax():
         state_order = {
             "Sin asignar": 1,
             "Asignado": 2,
-            "En proceso": 3,
-            "En Revision": 4,
-            "Terminado": 5,
-            "Cancelado": 5  # Mismo nivel que Terminado
+            "Reingreso": 3,
+            "En proceso": 4,
+            "En Revision": 5,
+            "Terminado": 6,
+            "Cancelado": 6  # Mismo nivel que Terminado
         }
 
         # Validar que no sea un retroceso de estado
@@ -533,6 +533,8 @@ def update_ticket_status_ajax():
         from sqlalchemy.orm.attributes import flag_modified
         if new_status == "Asignado":
             flag_modified(ticket, "assigned")
+        elif new_status == "Reingreso":
+            flag_modified(ticket, "re_entry")
         elif new_status == "En proceso":
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":
@@ -620,6 +622,8 @@ def update_ticket_progress():
         from sqlalchemy.orm.attributes import flag_modified
         if new_status == "Asignado":
             flag_modified(ticket, "assigned")
+        elif new_status == "Reingreso":
+            flag_modified(ticket, "re_entry")
         elif new_status == "En proceso":
             flag_modified(ticket, "in_progress")
         elif new_status == "En Revision":
@@ -744,4 +748,64 @@ def search_spare_parts():
     filtered_parts = filtered_parts[:50]
 
     return jsonify({'parts': filtered_parts})
+
+
+# Filtrar tickets por ciudad
+@internal_repair_bp.route("/filter_by_city", methods=["POST"])
+@login_required
+@role_required("Admin")
+def filter_by_city():
+    try:
+        # Log para verificar que se está accediendo a la ruta
+        current_app.logger.info("Solicitud recibida en /internal_repair/filter_by_city")
+        
+        # Verificar el formato de la solicitud
+        if not request.is_json:
+            current_app.logger.error("La solicitud no es JSON")
+            return jsonify({'success': False, 'message': "La solicitud debe ser JSON"}), 400
+            
+        # Obtener datos de la solicitud
+        data = request.get_json()
+        current_app.logger.info(f"Datos recibidos: {data}")
+        
+        city = data.get('city')
+        current_app.logger.info(f"Ciudad solicitada: {city}")
+        
+        if not city or city.lower() == 'todas':
+            # Si no hay ciudad o es "todas", devolvemos todos los tickets
+            current_app.logger.info("Filtrando todos los tickets (todas las ciudades)")
+            tickets = Tickets.query.filter_by(type_of_service="1").order_by(
+                Tickets.creation_date.desc()).all()
+            current_app.logger.info(f"Tickets encontrados: {len(tickets)}")
+        else:
+            # Filtrar por la ciudad específica
+            city_name = "Medellín" if city.lower() == "medellin" else "Bogotá"
+            current_app.logger.info(f"Filtrando por ciudad: {city_name}")
+            tickets = Tickets.query.filter_by(type_of_service="1", city=city_name).order_by(
+                Tickets.creation_date.desc()).all()
+            current_app.logger.info(f"Tickets encontrados: {len(tickets)}")
+        
+        # Convertir tickets a formato JSON
+        tickets_data = []
+        for ticket in tickets:
+            # Crear diccionario con datos del ticket
+            ticket_dict = {
+                'id_ticket': ticket.id_ticket,
+                'reference': ticket.reference or "",
+                'state': ticket.state,
+                'priority': ticket.priority,
+                'city': ticket.city,
+                'technical_name': ticket.technical_name,
+                'service_value': float(ticket.service_value) if ticket.service_value else 0,
+                'spare_value': float(ticket.spare_value) if ticket.spare_value else 0,
+                'total': float(ticket.total) if ticket.total else 0
+            }
+            tickets_data.append(ticket_dict)
+        
+        # Log de la respuesta
+        current_app.logger.info(f"Enviando respuesta con {len(tickets_data)} tickets")
+        return jsonify({'success': True, 'tickets': tickets_data})
+    except Exception as e:
+        current_app.logger.error(f"Error filtrando tickets por ciudad: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f"Error: {str(e)}"}), 500
 
