@@ -103,6 +103,7 @@ def create_ticketsRI():
             service_value = request.form.get("service_value") or 0
             total = request.form.get("total") or 0
             spare_value = request.form.get("spare_value") or 0
+            discounted_value = request.form.get("discounted_value") or 0
 
             if IMEI:
                 if not IMEI.isdigit():
@@ -123,10 +124,13 @@ def create_ticketsRI():
                     ',', '.') if isinstance(total, str) else total
                 spare_value = spare_value.replace('.', '').replace(
                     ',', '.') if isinstance(spare_value, str) else spare_value
+                discounted_value = discounted_value.replace('.', '').replace(
+                    ',', '.') if isinstance(discounted_value, str) else discounted_value
 
                 service_value = float(service_value)
                 total = float(total)
                 spare_value = float(spare_value)
+                discounted_value = float(discounted_value)
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
@@ -193,6 +197,7 @@ def create_ticketsRI():
                 finished=finished,
                 spare_value=spare_value,
                 service_value=service_value,
+                discounted_value=discounted_value,
                 total=total,
                 client=None
             )
@@ -328,6 +333,8 @@ def edit_tickets_RI(ticket_id):
                     "service_value", ticket.service_value))
                 spare_value = float(request.form.get(
                     "spare_value", ticket.spare_value))
+                discounted_value = float(request.form.get(
+                    "discounted_value", ticket.discounted_value))
                 total = float(request.form.get("total", ticket.total))
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
@@ -365,6 +372,7 @@ def edit_tickets_RI(ticket_id):
             ticket.city = city
             ticket.spare_value = spare_value
             ticket.service_value = service_value
+            ticket.discounted_value = discounted_value
             ticket.total = total
 
             # Actualizar fechas según el estado
@@ -710,42 +718,79 @@ def search_spare_parts():
     """
     Ruta para buscar repuestos basados en un término de búsqueda.
     """
-    search_term = request.form.get('search', '')
+    try:
+        search_term = request.form.get('search', '')
 
-    if not search_term or len(search_term) < 3:
-        return jsonify({'parts': []})
+        if not search_term or len(search_term) < 3:
+            return jsonify({
+                'success': True,
+                'parts': [],
+                'count': 0,
+                'message': 'Se necesitan al menos 3 caracteres para buscar'
+            })
 
-    # Obtener todos los repuestos
-    all_spare_parts = get_spare_parts()
+        # Obtener todos los repuestos
+        all_spare_parts = get_spare_parts()
+        
+        if not all_spare_parts:
+            print("Advertencia: get_spare_parts() retornó datos vacíos o nulos")
+            return jsonify({
+                'success': True,
+                'parts': [],
+                'count': 0,
+                'message': 'No hay repuestos disponibles'
+            })
 
-    # Filtrar repuestos basados en el término de búsqueda
-    filtered_parts = []
-    search_term = search_term.lower()
+        # Filtrar repuestos basados en el término de búsqueda
+        filtered_parts = []
+        search_term = search_term.lower()
 
-    for part in all_spare_parts:
-        code = part['code'].lower()
-        description = part['description'].lower()
+        for part in all_spare_parts:
+            # Verificar que el repuesto tiene los campos requeridos
+            if not isinstance(part, dict) or 'code' not in part or 'description' not in part:
+                continue
+                
+            code = str(part['code']).lower() if part['code'] else ''
+            description = str(part['description']).lower() if part['description'] else ''
 
-        if search_term in code or search_term in description:
-            filtered_parts.append(part)
+            if search_term in code or search_term in description:
+                filtered_parts.append({
+                    'code': part['code'],
+                    'description': part['description']
+                })
 
-    # Ordenar resultados para que los más relevantes aparezcan primero
-    # (los que comienzan con el término de búsqueda)
-    def sort_key(part):
-        code = part['code'].lower()
-        description = part['description'].lower()
+        # Ordenar resultados para que los más relevantes aparezcan primero
+        def sort_key(part):
+            code = str(part['code']).lower()
+            description = str(part['description']).lower()
 
-        if code.startswith(search_term):
-            return 0
-        elif description.startswith(search_term):
-            return 1
-        else:
-            return 2
+            if code.startswith(search_term):
+                return 0
+            elif description.startswith(search_term):
+                return 1
+            else:
+                return 2
 
-    filtered_parts.sort(key=sort_key)
+        filtered_parts.sort(key=sort_key)
 
-    # Limitar a 50 resultados para evitar sobrecarga
-    filtered_parts = filtered_parts[:50]
+        # Limitar a 50 resultados para evitar sobrecarga
+        filtered_parts = filtered_parts[:50]
 
-    return jsonify({'parts': filtered_parts})
+        # Devolver los resultados en el formato correcto para el frontend
+        return jsonify({
+            'success': True,
+            'parts': filtered_parts,
+            'count': len(filtered_parts)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Error en search_spare_parts: {str(e)}")
+        return jsonify({
+            'success': False,
+            'parts': [],
+            'count': 0,
+            'message': f'Error al buscar repuestos: {str(e)}'
+        }), 500
 

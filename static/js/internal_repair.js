@@ -323,8 +323,13 @@ $(document).ready(function () {
 
     // Función para aplicar todos los filtros activos
     function applyFilters() {
-        const selectedStatus = $('input[name="filterStatus"]:checked').attr('id').replace('btn', '');
-        const selectedCity = $('input[name="filterCity"]:checked').attr('id').replace('btn', '');
+        // Verificar que los elementos existen antes de intentar acceder a sus propiedades
+        const statusElement = $('input[name="filterStatus"]:checked');
+        const cityElement = $('input[name="filterCity"]:checked');
+        
+        // Valores por defecto en caso de que los elementos no existan
+        const selectedStatus = statusElement.length ? statusElement.attr('id').replace('btn', '') : 'Todos';
+        const selectedCity = cityElement.length ? cityElement.attr('id').replace('btn', '') : 'Todas';
         
         console.log(`Aplicando filtros: Estado=${selectedStatus}, Ciudad=${selectedCity}`);
         
@@ -372,8 +377,13 @@ $(document).ready(function () {
         $('.no-results-row').remove();
         
         if (show) {
-            const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
-            const cityText = $('input[name="filterCity"]:checked').next('label').text().trim();
+            // Verificar que los elementos existen antes de intentar acceder a sus propiedades
+            const statusElement = $('input[name="filterStatus"]:checked');
+            const cityElement = $('input[name="filterCity"]:checked');
+            
+            // Obtener textos con verificación de existencia
+            const statusText = statusElement.length ? statusElement.next('label').text().trim() : 'Todos';
+            const cityText = cityElement.length ? cityElement.next('label').text().trim() : 'Todas';
             
             let message = 'No hay tickets';
             if (cityText !== 'Todas') {
@@ -383,7 +393,7 @@ $(document).ready(function () {
                 message += ` con estado "${statusText}"`;
             }
             
-            const colspan = $('#ticketsTable thead th').length;
+            const colspan = $('#ticketsTable thead th').length || 10; // Valor por defecto de 10 si no se encuentra
             const $noResults = $(`
                 <tr class="no-results-row">
                     <td colspan="${colspan}" class="text-center py-5">
@@ -432,11 +442,12 @@ $(document).ready(function () {
         
         if (tickets.length === 0) {
             // Mejorar el mensaje cuando no hay tickets
-            const cityText = $('#selectedCityText').text();
-            const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
+            const cityText = $('#selectedCityText').text() || 'Todas';
+            const statusElement = $('input[name="filterStatus"]:checked');
+            const statusText = statusElement.length ? statusElement.next('label').text().trim() : 'Todos';
             
             let message = 'No hay tickets de reparación interna';
-            if (cityText !== 'Ciudades') {
+            if (cityText !== 'Ciudades' && cityText !== 'Todas') {
                 message += ` en ${cityText}`;
             }
             if (statusText !== 'Todos') {
@@ -1060,8 +1071,10 @@ function searchParts(searchTerm) {
     const formData = new FormData();
     formData.append('search', searchTerm);
 
+    console.log(`Buscando repuestos con término: "${searchTerm}"`);
+
     // Realizar petición fetch a la URL
-    fetch('/search_spare_parts', {
+    fetch('/internal_repair/search_spare_parts', {
         method: 'POST',
         body: formData
     })
@@ -1072,12 +1085,20 @@ function searchParts(searchTerm) {
             return response.json();
         })
         .then(data => {
+            console.log("Respuesta recibida:", data);
+            
             // Ocultar loader
             searchResultsLoader.hide();
 
-            // Verificar si hay resultados
-            if (!data.parts || data.parts.length === 0) {
-                noResultsMessage.show();
+            // Verificar si hay resultados - Compatibilidad con ambos formatos de respuesta
+            const parts = data.parts || [];
+            
+            if (parts.length === 0) {
+                const message = data.message || 'No se encontraron repuestos que coincidan con la búsqueda';
+                noResultsMessage.show().html(`
+                    <h5 class="text-muted mb-2">No se encontraron resultados</h5>
+                    <p class="text-muted mb-0">${message}</p>
+                `);
                 return;
             }
 
@@ -1093,22 +1114,26 @@ function searchParts(searchTerm) {
             // Agregar contador de resultados
             const resultCount = document.createElement('div');
             resultCount.className = 'col-12 mb-2';
-            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.parts.length} repuestos</small>`;
+            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${parts.length} repuestos</small>`;
             row.appendChild(resultCount);
 
             // Añadir cada repuesto como una tarjeta
-            data.parts.forEach(part => {
+            parts.forEach(part => {
+                // Asegurar que code y description son strings
+                const code = String(part.code || '');
+                const description = String(part.description || '');
+                
                 const colDiv = document.createElement('div');
                 colDiv.className = 'col-md-6';
 
                 colDiv.innerHTML = `
                             <div class="card mb-2 shadow-sm search-result-card" 
-                                 data-code="${part.code}" 
-                                 data-description="${part.description}">
+                                 data-code="${code}" 
+                                 data-description="${description}">
                                 <div class="card-body py-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="mb-1">${part.code} - ${part.description}</h6>
+                                            <h6 class="mb-1">${code} - ${description}</h6>
                                         </div>
                                         <button type="button" class="btn btn-sm btn-primary select-result">
                                             <i class="fas fa-check me-1"></i>Seleccionar
@@ -1159,7 +1184,7 @@ function searchParts(searchTerm) {
             noResultsMessage.show().html(`
                         <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
                         <h5 class="text-danger">Error al buscar repuestos</h5>
-                        <p class="text-muted mb-0">Intente nuevamente</p>
+                        <p class="text-muted mb-0">${error.message || 'Intente nuevamente'}</p>
                     `);
         });
 }

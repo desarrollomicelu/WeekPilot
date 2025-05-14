@@ -32,6 +32,7 @@ class Tickets(db.Model, UserMixin):
     finished = db.Column(db.DateTime, nullable=True)
     spare_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     service_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
+    discounted_value = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     total = db.Column(db.Numeric(7, 1), nullable=True, default=0.0)
     client = db.Column(db.Integer, db.ForeignKey(
         "plan_beneficios.Clients_tickets.id_client"), nullable=False)
