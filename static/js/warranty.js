@@ -118,48 +118,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Variables para seguimiento de filtros activos
         let filteredStatus = 'Todos';
-        let currentCityFilter = 'todas';
-
-        // Inicializar: asignar data-city a las filas para optimizar búsquedas futuras
-        $('#ticketsTable tbody tr').each(function() {
-            const $row = $(this);
-            
-            // Extraer información para identificar la ciudad
-            const refText = $row.find('td').eq(1).text().trim();   // Columna de referencia
-            const clientText = $row.find('td').eq(2).text().trim(); // Columna del cliente
-            
-            // Combinar texto para buscar menciones de ciudades
-            const rowText = (refText + ' ' + clientText).toLowerCase();
-            
-            // Determinar la ciudad
-            let city = 'desconocida';
-            if (rowText.includes('medellín') || rowText.includes('medellin')) {
-                city = 'medellin';
-            } else if (rowText.includes('bogotá') || rowText.includes('bogota')) {
-                city = 'bogota';
-            }
-            
-            // Asignar atributo data-city
-            $row.attr('data-city', city);
-        });
 
         // Filtrado por estado
         $('input[name="filterStatus"]').on('change', function() {
-            filteredStatus = $(this).attr('id').replace('btn', '');
-            applyFilters();
+            filteredStatus = $(this).next('label').text().trim();
+            // Si hay una búsqueda activa, limpiarla para aplicar el filtro correctamente
+            if ($('#searchInput').val()) {
+                $('#searchInput').val('').trigger('input');
+            }
         });
-
+        
         // Filtrado por ciudad usando el dropdown
         $('.city-filter').on('click', function(e) {
             e.preventDefault();
             
             // Obtener la ciudad seleccionada
             const city = $(this).data('city');
-            currentCityFilter = city;
             
             // Actualizar el texto del botón dropdown
             if (city === 'todas') {
-                $('#selectedCityText').text('Ciudades');
+                $('#selectedCityText').text('Todas las ciudades');
             } else {
                 const cityText = $(this).text();
                 $('#selectedCityText').text(cityText);
@@ -168,7 +146,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Mostrar indicador de carga
             const $table = $('#ticketsTable');
             const $tbody = $table.find('tbody');
-            $tbody.html('<tr><td colspan="10" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando tickets...</td></tr>');
+            $tbody.html('<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando tickets...</td></tr>');
             
             // Hacer petición AJAX al backend
             $.ajax({
@@ -193,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         showToast('error', response.message || 'Error al filtrar por ciudad');
                         
                         // Restablecer tabla vacía con mensaje
-                        $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                        $tbody.html('<tr><td colspan="8" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
                     }
                 },
                 error: function(xhr, status, error) {
@@ -201,23 +179,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     showToast('error', 'Error al comunicarse con el servidor');
                     
                     // Restablecer tabla vacía con mensaje
-                    $tbody.html('<tr><td colspan="10" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
+                    $tbody.html('<tr><td colspan="8" class="text-center py-4">Error al cargar los tickets. Intente de nuevo.</td></tr>');
                 }
             });
         });
-
+        
         // Función para aplicar todos los filtros activos
         function applyFilters() {
-            console.log(`Aplicando filtros: Estado=${filteredStatus}, Ciudad=${currentCityFilter}`);
-            
-            // Si el filtro de ciudad no es "todas", necesitamos hacer una solicitud AJAX
-            if (currentCityFilter !== 'todas') {
-                // Simular clic en el elemento que tiene el data-city actual
-                $(`.city-filter[data-city="${currentCityFilter}"]`).trigger('click');
-            } else {
-                // Si estamos mostrando todas las ciudades, solo aplicamos el filtro de estado
-                applyStatusFilter();
-            }
+            console.log(`Aplicando filtros: Estado=${filteredStatus}`);
             
             // Actualizar contadores y paginación
             updateTicketCounter();
@@ -258,7 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
                 
                 let message = 'No hay tickets';
-                if (currentCityFilter !== 'todas') {
+                if (cityText !== 'Todas las ciudades') {
                     message += ` en ${cityText}`;
                 }
                 if (filteredStatus !== 'Todos') {
@@ -267,7 +236,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 $tbody.html(`
                     <tr>
-                        <td colspan="10" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                             <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
                             <p class="text-muted">${message}</p>
                             <a href="/warranty/create_warranty" class="btn btn-secondary">
@@ -279,73 +248,117 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
             
+            // Generar HTML para cada ticket
             tickets.forEach(ticket => {
+                let problemsHtml = '';
+                if (ticket.problems && ticket.problems.length > 0) {
+                    problemsHtml = '<div class="d-flex flex-wrap gap-1">';
+                    ticket.problems.forEach(problem => {
+                        problemsHtml += `<span class="badge bg-secondary">${problem}</span>`;
+                    });
+                    problemsHtml += '</div>';
+                } else {
+                    problemsHtml = '<span class="text-muted">N/A</span>';
+                }
+                
+                // Formatear referencia
+                let reference = ticket.reference ? ticket.reference.replace(/seminuevo|Seminuevo|SEMINUEVO/g, '').trim() : 'N/A';
+                
+                // Generar fila HTML
                 const row = `
-                <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city || 'desconocida'}">
-                    <td class="ps-2 fw-bold" style="width: 5%">#${ticket.id_ticket}</td>
-                    <td class="text-nowrap">${ticket.reference || 'N/A'}</td>
-                    <td class="text-nowrap">${ticket.client_name || 'N/A'}</td>
-                    <td>
-                        <select class="form-select form-select-sm status-select" data-ticket-id="${ticket.id_ticket}" data-original-state="${ticket.state}">
-                            <option value="Sin asignar" ${ticket.state === 'Sin asignar' ? 'selected' : ''}>Sin asignar</option>
-                            <option value="Asignado" ${ticket.state === 'Asignado' ? 'selected' : ''}>Asignado</option>
-                            <option value="Reingreso" ${ticket.state === 'Reingreso' ? 'selected' : ''}>Reingreso</option>
-                            <option value="En proceso" ${ticket.state === 'En proceso' ? 'selected' : ''}>En proceso</option>
-                            <option value="En Revision" ${ticket.state === 'En Revision' ? 'selected' : ''}>En Revision</option>
-                            <option value="Terminado" ${ticket.state === 'Terminado' ? 'selected' : ''}>Terminado</option>
-                        </select>
-                    </td>
-                    <td>
-                        <span class="badge ${ticket.priority === 'Alta' ? 'bg-danger' : ticket.priority === 'Media' ? 'bg-warning text-dark' : 'bg-success'}">
-                            ${ticket.priority}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="d-flex flex-wrap gap-1">
-                            ${ticket.problems ? ticket.problems.split(',').map(p => `<span class="badge bg-secondary">${p.trim()}</span>`).join('') : '<span class="text-muted">N/A</span>'}
-                        </div>
-                    </td>
-                    <td class="text-center">
-                        <div class="btn-group btn-group-sm">
-                            <form action="/warranty/edit_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" 
-                                        ${ticket.state === 'Terminado' ? 'disabled title="No se puede editar un ticket en estado Terminado"' : ''}>
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </form>
-                            <form action="/warranty/view_detail_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
-                                <button type="submit" class="btn btn-sm btn-outline-info">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+                    <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city}">
+                        <td class="ps-2 fw-bold" style="width: 5%">#${ticket.id_ticket}</td>
+                        <td class="text-nowrap">${reference}</td>
+                        <td class="text-nowrap">${ticket.city || 'N/A'}</td>
+                        <td class="text-nowrap">${ticket.client_name || 'N/A'}</td>
+                        <td>
+                            <select class="form-select form-select-sm status-select" data-ticket-id="${ticket.id_ticket}" data-original-state="${ticket.state}">
+                                <option value="Sin asignar" ${ticket.state === 'Sin asignar' ? 'selected' : ''}>Sin asignar</option>
+                                <option value="Asignado" ${ticket.state === 'Asignado' ? 'selected' : ''}>Asignado</option>
+                                <option value="Reingreso" ${ticket.state === 'Reingreso' ? 'selected' : ''}>Reingreso</option>
+                                <option value="En proceso" ${ticket.state === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                                <option value="En Revision" ${ticket.state === 'En Revision' ? 'selected' : ''}>En Revision</option>
+                                <option value="Terminado" ${ticket.state === 'Terminado' ? 'selected' : ''}>Terminado</option>
+                            </select>
+                        </td>
+                        <td>
+                            <span class="badge ${ticket.priority === 'Alta' ? 'bg-danger' : ticket.priority === 'Media' ? 'bg-warning text-dark' : 'bg-success'}">
+                                ${ticket.priority}
+                            </span>
+                        </td>
+                        <td>${problemsHtml}</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <form action="/warranty/edit_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary edit-ticket-btn" ${ticket.state === 'Terminado' ? 'disabled title="No se puede editar un ticket en estado Terminado"' : ''}>
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </form>
+                                <form action="/warranty/view_detail_warranty/${ticket.id_ticket}" method="get" style="display:inline-block;">
+                                    <button type="submit" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                 `;
+                
                 $tbody.append(row);
             });
             
-            // Reinicializar listeners de eventos en los nuevos elementos
+            // Reinicializar eventos en elementos de la tabla
             initializeWarrantyEvents();
         }
         
-        // Reinicializar eventos en elementos de la tabla
+        // Reinstalar event handlers para los selectores de estado
         function initializeWarrantyEvents() {
-            // Reinstalar event handlers para los selectores de estado
             $('.status-select').off('change').on('change', function() {
                 const $select = $(this);
                 const ticketId = $select.data('ticket-id');
                 const newStatus = $select.val();
                 const originalValue = $select.attr('data-original-state');
                 
-                // Aquí reutilizamos la lógica existente para el cambio de estado
-                const specialStatuses = ['Aprobada', 'Rechazada'];
+                // Validar si es un retroceso de estado (con excepciones específicas)
+                const isBackward = stateOrder[newStatus] < stateOrder[originalValue];
+                const isExceptionCase = (originalValue === "Asignado" && newStatus === "Reingreso");
                 
-                if (specialStatuses.includes(newStatus)) {
-                    showReasonDialog($select, ticketId, newStatus, originalValue);
-                } else {
-                    updateWarrantyStatus($select, ticketId, newStatus, originalValue);
+                if (isBackward && !isExceptionCase) {
+                    // Es un retroceso no permitido, mostrar error y revertir
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Operación no permitida',
+                        text: `No se puede cambiar el estado de "${originalValue}" a "${newStatus}". No se permite retroceder en el flujo de estados.`,
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'Entendido'
+                    });
+                    
+                    // Restaurar el valor original
+                    $select.val(originalValue);
+                    return false;
                 }
+
+                // Texto de confirmación
+                let confirmText = `¿Estás seguro de cambiar el estado de la garantía #${ticketId} a "${newStatus}"?`;
+                
+                // Confirmar cambio de estado
+                Swal.fire({
+                    title: '¿Cambiar estado?',
+                    text: confirmText,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, cambiar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        updateWarrantyStatus($select, ticketId, newStatus, originalValue, '');
+                    } else {
+                        // Si el usuario cancela, restaurar el valor original
+                        $select.val(originalValue);
+                    }
+                });
             });
         }
 
@@ -578,28 +591,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
 
-    // --- Filtros Rápidos por Estado ---
+    // --- Filtros Rápidos por Estado y Ciudad ---
     $(document).ready(function () {
-        function filterTickets(status) {
-            console.log("Filtrando por estado:", status);
+        function filterTickets() {
+            // Obtener filtros activos
+            const selectedStatus = $('input[name="filterStatus"]:checked').next('label').text().trim();
+            const selectedCity = $('input[name="filterCity"]:checked').next('label').text().trim();
             
-            if (status === 'Todos') {
-                // Mostrar todas las garantías
-                $('#ticketsTable tbody tr').not('#noResultsRow').show();
-            } else if (status === 'Activos') {
-                // Mostrar tickets con estado diferente a "Terminado"
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    $(this).toggle(ticketState !== 'Terminado');
-                });
-            } else {
-                // Filtrar por el estado específico seleccionado
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    // Comparación exacta de cadenas para evitar problemas con mayúsculas/minúsculas o espacios
-                    $(this).toggle(ticketState === status);
-                });
-            }
+            console.log(`Filtrando por: Estado=${selectedStatus}, Ciudad=${selectedCity}`);
+            
+            // Aplicar filtros a todas las filas
+            $('#ticketsTable tbody tr').not('#noResultsRow').each(function() {
+                const $row = $(this);
+                let statusMatch = true;
+                let cityMatch = true;
+                
+                // Verificar filtro de estado
+                const rowStatus = $row.attr('data-status');
+                if (selectedStatus === 'Todos') {
+                    statusMatch = true;
+                } else if (selectedStatus === 'Activos') {
+                    statusMatch = (rowStatus !== 'Terminado' && rowStatus !== 'Aprobada' && rowStatus !== 'Rechazada');
+                } else {
+                    statusMatch = (rowStatus === selectedStatus);
+                }
+                
+                // Verificar filtro de ciudad
+                const rowCity = $row.attr('data-city');
+                if (selectedCity === 'Todas') {
+                    cityMatch = true;
+                } else {
+                    cityMatch = (rowCity === selectedCity);
+                }
+                
+                // Mostrar u ocultar la fila basado en ambos filtros
+                $row.toggle(statusMatch && cityMatch);
+            });
             
             // Actualizar contador de garantías visibles
             const visibleCount = updateTicketCounter();
@@ -623,9 +650,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     <tr id="noResultsRow">
                         <td colspan="${colspan}" class="text-center py-5">
                             <i class="fas fa-filter fa-3x mb-3 text-muted"></i>
-                            <p class="text-muted">No hay tickets que coincidan con el filtro seleccionado.</p>
+                            <p class="text-muted">No hay tickets que coincidan con los filtros seleccionados.</p>
                             <button class="btn btn-outline-secondary btn-sm reset-filter mt-2">
-                                <i class="fas fa-times me-1"></i>Limpiar filtro
+                                <i class="fas fa-times me-1"></i>Limpiar filtros
                             </button>
                         </td>
                     </tr>
@@ -634,54 +661,63 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 // Agregar evento al botón de reseteo
                 $('.reset-filter').on('click', function() {
-                    // Seleccionar el filtro "Todos"
-                    $('#btnTodos').prop('checked', true).trigger('change');
+                    // Seleccionar el filtro "Todos" para estado
+                    $('#btnTodos').prop('checked', true);
+                    // Seleccionar el filtro "Todas" para ciudad
+                    $('#btnTodas').prop('checked', true);
+                    // Aplicar filtros
+                    filterTickets();
                 });
             }
         }
 
-        // Manejo del evento de cambio en los botones de filtro
+        // Manejo del evento de cambio en los botones de filtro de estado
         $('input[name="filterStatus"]').on('change', function () {
-            const selectedStatus = $(this).next('label').text().trim();
-            console.log("Filtro seleccionado:", selectedStatus);
-            
-            // Aplicar el filtro
-            filterTickets(selectedStatus);
-            
             // Actualizar clase visual activa
-            $('.btn-outline-secondary').removeClass('filter-active');
+            $('input[name="filterStatus"]').next('label').removeClass('filter-active');
             $(this).next('label').addClass('filter-active');
+            
+            // Aplicar filtros
+            filterTickets();
+        });
+        
+        // Manejo del evento de cambio en los botones de filtro de ciudad
+        $('input[name="filterCity"]').on('change', function () {
+            // Actualizar clase visual activa
+            $('input[name="filterCity"]').next('label').removeClass('filter-active');
+            $(this).next('label').addClass('filter-active');
+            
+            // Aplicar filtros
+            filterTickets();
         });
 
-        // Inicializar con el filtro seleccionado
+        // Inicializar filtros al cargar la página
         setTimeout(function() {
-            const selectedFilter = $('input[name="filterStatus"]:checked').next('label').text().trim();
-            console.log("Filtro inicial:", selectedFilter);
-            filterTickets(selectedFilter);
+            // Activar clase visual en los filtros seleccionados
             $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+            $('input[name="filterCity"]:checked').next('label').addClass('filter-active');
+            
+            // Aplicar filtros iniciales
+            filterTickets();
         }, 100);
         
         // Búsqueda en la tabla
         $('#searchInput').on('input', function() {
             const searchValue = this.value.toLowerCase();
-            console.log("Búsqueda:", searchValue);
             
-            let visibleCount = 0;
-            
-            // Filtrar filas según el texto de búsqueda
+            // Guardar estado de visibilidad antes de la búsqueda
             $('#ticketsTable tbody tr').not('#noResultsRow').each(function() {
-                const rowText = $(this).text().toLowerCase();
-                const visible = rowText.includes(searchValue);
-                $(this).toggle(visible);
-                
-                if (visible) visibleCount++;
+                const $row = $(this);
+                // Solo buscar en filas que ya son visibles según los filtros actuales
+                if ($row.is(':visible')) {
+                    const rowText = $row.text().toLowerCase();
+                    $row.toggle(rowText.includes(searchValue));
+                }
             });
             
-            // Mostrar mensaje si no hay resultados
-            showNoResultsMessage(visibleCount === 0);
-            
             // Actualizar contador y paginación
-            updateTicketCounter();
+            const visibleCount = updateTicketCounter();
+            showNoResultsMessage(visibleCount === 0);
             setTimeout(updatePaginationAfterFilter, 100);
         });
     });

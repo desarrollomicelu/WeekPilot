@@ -40,6 +40,7 @@
     <div class="row">
       <div class="col-12">
         <div class="d-flex gap-2 flex-wrap justify-content-center">
+          <!-- Filtros por estado -->
           {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'Reingreso', 'En proceso', 'En Revision', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
@@ -49,6 +50,28 @@
             {{ status }}
           </label>
           {% endfor %}
+          
+          <!-- Divisor entre filtros -->
+          <div class="vr mx-2 d-none d-md-block"></div>
+          
+          <!-- Filtros por ciudad -->
+          <input type="radio" class="btn-check" name="filterCity" id="btnTodas" checked>
+          <label class="btn btn-outline-secondary" for="btnTodas">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Todas
+          </label>
+          
+          <input type="radio" class="btn-check" name="filterCity" id="btnMedellin">
+          <label class="btn btn-outline-secondary" for="btnMedellin">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Medellín
+          </label>
+          
+          <input type="radio" class="btn-check" name="filterCity" id="btnBogota">
+          <label class="btn btn-outline-secondary" for="btnBogota">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Bogotá
+          </label>
         </div>
       </div>
     </div>
@@ -78,18 +101,19 @@
             <th class="text-start" >Estado</th>
             <th class="text-start" >Prioridad</th>
             <th class="text-start" >Motivo</th>
+            <th class="text-start" >Ciudad</th>
             <th class="text-center" >Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
-          <tr class="align-middle" data-status="{{ ticket.state }}">
+          <tr class="align-middle" data-status="{{ ticket.state }}" data-city="{{ ticket.city }}">
             <td class="ps-2 fw-bold" style="width: 5%">#{{ ticket.id_ticket }}</td>
             <td class="text-nowrap">
               {% if ticket.reference %}
                 {{ ticket.reference.replace('seminuevo', '').replace('Seminuevo', '').replace('SEMINUEVO', '').strip() }}
               {% else %}
-                N/A
+                
               {% endif %}
             </td>
             <td class="text-nowrap">{{ ticket.client_info.name }} {{ ticket.client_info.lastname }}</td>
@@ -120,6 +144,8 @@
                 <span class="text-muted">{{ ticket.reason or 'N/A' }}</span>
               {% endif %}
             </td>
+            <td class="text-nowrap">{{ ticket.city }}</td>
+
             <td class="text-center">
               <div class="btn-group btn-group-sm">
                 <!-- Botón para Editar Ticket con formulario -->

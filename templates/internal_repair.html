@@ -40,6 +40,7 @@
     <div class="row">
       <div class="col-12">
         <div class="d-flex gap-2 flex-wrap justify-content-center">
+          <!-- Filtros por estado -->
           {% for status in ['Todos', 'Sin asignar', 'Asignados', 'En Proceso', 'En Revision', 'Terminados', 'Cancelados'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos' %}checked{% endif %}>
           <label class="btn btn-outline-secondary" for="btn{{ status }}">
@@ -47,6 +48,28 @@
             {{ status }}
           </label>
           {% endfor %}
+          
+          <!-- Divisor entre filtros -->
+          <div class="vr mx-2 d-none d-md-block"></div>
+          
+          <!-- Filtros por ciudad -->
+          <input type="radio" class="btn-check" name="filterCity" id="btnTodas" checked>
+          <label class="btn btn-outline-secondary" for="btnTodas">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Todas
+          </label>
+          
+          <input type="radio" class="btn-check" name="filterCity" id="btnMedellin">
+          <label class="btn btn-outline-secondary" for="btnMedellin">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Medellín
+          </label>
+          
+          <input type="radio" class="btn-check" name="filterCity" id="btnBogota">
+          <label class="btn btn-outline-secondary" for="btnBogota">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            Bogotá
+          </label>
         </div>
       </div>
     </div>
@@ -71,18 +94,19 @@
           <tr>
             <th class="ps-2" style="width: 5%">#</th>
             <th style="width: 12%">Referencia</th>
-            <th style="width: 18%">Técnico</th>
-            <th style="width: 18%">Estado</th>
+            <th style="width: 16%">Técnico</th>
+            <th style="width: 16%">Estado</th>
             <th style="width: 8%">Prioridad</th>
-            <th style="width: 12%" class="text-end">V Serv.</th>
-            <th style="width: 12%" class="text-end">V Rep.</th>
+            <th style="width: 10%" class="text-end">V Serv.</th>
+            <th style="width: 10%" class="text-end">V Rep.</th>
             <th style="width: 10%" class="text-end">Total</th>
+            <th style="width: 8%">Ciudad</th>
             <th style="width: 9%" class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
-          <tr class="align-middle" data-status="{{ ticket.state }}">
+          <tr class="align-middle" data-status="{{ ticket.state }}" data-city="{{ ticket.city }}">
             <td class="ps-2 fw-bold">#{{ ticket.id_ticket }}</td>
             <td class="multiline-cell" title="{{ ticket.reference }}">
               {{ ticket.reference | replace("SEMINUEVO", "") | replace("Seminuevo", "") | replace("seminuevo", "") | trim }}
@@ -114,6 +138,13 @@
             <td class="text-end">${{ "{:,.0f}".format(ticket.service_value).replace(',', '.') }}</td>
             <td class="text-end">${{ "{:,.0f}".format(ticket.spare_value).replace(',', '.') }}</td>
             <td class="text-end"><span class="badge bg-primary fs-6">${{ "{:,.0f}".format(ticket.total).replace(',', '.') }}</span></td>
+            <td>
+              {% if ticket.city %}
+              {{ ticket.city }}
+              {% else %}
+              <span class="badge bg-secondary">Sin ciudad</span>
+              {% endif %}
+            </td>
             <td class="text-center">
               <div class="btn-group btn-group-sm">
                 <a href="{{ url_for('internal_repair.edit_tickets_RI', ticket_id=ticket.id_ticket) }}"
