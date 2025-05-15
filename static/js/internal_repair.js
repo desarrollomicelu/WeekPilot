@@ -310,26 +310,86 @@ $(document).ready(function () {
         setTimeout(updatePaginationAfterFilter, 100);
     });
 
-    // Filtrado por estado
-    $('input[name="filterStatus"]').on('change', function () {
-        const status = $(this).attr('id').replace('btn', '');
-
-        if (status === 'Todos') {
-            // Mostrar todas las filas
-            $('#ticketsTable tbody tr').show();
+    // --- Filtros Rápidos por Estado ---
+    function filterTickets() {
+        const selectedStatus = $('input[name="filterStatus"]:checked').next('label').text().trim();
+        const selectedCity = $('input[name="filterCity"]:checked').next('label').text().trim();
+        
+        $('#ticketsTable tbody tr').each(function () {
+            const ticketState = $(this).attr('data-status');
+            const ticketCity = $(this).attr('data-city');
+            let showByStatus = false;
+            let showByCity = false;
+            
+            // Filtro por estado
+            if (selectedStatus === 'Todos') {
+                showByStatus = true;
+            } else if (selectedStatus === 'Activos') {
+                showByStatus = ticketState !== 'Terminado';
+            } else {
+                showByStatus = ticketState === selectedStatus;
+            }
+            
+            // Filtro por ciudad
+            if (selectedCity === 'Todas las ciudades') {
+                showByCity = true;
+            } else {
+                showByCity = ticketCity === selectedCity;
+            }
+            
+            // Mostrar solo si cumple ambos filtros
+            $(this).toggle(showByStatus && showByCity);
+        });
+        
+        // Actualizar contador de tickets visibles
+        const visibleCount = $('#ticketsTable tbody tr:visible').length;
+        $('#currentRowsCount').text(visibleCount);
+        
+        // Mostrar mensaje si no hay resultados visibles
+        if (visibleCount === 0) {
+            if ($('#noResultsRow').length === 0) {
+                const colspan = $('#ticketsTable thead th').length;
+                const noResultsRow = `
+                    <tr id="noResultsRow">
+                        <td colspan="${colspan}" class="text-center py-5">
+                            <i class="fas fa-filter fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No hay tickets que coincidan con los filtros seleccionados.</p>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">
+                                <i class="fas fa-times me-1"></i>Limpiar filtros
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                $('#ticketsTable tbody').append(noResultsRow);
+            }
         } else {
-            // Filtrar por estado
-            $('#ticketsTable tbody tr').each(function () {
-                const rowStatus = $(this).data('status');
-                $(this).toggle(status === rowStatus);
-            });
+            $('#noResultsRow').remove();
         }
-
-        // Actualizar paginación después de filtrar
+        
+        // Actualizar paginación
         setTimeout(updatePaginationAfterFilter, 100);
+    }
+
+    // Manejo del evento de cambio en los botones de filtro de estado
+    $('input[name="filterStatus"]').on('change', function () {
+        filterTickets();
+        // Actualizar clase visual activa
+        $('.btn-outline-secondary[for^="btn"]').removeClass('filter-active');
+        $(this).next('label').addClass('filter-active');
     });
 
-    initPagination();
+    // Manejo del evento de cambio en los botones de filtro de ciudad
+    $('input[name="filterCity"]').on('change', function () {
+        filterTickets();
+        // Actualizar clase visual activa para los botones de ciudad
+        $('.btn-outline-secondary[for^="btn"]').removeClass('filter-active');
+        $(this).next('label').addClass('filter-active');
+    });
+
+    // Inicializar con "Todos" y "Todas las ciudades" seleccionados
+    filterTickets();
+    $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+    $('input[name="filterCity"]:checked').next('label').addClass('filter-active');
 
     // Exponer la función initPagination globalmente
     window.initPagination = initPagination;
@@ -1078,3 +1138,13 @@ function showToast(type, message) {
         timerProgressBar: true
     });
 }
+
+// Función para resetear los filtros
+window.resetFilters = function() {
+    $('#btnTodos').prop('checked', true);
+    $('#btnAllCities').prop('checked', true);
+    $('.btn-outline-secondary[for^="btn"]').removeClass('filter-active');
+    $('#btnTodos').next('label').addClass('filter-active');
+    $('#btnAllCities').next('label').addClass('filter-active');
+    filterTickets();
+};

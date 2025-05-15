@@ -53,10 +53,19 @@
           {% for status in ['Todos', 'Asignado', 'En proceso','En Revision'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
             %}checked{% endif %}>
-          <label class="btn btn-outline-primary" for="btn{{ status }}">
+          <label class="btn btn-outline-secondary" for="btn{{ status }}">
             <i class="fas fa-{% if status == 'Todos' %}list{% elif status == 'Asignado' %}user-check{% elif status == 'En proceso' %}spinner{% else %}check-circle{% endif %} me-1"></i>
-
             {{ status }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+          {% for city in ['Todas', 'Medellín', 'Bogotá'] %}
+          <input type="radio" class="btn-check" name="filterCity" id="btnCity{{ city }}" {% if city=='Todas'
+            %}checked{% endif %}>
+          <label class="btn btn-outline-secondary" for="btnCity{{ city }}">
+            <i class="fas fa-city me-1"></i>
+            {{ city }}
           </label>
           {% endfor %}
         </div>
@@ -107,13 +116,14 @@
             <th>Prioridad</th>
             <th>Tipo de Servicio</th>
             <th>Problemas</th>
+            <th>Ciudad</th>
             <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
           {% if ticket.state != 'Terminado' %}
-          <tr class="align-middle" data-status="{{ ticket.state }}">
+          <tr class="align-middle" data-status="{{ ticket.state }}" data-city="{{ ticket.city }}">
             <td class="ps-3 fw-bold">#{{ ticket.id_ticket }}</td>
             <td>{{ ticket.reference }}</td>
             <td>
@@ -150,6 +160,9 @@
               {% else %}
               <span class="text-muted">Sin problemas registrados</span>
               {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ ticket.city }}</span>
             </td>
             <td class="text-center">
               <div class="btn-group">

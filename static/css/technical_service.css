@@ -1,11 +1,11 @@
 :root {
-  --color-primario: #60A5FA;       /* Celeste (color principal) */
-  --color-secundario: #000000;    /* Azul marino (para contrastes) */
+  --color-primario: #6c757d;       /* Gris (color principal) */
+  --color-secundario: #495057;    /* Gris oscuro (para contrastes) */
   --color-fondo: #F3F4F6;         /* Gris neutro (fondo) */
-  --color-texto: #000000;         /* Negro (texto principal) */
+  --color-texto: #495057;         /* Gris oscuro (texto principal) */
   --color-blanco: #FFFFFF;
-  --color-gris: #8b8d8b;    /* Blanco (texto y elementos claros) */
-  --sombra: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  --color-gris: #8b8d8b;         /* Gris medio */
+  --sombra: 0 4px 6px rgba(108, 117, 125, 0.1); /* Sombra suave en gris */
 }
 
 body {
@@ -285,26 +285,49 @@ body {
   font-size: 0.9rem !important;
 }
 
-/* Asegurar que los botones de filtro son grises */
-.btn-check:checked + .btn-outline-secondary, 
-.btn-check:checked + .btn-outline-primary {
-  background-color: #6c757d !important;
-  border-color: #6c757d !important;
-  color: #fff !important;
+/* Estilos para los botones de filtro */
+.btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:active,
+.btn-outline-secondary:focus,
+.btn-check:checked + .btn-outline-secondary {
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
 }
 
 .filter-active {
-  background-color: #6c757d !important;
-  border-color: #6c757d !important;
-  color: #fff !important;
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
 }
 
-/* Ajustes para la clase active en los botones de filtro */
-.btn-outline-secondary:hover,
-.btn-outline-primary:hover {
-  background-color: #5a6268 !important;
-  border-color: #545b62 !important;
-  color: #fff !important;
+/* Ajustes para los botones de filtro */
+.btn-check:checked + .btn-outline-secondary, 
+.btn-check:checked + .btn-outline-primary {
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+/* Quitar colores primarios de los botones */
+.btn-outline-primary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:active,
+.btn-outline-primary:focus {
+    color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
 }
 
 /* Asegurar que todos los iconos sean grises */
@@ -321,21 +344,46 @@ i.text-primary,
   background-color: #6c757d !important;
 }
 
-/* Estilos para el paginado */
+/* Estilos para el paginado con botones grises */
+.pagination .page-item .page-link {
+    color: #6c757d !important;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    transition: all 0.2s ease-in-out;
+}
+
 .pagination .page-item.active .page-link {
-  background-color: #6c757d !important;
-  border-color: #6c757d !important;
-  color: #fff !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
+    font-weight: 500;
 }
 
-.pagination .page-link {
-  color: #6c757d !important;
+.pagination .page-item .page-link:hover {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #fff !important;
 }
 
-.pagination .page-link:hover {
-  background-color: #e9ecef !important;
-  border-color: #dee2e6 !important;
-  color: #5a6268 !important;
+.pagination .page-item.disabled .page-link {
+    color: #adb5bd !important;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    pointer-events: none;
+}
+
+.pagination .page-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+    z-index: 3;
 }
 
 /* Estilos para los timestamps */
@@ -481,4 +529,93 @@ i.text-primary,
 #searchPartsModal .modal-header {
     border-bottom: 1px solid #e9ecef;
     padding: 0.75rem 1rem;
+}
+
+/* Estilos para los botones de filtro activos */
+.filter-active {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+/* Ajustes para los botones de filtro */
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+/* Estilos para la tabla */
+.table th, .table td {
+    padding: 0.5rem;
+}
+
+/* Estilos mejorados para la paginación */
+.pagination {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Estilos para el selector de filas por página */
+#rowsPerPage {
+    padding: 0.375rem 2rem 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background-color: #fff;
+    cursor: pointer;
+    height: 32px;
+}
+
+#rowsPerPage:focus {
+    border-color: #6c757d;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+/* Contenedor de la información de paginación */
+.card-footer {
+    background-color: #fff !important;
+    border-top: 1px solid #dee2e6;
+    padding: 0.75rem 1.25rem;
+}
+
+.card-footer small {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.card-footer strong {
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Ajustes responsivos para la paginación */
+@media (max-width: 576px) {
+    .pagination .page-link {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        min-width: 28px;
+        height: 28px;
+    }
+
+    #rowsPerPage {
+        padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        height: 28px;
+    }
+
+    .card-footer {
+        padding: 0.5rem 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .card-footer .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
 }

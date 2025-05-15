@@ -152,3 +152,17 @@ tr[data-status="Terminado"] {
     margin-top: 20px;
     margin-bottom: 30px;
 }
+
+/* Estilos para los botones de filtro activos */
+.filter-active {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+/* Ajustes para los botones de filtro */
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}

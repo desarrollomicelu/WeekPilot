@@ -240,4 +240,23 @@
 #searchPartsModal .modal-header {
     border-bottom: 1px solid #e9ecef;
     padding: 0.75rem 1rem;
+}
+
+/* Estilos para los botones de filtro activos */
+.filter-active {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+/* Ajustes para los botones de filtro */
+.btn-outline-secondary:hover {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #495057 !important;
+}
+
+/* Estilos para la tabla */
+.table th, .table td {
+    padding: 0.5rem;
 } 

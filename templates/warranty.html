@@ -38,7 +38,7 @@
 <div class="card mb-3 border-0 shadow-sm mx-2">
   <div class="card-body py-2">
     <div class="row">
-      <div class="col-12">
+      <div class="col-12 mb-2">
         <div class="d-flex gap-2 flex-wrap justify-content-center">
           {% for status in ['Todos', 'Activos', 'Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado'] %}
           <input type="radio" class="btn-check" name="filterStatus" id="btn{{ status }}" {% if status=='Todos'
@@ -49,6 +49,25 @@
             {{ status }}
           </label>
           {% endfor %}
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="d-flex gap-2 flex-wrap justify-content-center">
+          <input type="radio" class="btn-check" name="filterCity" id="btnAllCities" checked>
+          <label class="btn btn-outline-secondary" for="btnAllCities">
+            <i class="fas fa-globe me-1"></i>
+            Todas las ciudades
+          </label>
+          <input type="radio" class="btn-check" name="filterCity" id="btnMedellin">
+          <label class="btn btn-outline-secondary" for="btnMedellin">
+            <i class="fas fa-city me-1"></i>
+            Medellín
+          </label>
+          <input type="radio" class="btn-check" name="filterCity" id="btnBogota">
+          <label class="btn btn-outline-secondary" for="btnBogota">
+            <i class="fas fa-city me-1"></i>
+            Bogotá
+          </label>
         </div>
       </div>
     </div>
@@ -78,12 +97,13 @@
             <th class="text-start" >Estado</th>
             <th class="text-start" >Prioridad</th>
             <th class="text-start" >Motivo</th>
+            <th class="text-start" >Ciudad</th>
             <th class="text-center" >Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for ticket in tickets %}
-          <tr class="align-middle" data-status="{{ ticket.state }}">
+          <tr class="align-middle" data-status="{{ ticket.state }}" data-city="{{ ticket.city }}">
             <td class="ps-2 fw-bold" style="width: 5%">#{{ ticket.id_ticket }}</td>
             <td class="text-nowrap">
               {% if ticket.reference %}
@@ -118,6 +138,9 @@
               {% else %}
                 <span class="text-muted">{{ ticket.reason or 'N/A' }}</span>
               {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ ticket.city }}</span>
             </td>
             <td class="text-center">
               <div class="btn-group btn-group-sm">

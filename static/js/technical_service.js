@@ -308,69 +308,68 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Filtros Rápidos por Estado ---
     $(document).ready(function () {
-        function filterTickets(status) {
-            if (status === 'Todos') {
-                // Mostrar todos los tickets
-                $('#ticketsTable tbody tr').show();
-            } else if (status === 'Activos') {
-                // Mostrar todos los tickets que NO están en estado "Terminado"
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    $(this).toggle(ticketState !== 'Terminado');
-                });
-            } else {
-                // Filtrar por el estado específico seleccionado
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    // Comparación exacta de cadenas para evitar problemas con mayúsculas/minúsculas o espacios
-                    $(this).toggle(ticketState === status);
-                });
-            }
+        function filterTickets() {
+            const selectedStatus = $('input[name="filterStatus"]:checked').next('label').text().trim();
+            const selectedCity = $('input[name="filterCity"]:checked').next('label').text().trim();
+            
+            $('#ticketsTable tbody tr').each(function () {
+                const ticketState = $(this).attr('data-status');
+                const ticketCity = $(this).attr('data-city');
+                let showByStatus = false;
+                let showByCity = false;
+                
+                // Filtro por estado
+                if (selectedStatus === 'Todos') {
+                    showByStatus = true;
+                } else if (selectedStatus === 'Activos') {
+                    showByStatus = ticketState !== 'Terminado';
+                } else {
+                    showByStatus = ticketState === selectedStatus;
+                }
+                
+                // Filtro por ciudad
+                if (selectedCity === 'Todas las ciudades') {
+                    showByCity = true;
+                } else {
+                    showByCity = ticketCity === selectedCity;
+                }
+                
+                // Mostrar solo si cumple ambos filtros
+                $(this).toggle(showByStatus && showByCity);
+            });
+            
             // Actualizar contador de tickets visibles
             updateTicketCounter();
             
             // Mostrar mensaje si no hay resultados visibles
             showNoResultsMessage($('#ticketsTable tbody tr:visible').length === 0);
         }
-        
-        // Función para mostrar u ocultar el mensaje de "No hay resultados"
-        function showNoResultsMessage(show) {
-            const noResultsRow = $('#noResultsRow');
-            
-            if (show) {
-                if (noResultsRow.length === 0) {
-                    // Crear y añadir la fila de "No hay resultados"
-                    const newRow = `
-                        <tr id="noResultsRow">
-                            <td colspan="10" class="text-center py-4">
-                                <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
-                                <p class="text-muted">No hay tickets que coincidan con el filtro seleccionado.</p>
-                            </td>
-                        </tr>
-                    `;
-                    $('#ticketsTable tbody').append(newRow);
-                }
-            } else {
-                // Eliminar la fila de "No hay resultados" si existe
-                noResultsRow.remove();
-            }
-        }
 
-        // Manejo del evento de cambio en los botones de filtro
+        // Manejo del evento de cambio en los botones de filtro de estado
         $('input[name="filterStatus"]').on('change', function () {
-            const selectedStatus = $(this).next('label').text().trim();
-            filterTickets(selectedStatus);
+            filterTickets();
             // Actualizar clase visual activa
-            $('.btn-outline-secondary').removeClass('filter-active');
+            $('.btn-outline-secondary[for^="btn"]').removeClass('filter-active');
             $(this).next('label').addClass('filter-active');
             // Actualizar paginación después de filtrar
             setTimeout(updatePaginationAfterFilter, 100);
         });
 
-        // Inicializar con "Todos" seleccionado
-        filterTickets('Todos');
+        // Manejo del evento de cambio en los botones de filtro de ciudad
+        $('input[name="filterCity"]').on('change', function () {
+            filterTickets();
+            // Actualizar clase visual activa para los botones de ciudad
+            $('.btn-outline-secondary[for^="btn"]').removeClass('filter-active');
+            $(this).next('label').addClass('filter-active');
+            // Actualizar paginación después de filtrar
+            setTimeout(updatePaginationAfterFilter, 100);
+        });
+
+        // Inicializar con "Todos" y "Todas las ciudades" seleccionados
+        filterTickets();
         $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
-        
+        $('input[name="filterCity"]:checked').next('label').addClass('filter-active');
+
         // Búsqueda en la tabla
         $('#searchInput').on('input', function() {
             const searchValue = this.value.toLowerCase();

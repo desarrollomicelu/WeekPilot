@@ -76,16 +76,34 @@ window.updatePaginationAfterFilter = function () {
     }
 };
 
-function filterTickets(status) {
-    if (status === 'Todos') {
-        $('tbody tr').show();
-    } else {
-        $('tbody tr').each(function () {
-            var $select = $(this).find('select.status-select');
-            var ticketStatus = $select.val();
-            $(this).toggle(ticketStatus === status);
-        });
-    }
+function filterTickets() {
+    const selectedStatus = $('input[name="filterStatus"]:checked').next('label').text().trim();
+    const selectedCity = $('input[name="filterCity"]:checked').next('label').text().trim();
+    
+    $('tbody tr').each(function () {
+        const $select = $(this).find('select.status-select');
+        const ticketStatus = $select.val();
+        const ticketCity = $(this).attr('data-city');
+        let showByStatus = false;
+        let showByCity = false;
+        
+        // Filtro por estado
+        if (selectedStatus === 'Todos') {
+            showByStatus = true;
+        } else {
+            showByStatus = ticketStatus === selectedStatus;
+        }
+        
+        // Filtro por ciudad
+        if (selectedCity === 'Todas') {
+            showByCity = true;
+        } else {
+            showByCity = ticketCity === selectedCity;
+        }
+        
+        // Mostrar/ocultar según ambos filtros
+        $(this).toggle(showByStatus && showByCity);
+    });
     updateTicketCounter();
     setTimeout(updatePaginationAfterFilter, 100);
 }
@@ -278,11 +296,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         // --- Filtro por estado (radios) ---
-        $('input[name="filterStatus"]').on('change', function () {
-            const selectedStatus = $(this).next('label').text().trim();
-            filterTickets(selectedStatus);
+        $('input[name="filterStatus"], input[name="filterCity"]').on('change', function () {
+            filterTickets();
             $('.filter-active').removeClass('filter-active');
-            $(this).next('label').addClass('filter-active');
+            $('input[name="filterStatus"]:checked, input[name="filterCity"]:checked').next('label').addClass('filter-active');
         });
 
         $('select[name="status"]').on('change', function () {
@@ -290,9 +307,9 @@ document.addEventListener("DOMContentLoaded", function () {
             filterTickets(activeFilter);
         });
 
-        // Inicializar filtro
-        filterTickets('Todos');
-        $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+        // Inicializar filtros
+        filterTickets();
+        $('input[name="filterStatus"]:checked, input[name="filterCity"]:checked').next('label').addClass('filter-active');
     });
 
     // 3) Paginación
