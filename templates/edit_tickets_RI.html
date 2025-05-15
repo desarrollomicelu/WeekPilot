@@ -275,6 +275,16 @@
               </div>
             </div>
           </div>
+          <div class="mb-3 row">
+            <label for="discounted_value" class="col-sm-5 col-form-label">Valor Descontado</label>
+            <div class="col-sm-7">
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control" id="discounted_value" name="discounted_value" 
+                       value="{{ '{:,.0f}'.format(ticket.discounted_value|int).replace(',', '.') }}" min="0">
+              </div>
+            </div>
+          </div>
           <div class="row">
             <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
             <div class="col-sm-7">

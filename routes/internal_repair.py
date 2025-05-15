@@ -104,6 +104,7 @@ def create_ticketsRI():
             service_value = request.form.get("service_value") or 0
             total = request.form.get("total") or 0
             spare_value = request.form.get("spare_value") or 0
+            discounted_value = request.form.get('discounted_value', '0')
 
             if IMEI:
                 if not IMEI.isdigit():
@@ -124,10 +125,13 @@ def create_ticketsRI():
                     ',', '.') if isinstance(total, str) else total
                 spare_value = spare_value.replace('.', '').replace(
                     ',', '.') if isinstance(spare_value, str) else spare_value
+                discounted_value = discounted_value.replace('.', '').replace(
+                    ',', '.') if isinstance(discounted_value, str) else discounted_value
 
                 service_value = float(service_value)
                 total = float(total)
                 spare_value = float(spare_value)
+                discounted_value = float(discounted_value)
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
                 return redirect(url_for("internal_repair.create_ticketsRI"))
@@ -194,6 +198,7 @@ def create_ticketsRI():
                 finished=finished,
                 spare_value=spare_value,
                 service_value=service_value,
+                discounted_value=discounted_value,
                 total=total,
                 client=None
             )
@@ -329,6 +334,9 @@ def edit_tickets_RI(ticket_id):
                     "service_value", ticket.service_value))
                 spare_value = float(request.form.get(
                     "spare_value", ticket.spare_value))
+                discounted_value = request.form.get('discounted_value', str(ticket.discounted_value))
+                discounted_value = discounted_value.replace('.', '').replace(',', '.')
+                discounted_value = float(discounted_value)
                 total = float(request.form.get("total", ticket.total))
             except ValueError:
                 flash("Error: Los valores numéricos deben ser válidos.", "danger")
@@ -366,6 +374,7 @@ def edit_tickets_RI(ticket_id):
             ticket.city = city
             ticket.spare_value = spare_value
             ticket.service_value = service_value
+            ticket.discounted_value = discounted_value
             ticket.total = total
 
             # Actualizar fechas según el estado

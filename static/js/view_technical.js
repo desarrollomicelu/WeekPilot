@@ -97,13 +97,13 @@ function filterTickets() {
         // Filtro por ciudad
         if (selectedCity === 'Todas') {
             showByCity = true;
-        } else {
+    } else {
             showByCity = ticketCity === selectedCity;
         }
         
         // Mostrar/ocultar según ambos filtros
         $(this).toggle(showByStatus && showByCity);
-    });
+        });
     updateTicketCounter();
     setTimeout(updatePaginationAfterFilter, 100);
 }
