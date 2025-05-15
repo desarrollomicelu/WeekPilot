@@ -1,1070 +1,1411 @@
 // El archivo toast-notifications.js ahora maneja todas las notificaciones
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Inicializar tooltips de Bootstrap
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+$(document).ready(function () {
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Variables para seguimiento de filtros activos
+    let filteredStatus = 'Todos';
+    
+    // Hacer la variable de filtro accesible globalmente
+    window.filteredStatus = filteredStatus;
+
+    console.log('Documento listo. Inicializando eventos...');
+    
+    // Filtrado por estado
+    $('input[name="filterStatus"]').on('change', function() {
+        filteredStatus = $(this).attr('id').replace('btn', '');
+        // Actualizar también la variable global
+        window.filteredStatus = filteredStatus;
+        applyFilters();
+    });
+    
+    // Filtrado por ciudad usando los botones de radio
+    $('input[name="filterCity"]').on('change', function() {
+        // Aplicar filtros cuando cambia la selección de ciudad
+        applyFilters();
+        
+        // Actualizar clase visual activa
+        $('input[name="filterCity"]').next('label').removeClass('filter-active');
+        $(this).next('label').addClass('filter-active');
     });
 
-    // Definir el orden de los estados (de menor a mayor progreso)
-    const stateOrder = {
-        "Sin asignar": 1,
-        "Asignado": 2,
-        "En proceso": 3,
-        "En Revision": 4,
-        "Terminado": 5,
-        "Cancelado": 5 // Mismo nivel que Terminado para no permitir retroceder
-    };
+    // Filtro de búsqueda para referencias
+    $('#searchReference').on('input', function () {
+        const searchText = $(this).val().toLowerCase();
+        $('#reference option').each(function () {
+            const text = $(this).text().toLowerCase();
+            const found = text.indexOf(searchText) > -1;
+            $(this).toggle(found);
+        });
+    });
 
-    // ===== GESTIÓN DE REPUESTOS =====
-    const partsTable = document.getElementById('partsTable');
-    if (partsTable) {
-        const partsTableBody = partsTable.querySelector('tbody');
-        const addPartBtn = document.getElementById('addPartBtn');
-        const partRowTemplate = document.getElementById('partRowTemplate');
-        const noPartsRow = document.getElementById('noPartsRow');
-        const serviceValueInput = document.getElementById('service_value');
-        const spareValueInput = document.getElementById('spare_value');
-        const totalInput = document.getElementById('total');
+    // Inicializar state_display
+    $('#state_display').val($('#state').val() || 'Sin asignar');
 
-        // Función para calcular el total de un repuesto individual
-        function editPartTotal(row) {
-            const quantity = parseFloat(row.querySelector('.part-quantity').value) || 0;
-            const unitValue = parseFloat(row.querySelector('.part-unit-value').value) || 0;
-            const totalValue = quantity * unitValue;
-            row.querySelector('.part-total-value').value = totalValue;
-            editTotals();
+    // Actualiza referencias y código de producto
+    $('#reference').on('change', function () {
+        const selected = $(this).find('option:selected');
+        const code = selected.data('code') || '';
+        $('#product_code').val(code);
+    });
+
+    // Actualiza documento técnico
+    $('#technical_name').on('change', function () {
+        const selected = $(this).find('option:selected');
+        const document = selected.data('document') || '';
+        if (document) {
+            $('#documento').val(document);
+            $('#state').val('Asignado');
+            $('#state_display').val('Asignado');
+        } else {
+            $('#documento').val('Sin asignar');
+            $('#state').val('Sin asignar');
+            $('#state_display').val('Sin asignar');
         }
+    });
 
-        // Función para actualizar todos los totales
-        function editTotals() {
-            let spareTotal = 0;
-            document.querySelectorAll('.part-total-value').forEach(input => {
-                spareTotal += parseFloat(input.value) || 0;
-            });
-            spareValueInput.value = spareTotal;
-            const serviceValue = parseFloat(serviceValueInput.value) || 0;
-            totalInput.value = serviceValue + spareTotal;
+    // Manejo de problemas
+    setupProblemsField();
+
+    // Configuración de la tabla de repuestos
+    setupPartsTable();
+
+    // Formato de moneda para campos
+    setupFormattedNumbers();
+
+    // Validación de IMEI
+    $('#IMEI').on('input', function () {
+        const value = $(this).val();
+        const isValid = /^\d{15}$/.test(value);
+
+        if (value === '') {
+            $(this).removeClass('is-invalid is-valid');
+        } else if (isValid) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
         }
+    });
 
-        // Función para actualizar los índices de las filas
-        function editRowIndices() {
-            const rows = partsTableBody.querySelectorAll('.part-row');
-            rows.forEach((row, index) => {
-                const indexCell = row.querySelector('.part-index');
-                indexCell.textContent = index + 1;
-                // Aplicar padding al índice
-                indexCell.style.padding = '15px';
-            });
+    $(document).on('input', '.part-quantity', function() {
+        updateRowTotal($(this).closest('tr'));
+    });
 
-            // Mostrar/ocultar la fila "No se han agregado repuestos"
-            if (rows.length === 0 && noPartsRow) {
-                noPartsRow.style.display = '';
-            } else if (noPartsRow) {
-                noPartsRow.style.display = 'none';
-            }
-        }
+    $(document).on('input', '.part-unit-value', function() {
+        // Formatear el valor
+        formatCurrency($(this));
+        // Actualizar el total de la fila
+        updateRowTotal($(this).closest('tr'));
+    });
 
-        // Evento para agregar un nuevo repuesto
-        if (addPartBtn) {
-            addPartBtn.addEventListener('click', function () {
-                if (noPartsRow) {
-                    noPartsRow.remove();
+    $(document).on('click', '.remove-part', function() {
+        const $tr = $(this).closest('tr');
+        
+        // Preguntar antes de eliminar
+        Swal.fire({
+            title: '¿Eliminar repuesto?',
+            text: '¿Estás seguro de eliminar este repuesto?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $tr.remove();
+                
+                // Si no quedan filas, mostrar la fila de "no hay repuestos"
+                if ($('#partsTable tbody tr.part-row').length === 0) {
+                    $('#noPartsRow').show();
                 }
-
-                const newRow = document.importNode(partRowTemplate.content, true).querySelector('tr');
-                partsTableBody.appendChild(newRow);
-
-                // Inicializar Select2 para el nuevo select de repuesto si está disponible
-                if ($.fn.select2 && newRow.querySelector('select')) {
-                    $(newRow.querySelector('select')).select2({
-                        width: '90%',
-                        placeholder: "Seleccione un repuesto",
-                        allowClear: true
-                    });
-                }
-
-                // Configurar eventos para el nuevo repuesto
-                newRow.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(newRow));
-                newRow.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(newRow));
-                newRow.querySelector('.remove-part').addEventListener('click', () => {
-                    // Pedir confirmación antes de eliminar
-                    confirmAction(
-                        '¿Eliminar repuesto?',
-                        '¿Estás seguro de eliminar este repuesto?',
-                        'Sí, eliminar',
-                        'Cancelar',
-                        () => {
-                            newRow.remove();
-                            editRowIndices();
-                            editTotals();
-
-                            if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                                const emptyRow = document.createElement('tr');
-                                emptyRow.id = 'noPartsRow';
-                                emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                                partsTableBody.appendChild(emptyRow);
-                            }
-
-                            // Mostrar toast de confirmación
-                            showSuccessToast('Repuesto eliminado correctamente');
-                        }
-                    );
-                });
-
-                editRowIndices();
-
-                // Mostrar toast de confirmación
-                showSuccessToast('Repuesto agregado correctamente');
-            });
-        }
-
-        // Configurar eventos para filas existentes
-        function setupExistingRows() {
-            const existingRows = partsTableBody.querySelectorAll('.part-row');
-
-            existingRows.forEach(row => {
-                // Configurar Select2 para el select de descripción si está disponible
-                if ($.fn.select2 && row.querySelector('select')) {
-                    $(row.querySelector('select')).select2({
-                        width: '100%',
-                        placeholder: "Seleccione un repuesto",
-                        allowClear: true
-                    });
-                }
-
-                // Configurar eventos para cantidad y valor unitario
-                row.querySelector('.part-quantity').addEventListener('input', () => editPartTotal(row));
-                row.querySelector('.part-unit-value').addEventListener('input', () => editPartTotal(row));
-
-                // Configurar evento para eliminar
-                row.querySelector('.remove-part').addEventListener('click', () => {
-                    // Pedir confirmación antes de eliminar
-                    confirmAction(
-                        '¿Eliminar repuesto?',
-                        '¿Estás seguro de eliminar este repuesto?',
-                        'Sí, eliminar',
-                        'Cancelar',
-                        () => {
-                            row.remove();
-                            editRowIndices();
-                            editTotals();
-
-                            if (partsTableBody.querySelectorAll('.part-row').length === 0) {
-                                const emptyRow = document.createElement('tr');
-                                emptyRow.id = 'noPartsRow';
-                                emptyRow.innerHTML = '<td colspan="6" class="text-center py-3">No se han agregado repuestos para este servicio.</td>';
-                                partsTableBody.appendChild(emptyRow);
-                            }
-
-                            // Mostrar toast de confirmación
-                            showSuccessToast('Repuesto eliminado correctamente');
-                        }
-                    );
-                });
-            });
-
-            // Inicializar los totales
-            editTotals();
-        }
-
-        // Configurar filas existentes al cargar la página
-        setupExistingRows();
-
-        // Evento para cuando cambia el valor del servicio
-        if (serviceValueInput) {
-            serviceValueInput.addEventListener('input', editTotals);
-        }
-    }
-
-    // ===== BÚSQUEDA EN TABLA DE TICKETS =====
-    const searchRepairs = document.getElementById("searchRepairs");
-    const ticketsTable = document.getElementById("ticketsTable");
-
-    if (searchRepairs && ticketsTable) {
-        searchRepairs.addEventListener("input", function () {
-            const searchValue = this.value.toLowerCase();
-            const rows = ticketsTable.getElementsByTagName("tr");
-
-            let visibleRows = 0;
-            for (let i = 1; i < rows.length; i++) {
-                let rowText = rows[i].textContent.toLowerCase();
-                if (rowText.includes(searchValue)) {
-                    rows[i].style.display = "";
-                    visibleRows++;
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-
-            // Actualizar contador después de la búsqueda
-            document.getElementById('currentRowsCount').textContent = visibleRows;
-
-            // Actualizar paginación después de buscar
-            if (typeof updatePaginationAfterFilter === 'function') {
-                updatePaginationAfterFilter();
+                
+                // Actualizar el total
+                updatePartsTotals();
             }
         });
+    });
+
+    // Manejo de envío de formulario
+    $('#ticketForm').on('submit', function (e) {
+        e.preventDefault();
+
+        // Validar campos obligatorios
+        if (!validateForm()) {
+            return false;
+        }
+
+        // Mostrar modal de confirmación
+        Swal.fire({
+            title: '¿Crear ticket de reparación interna?',
+            text: "Se generará un nuevo ticket con la información proporcionada.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, crear ticket',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.submit();
+            }
+        });
+    });
+
+    // Procesar los mensajes flash
+    processFlashMessages();
+
+    // Inicializar total
+    updateTotal();
+
+    // Configurar búsqueda en el modal de repuestos
+    setupSearchPartsModal();
+
+    $('#searchProductBtn').on('click', function () {
+        // Mostrar el modal de búsqueda de productos
+        $('#searchProductsModal').modal('show');
+    });
+
+    // Configurar el modal de búsqueda de productos
+    $('#searchProductsModal').on('shown.bs.modal', function () {
+        $('#modalProductSearch').val('').focus();
+        $('#initialProductSearchMessage').show();
+        $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+    });
+
+    // Configurar la búsqueda de productos
+    $('#modalProductSearch').on('input', function () {
+        const searchTerm = $(this).val().trim();
+        if (searchTerm.length >= 3) {
+            searchProducts(searchTerm);
+        } else {
+            $('#initialProductSearchMessage').show();
+            $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+        }
+    });
+
+    // Limpiar búsqueda de productos
+    $('#clearProductSearch').on('click', function () {
+        $('#modalProductSearch').val('');
+        $('#initialProductSearchMessage').show();
+        $('#productSearchResultsLoader, #noProductResultsMessage, #productSearchResultsList').hide();
+    });
+
+    // Evento delegado para los botones de búsqueda de repuestos
+    $(document).on('click', '.select-part', function () {
+        // Guardar la fila actual para actualización posterior
+        currentEditingRow = $(this).closest('tr');
+        // Mostrar el modal de búsqueda
+        $('#searchPartsModal').modal('show');
+    });
+
+    // Botón para limpiar búsqueda en el modal
+    $('#clearSearch').on('click', function () {
+        $('#modalPartSearch').val('');
+        $('#initialSearchMessage').show();
+        $('#noResultsMessage').hide();
+        $('#searchResultsLoader').hide();
+        $('#searchResultsList').hide().empty();
+    });
+
+    // Funciones de paginación y filtrado de tabla
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let totalPages = 1;
+    let filteredRows = [];
+
+    function initPagination() {
+        const allRows = $('#ticketsTable tbody tr').not('.no-results');
+        filteredRows = allRows;
+        rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
+        totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        generatePaginationButtons();
+        showPage(1);
     }
 
-    // ===== GESTIÓN DE PROBLEMAS DEL DISPOSITIVO =====
-    const searchProblems = document.getElementById("searchProblems");
-    const problemCheckboxes = document.querySelectorAll(".problem-checkbox");
-    const problemOptions = document.querySelectorAll(".problem-option");
-    const selectedProblemsTextarea = document.getElementById("selected_problems");
-    const selectAllProblemsBtn = document.getElementById("selectAllProblems");
-    const clearProblemsBtn = document.getElementById("clearProblems");
+    function generatePaginationButtons() {
+        $('#pagination li').not('#prevPage, #nextPage').remove();
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                const isActive = i === currentPage ? 'active' : '';
+                $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
+            }
+        } else {
+            $('#nextPage').before(`<li class="page-item ${currentPage === 1 ? 'active' : ''}" data-page="1"><a class="page-link" href="#">1</a></li>`);
+            let startPage = Math.max(2, currentPage - 2);
+            let endPage = Math.min(totalPages - 1, currentPage + 2);
+            if (startPage > 2) {
+                $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
+            }
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage ? 'active' : '';
+                $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
+            }
+            if (endPage < totalPages - 1) {
+                $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
+            }
+            $('#nextPage').before(`<li class="page-item ${currentPage === totalPages ? 'active' : ''}" data-page="${totalPages}"><a class="page-link" href="#">${totalPages}</a></li>`);
+        }
+        updatePrevNextButtons();
+    }
+
+    function showPage(pageNum) {
+        if (pageNum < 1 || pageNum > totalPages) return;
+        currentPage = pageNum;
+        filteredRows.hide();
+        const startIndex = (pageNum - 1) * rowsPerPage;
+        const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
+        filteredRows.slice(startIndex, endIndex).show();
+        $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length - startIndex));
+        $('#pagination li').removeClass('active');
+        $(`#pagination li[data-page="${pageNum}"]`).addClass('active');
+        updatePrevNextButtons();
+    }
+
+    function updatePrevNextButtons() {
+        if (currentPage === 1) {
+            $('#prevPage').addClass('disabled');
+        } else {
+            $('#prevPage').removeClass('disabled');
+        }
+        if (currentPage === totalPages || totalPages === 0) {
+            $('#nextPage').addClass('disabled');
+        } else {
+            $('#nextPage').removeClass('disabled');
+        }
+    }
+
+    $('#rowsPerPage').on('change', function () {
+        rowsPerPage = parseInt($(this).val());
+        totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        currentPage = 1;
+        generatePaginationButtons();
+        showPage(1);
+    });
+
+    $('#pagination').on('click', 'li:not(.disabled)', function (e) {
+        e.preventDefault();
+        const $this = $(this);
+        if ($this.attr('id') === 'prevPage') {
+            showPage(currentPage - 1);
+        } else if ($this.attr('id') === 'nextPage') {
+            showPage(currentPage + 1);
+        } else {
+            const pageNum = parseInt($this.data('page'));
+            if (!isNaN(pageNum)) {
+                showPage(pageNum);
+            }
+        }
+    });
+
+    $('#searchRepairs').on('input', function() {
+        const searchText = $(this).val().toLowerCase();
+        
+        // Guardar estado de visibilidad antes de la búsqueda
+        $('#ticketsTable tbody tr').not('.no-results-row').each(function() {
+            const $row = $(this);
+            // Solo buscar en filas que ya son visibles según los filtros actuales
+            if ($row.is(':visible')) {
+                const rowText = $row.text().toLowerCase();
+                $row.toggle(rowText.includes(searchText));
+            }
+        });
+        
+        // Verificar si hay resultados visibles
+        const visibleRows = $('#ticketsTable tbody tr:visible').not('.no-results-row').length;
+        showNoResultsMessage(visibleRows === 0);
+        
+        // Actualizar contador y paginación
+        updateRowCounter();
+        if (typeof updatePaginationAfterFilter === 'function') {
+            setTimeout(updatePaginationAfterFilter, 100);
+        }
+    });
+
+    // Función para aplicar todos los filtros activos
+    function applyFilters() {
+        // Verificar que los elementos existen antes de intentar acceder a sus propiedades
+        const statusElement = $('input[name="filterStatus"]:checked');
+        const cityElement = $('input[name="filterCity"]:checked');
+        
+        // Valores por defecto en caso de que los elementos no existan
+        const selectedStatus = statusElement.length ? statusElement.attr('id').replace('btn', '') : 'Todos';
+        const selectedCity = cityElement.length ? cityElement.attr('id').replace('btn', '') : 'Todas';
+        
+        console.log(`Aplicando filtros: Estado=${selectedStatus}, Ciudad=${selectedCity}`);
+        
+        // Aplicar filtros a todas las filas
+        $('#ticketsTable tbody tr').not('.no-results-row').each(function() {
+            const $row = $(this);
+            let statusMatch = true;
+            let cityMatch = true;
+            
+            // Verificar filtro de estado
+            const rowStatus = $row.attr('data-status');
+            if (selectedStatus === 'Todos') {
+                statusMatch = true;
+            } else {
+                statusMatch = (rowStatus === selectedStatus);
+            }
+            
+            // Verificar filtro de ciudad
+            const rowCity = $row.attr('data-city');
+            if (selectedCity === 'Todas') {
+                cityMatch = true;
+            } else {
+                cityMatch = (rowCity === selectedCity);
+            }
+            
+            // Mostrar u ocultar la fila basado en ambos filtros
+            $row.toggle(statusMatch && cityMatch);
+        });
+        
+        // Verificar si hay resultados visibles
+        const visibleRows = $('#ticketsTable tbody tr:visible').not('.no-results-row').length;
+        showNoResultsMessage(visibleRows === 0);
+        
+        // Actualizar contador de filas visibles
+        updateRowCounter();
+        
+        // Actualizar paginación
+        if (typeof updatePaginationAfterFilter === 'function') {
+            setTimeout(updatePaginationAfterFilter, 100);
+        }
+    }
+    
+    // Función para mostrar u ocultar mensaje de "no hay resultados"
+    function showNoResultsMessage(show) {
+        $('.no-results-row').remove();
+        
+        if (show) {
+            // Verificar que los elementos existen antes de intentar acceder a sus propiedades
+            const statusElement = $('input[name="filterStatus"]:checked');
+            const cityElement = $('input[name="filterCity"]:checked');
+            
+            // Obtener textos con verificación de existencia
+            const statusText = statusElement.length ? statusElement.next('label').text().trim() : 'Todos';
+            const cityText = cityElement.length ? cityElement.next('label').text().trim() : 'Todas';
+            
+            let message = 'No hay tickets';
+            if (cityText !== 'Todas') {
+                message += ` en ${cityText}`;
+            }
+            if (statusText !== 'Todos') {
+                message += ` con estado "${statusText}"`;
+            }
+            
+            const colspan = $('#ticketsTable thead th').length || 10; // Valor por defecto de 10 si no se encuentra
+            const $noResults = $(`
+                <tr class="no-results-row">
+                    <td colspan="${colspan}" class="text-center py-5">
+                        <i class="fas fa-filter fa-3x mb-3 text-muted"></i>
+                        <p class="text-muted">${message}</p>
+                        <button class="btn btn-outline-secondary btn-sm reset-filters">
+                            <i class="fas fa-times me-1"></i>Limpiar filtros
+                        </button>
+                    </td>
+                </tr>
+            `);
+            
+            $('#ticketsTable tbody').append($noResults);
+            
+            // Agregar evento para el botón de limpiar filtros
+            $('.reset-filters').on('click', function() {
+                // Seleccionar "Todos" para estado y "Todas" para ciudad
+                $('#btnTodos, #btnTodas').prop('checked', true);
+                // Aplicar los filtros
+                applyFilters();
+            });
+        }
+    }
+    
+    // Función para actualizar el contador de filas
+    function updateRowCounter() {
+        const visibleCount = $('#ticketsTable tbody tr:visible').not('.no-results-row').length;
+        const totalCount = $('#totalRowsCount').text();
+        $('#currentRowsCount').text(visibleCount);
+    }
+    
+    // Inicializar los filtros al cargar la página
+    setTimeout(function() {
+        // Aplicar los filtros iniciales
+        applyFilters();
+        
+        // Activar las clases visuales para los filtros seleccionados
+        $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+        $('input[name="filterCity"]:checked').next('label').addClass('filter-active');
+    }, 100);
+
+    // Funcion global para mostrar tickets (accesible desde el HTML)
+    window.displayTickets = function(tickets) {
+        const $tbody = $('#ticketsTable tbody');
+        $tbody.empty();
+        
+        if (tickets.length === 0) {
+            // Mejorar el mensaje cuando no hay tickets
+            const cityText = $('#selectedCityText').text() || 'Todas';
+            const statusElement = $('input[name="filterStatus"]:checked');
+            const statusText = statusElement.length ? statusElement.next('label').text().trim() : 'Todos';
+            
+            let message = 'No hay tickets de reparación interna';
+            if (cityText !== 'Ciudades' && cityText !== 'Todas') {
+                message += ` en ${cityText}`;
+            }
+            if (statusText !== 'Todos') {
+                message += ` con estado "${statusText}"`;
+            }
+            
+            $tbody.html(`
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
+                        <p class="text-muted">${message}</p>
+                        <a href="/internal_repair/create_ticketsRI" class="btn btn-secondary">
+                            <i class="fas fa-plus me-1 text-white"></i> Nueva reparación
+                        </a>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+        
+        tickets.forEach(ticket => {
+            const priorityClass = ticket.priority === 'Alta' ? 'bg-danger' : 
+                                 ticket.priority === 'Media' ? 'bg-warning text-dark' : 
+                                 'bg-success';
+                                 
+            const row = `
+            <tr class="align-middle" data-status="${ticket.state}" data-city="${ticket.city || 'desconocida'}">
+                <td class="ps-2 fw-bold">#${ticket.id_ticket}</td>
+                <td class="multiline-cell" title="${ticket.reference || ''}">
+                    ${ticket.reference ? ticket.reference.replace(/seminuevo|Seminuevo|SEMINUEVO/g, "").trim() : 'N/A'}
+                </td>
+                <td class="multiline-cell">
+                    ${ticket.technical_name ? 
+                        `<span title="${ticket.technical_name.replace('.', ' ')}">
+                            ${ticket.technical_name.replace('.', ' ')}
+                        </span>` : 
+                        '<span class="badge bg-secondary">Sin asignar</span>'}
+                </td>
+                <td>
+                    <select class="form-select form-select-sm status-select" 
+                            data-ticket-id="${ticket.id_ticket}" 
+                            data-previous-status="${ticket.state}" 
+                            name="status">
+                        ${['Sin asignar', 'Asignado', 'En proceso', 'En Revision', 'Terminado', 'Cancelado']
+                            .map(status => `<option value="${status}" ${ticket.state === status ? 'selected' : ''}>${status}</option>`)
+                            .join('')}
+                    </select>
+                </td>
+                <td>
+                    <span class="badge ${priorityClass}">
+                        ${ticket.priority}
+                    </span>
+                </td>
+                <td class="text-end">$${formatNumberWithCommas(ticket.service_value)}</td>
+                <td class="text-end">$${formatNumberWithCommas(ticket.spare_value)}</td>
+                <td class="text-end"><span class="badge bg-primary fs-6">$${formatNumberWithCommas(ticket.total)}</span></td>
+                <td>${ticket.city || '<span class="badge bg-secondary">Sin ciudad</span>'}</td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <a href="/internal_repair/edit_tickets_RI/${ticket.id_ticket}"
+                            class="btn btn-sm btn-outline-secondary ${ticket.state === 'Terminado' || ticket.state === 'Cancelado' ? 'disabled' : ''}" 
+                            ${ticket.state === 'Terminado' || ticket.state === 'Cancelado' ? 
+                                'aria-disabled="true" data-bs-toggle="tooltip" data-bs-placement="top" title="No se puede editar un ticket en estado ' + ticket.state + '"' : 
+                                ''}>
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="/internal_repair/detail_RI/${ticket.id_ticket}"
+                            class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            `;
+            $tbody.append(row);
+        });
+        
+        // Reinicializar tooltips y otros elementos interactivos
+        $('[data-bs-toggle="tooltip"]').tooltip();
+        
+        // Reinstalar event handlers para los selectores de estado
+        $('.status-select').off('change').on('change', function() {
+            const $select = $(this);
+            const ticketId = $select.data('ticket-id');
+            const newStatus = $select.val();
+            const previousStatus = $select.data('previous-status');
+            
+            // Mostrar modal de confirmación
+            Swal.fire({
+                title: '¿Cambiar estado?',
+                text: `¿Estás seguro de cambiar el estado de la reparación #${ticketId} a "${newStatus}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    updateRepairStatus($select, ticketId, newStatus, previousStatus);
+                } else {
+                    // Si el usuario cancela, restaurar el valor original
+                    $select.val(previousStatus);
+                }
+            });
+        });
+        
+        // Actualizar contador de tickets
+        updateTicketCounter();
+    };
+
+    initPagination();
+
+    // Exponer la función initPagination globalmente
+    window.initPagination = initPagination;
+});
+
+/**
+ * Actualiza la paginación después de filtrar o modificar la tabla.
+ * Esta función es global para que pueda usarse desde otros scripts.
+ */
+window.updatePaginationAfterFilter = function () {
+    const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
+    const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+
+    // Actualizar contador de tickets visibles
+    $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
+    $('#totalRowsCount').text($('#ticketsTable tbody tr').length);
+
+    // Regenerar botones de paginación si es necesario
+    if ($('#pagination').length) {
+        $('#pagination li').not('#prevPage, #nextPage').remove();
+        for (let i = 1; i <= totalPages; i++) {
+            const isActive = i === 1 ? 'active' : '';
+            $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
+        }
+        // Actualizar los botones de navegación
+        $('#prevPage').addClass('disabled');
+        if (totalPages <= 1) {
+            $('#nextPage').addClass('disabled');
+        } else {
+            $('#nextPage').removeClass('disabled');
+        }
+    }
+};
+
+// Mejora la función validateForm
+function validateForm() {
+    let isValid = true;
+    let firstInvalidElement = null;
+    let errorMessages = [];
+
+    // Validar campos requeridos
+    const requiredFields = [
+        { id: 'technical_name', message: 'Seleccione un técnico' },
+        { id: 'product_code', message: 'Seleccione un producto' }
+    ];
+
+    requiredFields.forEach(field => {
+        const element = $(`#${field.id}`);
+        const value = element.val();
+
+        if (!value || value.trim() === '') {
+            showValidationError(element, field.message);
+            errorMessages.push(field.message);
+            isValid = false;
+            if (!firstInvalidElement) firstInvalidElement = element;
+        } else {
+            removeValidationError(element);
+        }
+    });
+
+    // Validación específica para IMEI
+    const imei = $('#IMEI').val();
+    if (imei && !/^\d{15}$/.test(imei)) {
+        showValidationError($('#IMEI'), 'El IMEI debe contener exactamente 15 dígitos numéricos');
+        errorMessages.push('El IMEI debe contener exactamente 15 dígitos numéricos');
+        isValid = false;
+        if (!firstInvalidElement) firstInvalidElement = $('#IMEI');
+    }
+
+    // Verificar la tabla de repuestos
+    if ($('#partsTable tbody tr').not('#noPartsRow').length > 0) {
+        const partsValid = validatePartsTable();
+        if (!partsValid) {
+            errorMessages.push('Verifique los datos de los repuestos');
+            isValid = false;
+            if (!firstInvalidElement) firstInvalidElement = $('#partsTable');
+        }
+    }
+
+    // Si hay errores, mostrar alerta y desplazarse al primer campo con error
+    if (!isValid) {
+        // Mostrar mensaje de error con SweetAlert
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de validación',
+            html: errorMessages.join('<br>'),
+            confirmButtonText: 'Entendido'
+        });
+
+        // Desplazarse al primer elemento inválido
+        if (firstInvalidElement) {
+            $('html, body').animate({
+                scrollTop: firstInvalidElement.offset().top - 100
+            }, 500);
+        }
+    }
+
+    return isValid;
+}
+
+
+// Función para mostrar error de validación
+function showValidationError(element, message) {
+    element.addClass('is-invalid');
+    if (element.next('.invalid-feedback').length === 0) {
+        element.after(`<div class="invalid-feedback">${message}</div>`);
+    } else {
+        element.next('.invalid-feedback').text(message);
+    }
+}
+
+// Función para quitar error de validación
+function removeValidationError(element) {
+    element.removeClass('is-invalid');
+}
+
+// Configuración del campo de problemas
+function setupProblemsField() {
+    const checkboxes = $('.problem-checkbox');
+    const selectedProblemsTextarea = $('#selected_problems');
 
     // Función para actualizar el textarea de problemas seleccionados
     function updateSelectedProblems() {
-        if (!selectedProblemsTextarea || !problemCheckboxes.length) return;
-
         const selectedProblems = [];
-        problemCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                const label = document.querySelector(`label[for="${checkbox.id}"]`);
-                if (label) {
-                    selectedProblems.push(label.textContent.trim());
-                }
+        checkboxes.each(function () {
+            if ($(this).prop('checked')) {
+                selectedProblems.push($(this).next('label').text().trim());
             }
         });
-
-        selectedProblemsTextarea.value = selectedProblems.join(', ');
+        selectedProblemsTextarea.val(selectedProblems.join(', '));
     }
 
-    // Configurar búsqueda de problemas
-    if (searchProblems && problemOptions.length) {
-        searchProblems.addEventListener('input', function () {
-            const searchTerm = this.value.toLowerCase();
+    // Event listener para checkboxes
+    checkboxes.on('change', updateSelectedProblems);
 
-            problemOptions.forEach(option => {
-                const label = option.querySelector('label');
-                if (label) {
-                    const text = label.textContent.toLowerCase();
-                    option.style.display = text.includes(searchTerm) ? '' : 'none';
-                }
-            });
-        });
-    }
-
-    // Configurar checkboxes de problemas
-    if (problemCheckboxes.length) {
-        problemCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelectedProblems);
-        });
-
-        // Inicializar el textarea con los problemas ya seleccionados
+    // Botón para seleccionar todos
+    $('#selectAllProblems').on('click', function () {
+        checkboxes.prop('checked', true);
         updateSelectedProblems();
-    }
-
-    // Configurar botones de selección de problemas
-    if (selectAllProblemsBtn) {
-        selectAllProblemsBtn.addEventListener('click', function () {
-            problemCheckboxes.forEach(checkbox => {
-                const option = checkbox.closest('.problem-option');
-                if (option && option.style.display !== 'none') {
-                    checkbox.checked = true;
-                }
-            });
-            updateSelectedProblems();
-        });
-    }
-
-    if (clearProblemsBtn) {
-        clearProblemsBtn.addEventListener('click', function () {
-            problemCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            updateSelectedProblems();
-        });
-    }
-
-    // ===== AUTOCOMPLETADO DE DOCUMENTO DEL TÉCNICO =====
-    const technicianSelect = document.getElementById('technical_name');
-    const technicianDocumentInput = document.getElementById('documento');
-    const statusSelect = document.getElementById('state');
-
-    if (technicianSelect && technicianDocumentInput) {
-        technicianSelect.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-
-            // Actualizar el documento del técnico
-            if (selectedOption && selectedOption.value) {
-                technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-
-                // Cambiar el estado a "Asignado" si se selecciona un técnico y existe el select de estado
-                if (statusSelect) {
-                    for (let i = 0; i < statusSelect.options.length; i++) {
-                        if (statusSelect.options[i].value === "Asignado") {
-                            statusSelect.selectedIndex = i;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                technicianDocumentInput.value = '';
-
-                // Cambiar el estado a "Sin asignar" si no se selecciona un técnico y existe el select de estado
-                if (statusSelect) {
-                    for (let i = 0; i < statusSelect.options.length; i++) {
-                        if (statusSelect.options[i].value === "Sin asignar") {
-                            statusSelect.selectedIndex = i;
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
-        // Ejecutar una vez al cargar para manejar valores preseleccionados
-        if (technicianSelect.value) {
-            const selectedOption = technicianSelect.options[technicianSelect.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                // Asignar el documento del técnico solo si no tiene valor o está vacío
-                if (!technicianDocumentInput.value || technicianDocumentInput.value.trim() === '') {
-                    technicianDocumentInput.value = selectedOption.getAttribute('data-document') || '';
-                }
-            }
-        }
-    }
-
-    // ===== AUTOCOMPLETADO DE CÓDIGO DE PRODUCTO =====
-    const referenceSelect = document.getElementById('reference');
-    const productCodeInput = document.getElementById('product_code');
-
-    if (referenceSelect && productCodeInput) {
-        // Guardar el valor original al cargar la página
-        let originalReference = referenceSelect.value;
-        let originalReferenceText = referenceSelect.options[referenceSelect.selectedIndex]?.text || 'Sin seleccionar';
-
-        referenceSelect.addEventListener('change', function () {
-            const newReference = this.value;
-            const newReferenceText = this.options[this.selectedIndex]?.text || 'Sin seleccionar';
-            const selectedOption = this.options[this.selectedIndex];
-
-            // Si la referencia es diferente a la original, pedir confirmación
-            if (newReference !== originalReference && originalReference !== '') {
-                confirmAction(
-                    'Cambiar referencia',
-                    `¿Estás seguro de cambiar la referencia del producto a "${newReferenceText}"?`,
-                    'Sí, cambiar',
-                    'Cancelar',
-                    () => {
-                        // Actualizar el valor original
-                        originalReference = newReference;
-                        originalReferenceText = newReferenceText;
-
-                        // Actualizar el código del producto
-                        if (productCodeInput) {
-                            productCodeInput.value = selectedOption && selectedOption.getAttribute('data-code') ?
-                                selectedOption.getAttribute('data-code') : '';
-                        }
-
-                        // Mostrar toast de confirmación
-                        showSuccessToast(`Referencia cambiada a "${newReferenceText}"`);
-                    }
-                );
-            } else {
-                // Actualizar el código del producto sin confirmación si es la misma referencia
-                if (productCodeInput) {
-                    productCodeInput.value = selectedOption && selectedOption.getAttribute('data-code') ?
-                        selectedOption.getAttribute('data-code') : '';
-                }
-            }
-        });
-
-        // Ejecutar una vez al cargar para manejar valores preseleccionados
-        if (referenceSelect.value) {
-            const selectedOption = referenceSelect.options[referenceSelect.selectedIndex];
-            if (selectedOption && selectedOption.value) {
-                // Asegurar que se cargue el código del producto seleccionado
-                if (!productCodeInput.value) {
-                    productCodeInput.value = selectedOption.getAttribute('data-code');
-                }
-            }
-        }
-    }
-
-    // ===== INICIALIZACIÓN DE SELECT2 =====
-    if ($.fn.select2) {
-        // Inicializar Select2 para selectores específicos
-        $('#reference').select2({
-            width: '100%',
-            placeholder: "Seleccione una opción",
-            allowClear: true
-        });
-
-        // Para los selects dentro de la tabla de repuestos
-        $('.searchable-select').not('#state, #city, #priority, #technical_name, #documento, #product_code').select2({
-            width: '100%',
-            placeholder: "Seleccione una opción",
-            allowClear: true
-        });
-    }
-
-    // ===== VALIDACIÓN DE FORMULARIO =====
-    const ticketForm = document.getElementById('ticketForm');
-
-    if (ticketForm) {
-        ticketForm.addEventListener('submit', function (e) {
-            // Evitar que el formulario se envíe automáticamente
-            e.preventDefault();
-
-            // Quitar formato de moneda antes de enviar
-            document.querySelectorAll('.part-unit-value, .part-total-value, #service_value, #spare_value, #total').forEach(input => {
-                input.value = unformatCurrency(input.value);
-            });
-
-            // Validar campos requeridos
-            let isValid = true;
-            let errorMessage = '';
-
-            // Validar sede
-            const sede = document.getElementById('sede');
-            if (sede && !sede.value.trim()) {
-                isValid = false;
-                errorMessage += 'La sede es requerida.<br>';
-                sede.classList.add('is-invalid');
-            } else if (sede) {
-                sede.classList.remove('is-invalid');
-            }
-
-            // Validar referencia del producto
-            if (referenceSelect && !referenceSelect.value.trim()) {
-                isValid = false;
-                errorMessage += 'La referencia del producto es requerida.<br>';
-                referenceSelect.classList.add('is-invalid');
-            } else if (referenceSelect) {
-                referenceSelect.classList.remove('is-invalid');
-            }
-
-            // Validar código del producto
-            if (productCodeInput && !productCodeInput.value.trim()) {
-                isValid = false;
-                errorMessage += 'El código del producto es requerido.<br>';
-                productCodeInput.classList.add('is-invalid');
-            } else if (productCodeInput) {
-                productCodeInput.classList.remove('is-invalid');
-            }
-
-            // Validar IMEI o Serial
-            const imeiInput = document.getElementById('IMEI');
-            if (imeiInput && !imeiInput.value.trim()) {
-                isValid = false;
-                errorMessage += 'El IMEI o Serial es requerido.<br>';
-                imeiInput.classList.add('is-invalid');
-            } else if (imeiInput) {
-                imeiInput.classList.remove('is-invalid');
-            }
-
-            // Validar valor del servicio
-            const serviceValue = document.getElementById('service_value');
-            if (serviceValue && (!serviceValue.value || isNaN(serviceValue.value) || parseFloat(serviceValue.value) < 0)) {
-                isValid = false;
-                errorMessage += 'El valor del servicio debe ser un número positivo.<br>';
-                serviceValue.classList.add('is-invalid');
-            } else if (serviceValue) {
-                serviceValue.classList.remove('is-invalid');
-            }
-
-            // Si hay errores, mostrar mensaje
-            if (!isValid) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de validación',
-                    html: errorMessage,
-                    confirmButtonText: 'Corregir'
-                });
-                return; // Detener el envío del formulario
-            }
-
-            // Si todo está bien, mostrar confirmación
-            confirmAction(
-                '¿Guardar cambios?',
-                '¿Estás seguro de guardar los cambios en este ticket?',
-                'Sí, guardar',
-                'Cancelar',
-                () => {
-                    // Mostrar indicador de carga
-                    showLoading('Guardando...');
-
-                    // Enviar el formulario
-                    ticketForm.removeEventListener('submit', arguments.callee);
-                    ticketForm.submit();
-                }
-            );
-        });
-    }
-
-    // ===== FUNCIONALIDAD DE FILTRADO Y PAGINACIÓN PARA TABLA DE TICKETS =====
-    if (ticketsTable) {
-        // Variables para la paginación
-        let currentPage = 1;
-        let rowsPerPage = 10; // Default
-        let totalPages = 1;
-        let filteredRows = $(); // jQuery object to store rows matching filters
-
-        // Función para generar los botones de paginación
-        function generatePaginationButtons() {
-            const paginationElement = $('#pagination');
-            if (!paginationElement.length) return;
-
-            // Limpiar botones existentes (excepto Anterior y Siguiente)
-            paginationElement.find('li').not('#prevPage, #nextPage').remove();
-
-            if (totalPages === 0) {
-                $('#prevPage').addClass('disabled');
-                $('#nextPage').addClass('disabled');
-                return; // No buttons if no pages
-            }
-
-            // Si hay pocas páginas, mostrar todas
-            if (totalPages <= 7) {
-                for (let i = 1; i <= totalPages; i++) {
-                    const isActive = i === currentPage ? 'active' : '';
-                    $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-                }
-            } else {
-                // Para muchas páginas, mostrar un subconjunto con elipsis
-                // Siempre mostrar primera página
-                $('#nextPage').before(`<li class="page-item ${currentPage === 1 ? 'active' : ''}" data-page="1"><a class="page-link" href="#">1</a></li>`);
-
-                // Determinar rango de páginas a mostrar
-                let startPage = Math.max(2, currentPage - 2);
-                let endPage = Math.min(totalPages - 1, currentPage + 2);
-
-                // Mostrar elipsis antes si es necesario
-                if (startPage > 2) {
-                    $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
-                }
-
-                // Mostrar páginas intermedias
-                for (let i = startPage; i <= endPage; i++) {
-                    const isActive = i === currentPage ? 'active' : '';
-                    $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-                }
-
-                // Mostrar elipsis después si es necesario
-                if (endPage < totalPages - 1) {
-                    $('#nextPage').before('<li class="page-item disabled"><a class="page-link" href="#">...</a></li>');
-                }
-
-                // Siempre mostrar última página (si no está ya incluida en el rango)
-                if (totalPages > 1) {
-                    $('#nextPage').before(`<li class="page-item ${currentPage === totalPages ? 'active' : ''}" data-page="${totalPages}"><a class="page-link" href="#">${totalPages}</a></li>`);
-                }
-            }
-        }
-
-        // Función para mostrar una página específica
-        function showPage(pageNum) {
-            // Recalculate totalPages based on the current filteredRows count and rowsPerPage
-            totalPages = (filteredRows.length > 0) ? Math.ceil(filteredRows.length / rowsPerPage) : 0;
-
-            // Validate page number
-            if (pageNum < 1) pageNum = 1;
-            if (pageNum > totalPages) pageNum = totalPages;
-            if (totalPages === 0) pageNum = 0; // Indicate no page if no results
-
-            currentPage = pageNum;
-
-            // Ocultar todas las filas filtradas primero
-            if (filteredRows) filteredRows.hide();
-
-            let rowsToShowOnPage = $();
-            let countOnPage = 0;
-
-            // Calcular y mostrar filas para la página actual si hay una página válida
-            if (currentPage > 0 && filteredRows && filteredRows.length > 0) {
-                const startIndex = (currentPage - 1) * rowsPerPage;
-                // Ensure endIndex does not exceed filteredRows length
-                const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
-
-                rowsToShowOnPage = filteredRows.slice(startIndex, endIndex);
-                rowsToShowOnPage.show();
-                countOnPage = rowsToShowOnPage.length;
-            }
-
-            // Actualizar contador de filas mostradas en la página actual
-            if ($('#currentRowsCount').length) {
-                $('#currentRowsCount').text(countOnPage);
-            }
-            // Actualizar contador total de filas filtradas
-            if ($('#totalRowsCount').length) {
-                $('#totalRowsCount').text(filteredRows ? filteredRows.length : 0);
-            }
-
-
-            // Actualizar botones de paginación (highlight active page)
-            $('#pagination li').removeClass('active');
-            if (currentPage > 0) {
-                $(`#pagination li[data-page="${currentPage}"]`).addClass('active');
-            }
-
-            // Actualizar estado de botones Anterior/Siguiente
-            updatePrevNextButtons();
-
-            // Show/Hide "No results" message (handled in updateAndPaginateResults)
-        }
-
-        // Función para actualizar estado de botones Anterior/Siguiente
-        function updatePrevNextButtons() {
-            const prevPage = $('#prevPage');
-            const nextPage = $('#nextPage');
-
-            if (!prevPage.length || !nextPage.length) return;
-
-            // Botón Anterior
-            if (currentPage <= 1) { // Disable if on page 1 or if there are no pages (currentPage=0)
-                prevPage.addClass('disabled');
-            } else {
-                prevPage.removeClass('disabled');
-            }
-
-            // Botón Siguiente
-            if (currentPage === totalPages || totalPages === 0) { // Disable if on last page or no pages
-                nextPage.addClass('disabled');
-            } else {
-                nextPage.removeClass('disabled');
-            }
-        }
-
-        // Función principal que filtra, busca y actualiza la paginación
-        function updateAndPaginateResults() {
-            const searchTerm = ($('#searchRepairs').val() || '').toLowerCase();
-            const selectedStatusLabel = $('input[name="filterStatus"]:checked').next('label').text().trim() || 'Todos'; // Get the label text
-            rowsPerPage = parseInt($('#rowsPerPage').val()); // Get current rows per page setting
-
-            // 1. Obtener todas las filas originales (excluyendo la de "sin resultados")
-            const allRows = $('#ticketsTable tbody tr').not('.no-results');
-
-            // 2. Filtrar por estado
-            let statusFilteredRows = allRows.filter(function () {
-                const $row = $(this);
-                const ticketStatus = $row.data('status'); // e.g., 'En proceso', 'Terminado'
-
-                // Explicitly handle 'Todos'
-                if (selectedStatusLabel === 'Todos') {
-                    return true; // Include all rows if 'Todos' is selected
-                }
-
-                // Handle specific status filters based on the label text
-                switch (selectedStatusLabel) {
-                    case 'Sin asignar':
-                        return !ticketStatus || ticketStatus === 'Sin asignar';
-                    case 'Asignados':
-                        return ticketStatus === 'Asignado';
-                    case 'En Proceso':
-                        // Compare case-insensitively
-                        return ticketStatus && ticketStatus.toLowerCase() === 'en proceso';
-                    case 'Terminados':
-                        return ticketStatus === 'Terminado';
-                    case 'Cancelados':
-                        return ticketStatus === 'Cancelado';
-                    default:
-                        return false; // Default case, should not be reached
-                }
-            });
-
-            // 3. Filtrar por término de búsqueda sobre las filas ya filtradas por estado
-            filteredRows = statusFilteredRows.filter(function () {
-                if (!searchTerm) return true; // Si no hay búsqueda, mantener todas las filas filtradas por estado
-                const rowText = $(this).text().toLowerCase();
-                return rowText.includes(searchTerm);
-            });
-
-            // Ocultar todas las filas antes de mostrar las de la página correcta
-            allRows.hide();
-
-            // Recalcular total de páginas basado en las filas filtradas finales
-            totalPages = (filteredRows.length > 0) ? Math.ceil(filteredRows.length / rowsPerPage) : 0;
-
-            // Resetear a la página 1 si es necesario
-            if (currentPage > totalPages) {
-                currentPage = Math.max(1, totalPages);
-            }
-            if (currentPage === 0 && totalPages > 0) {
-                currentPage = 1;
-            }
-
-            // Generar botones de paginación ANTES de llamar a showPage
-            generatePaginationButtons();
-
-            // Mostrar la página correcta (que actualizará contadores y botones prev/next)
-            showPage(currentPage);
-
-            // Mostrar/Ocultar mensaje "Sin resultados"
-            const noResultsRow = $('#ticketsTable tbody .no-results');
-            if (filteredRows.length === 0) {
-                if (noResultsRow.length === 0) {
-                    $('#ticketsTable tbody').append('<tr class="no-results"><td colspan="9" class="text-center py-5 text-muted">No hay tickets que coincidan con los filtros aplicados.</td></tr>');
-                }
-                $('#ticketsTable tbody .no-results').show();
-            } else {
-                if (noResultsRow.length > 0) {
-                    noResultsRow.hide();
-                }
-            }
-        }
-
-        // Inicializar paginación al cargar la página si existe el contenedor
-        if ($('#pagination').length) {
-
-            // Evento para cambiar número de filas por página
-            $('#rowsPerPage').on('change', function () {
-                currentPage = 1; // Volver a la página 1 al cambiar filas por página
-                updateAndPaginateResults();
-            });
-
-            // Evento para navegar entre páginas usando los botones generados
-            $('#pagination').on('click', 'li[data-page]', function (e) {
-                e.preventDefault();
-                const $this = $(this);
-                if ($this.hasClass('disabled') || $this.hasClass('active')) {
-                    return; // No hacer nada si está deshabilitado o ya activo
-                }
-                const pageNum = parseInt($this.data('page'));
-                if (!isNaN(pageNum)) {
-                    showPage(pageNum); // Solo mostrar la página, no recalcular todo
-                }
-            });
-
-            // Evento para botones Anterior/Siguiente
-            $('#pagination').on('click', '#prevPage, #nextPage', function (e) {
-                e.preventDefault();
-                const $this = $(this);
-                if ($this.hasClass('disabled')) {
-                    return;
-                }
-                if ($this.attr('id') === 'prevPage') {
-                    showPage(currentPage - 1);
-                } else if ($this.attr('id') === 'nextPage') {
-                    showPage(currentPage + 1);
-                }
-            });
-
-
-            // Event listener para búsqueda
-            $('#searchRepairs').on('input', function () {
-                // Podrías usar debounce aquí para no ejecutar en cada tecla
-                setTimeout(() => {
-                    currentPage = 1; // Volver a la página 1 al buscar
-                    updateAndPaginateResults();
-                }, 200); // Pequeño retraso
-            });
-
-            // Event listeners para botones de filtro de estado
-            $('input[name="filterStatus"]').on('change', function () {
-                currentPage = 1; // Volver a la página 1 al cambiar filtro
-                updateAndPaginateResults();
-                // Actualizar estilo visual del filtro activo
-                $('input[name="filterStatus"]').next('label').removeClass('btn-secondary').addClass('btn-outline-secondary'); // Reset all
-                $(this).next('label').removeClass('btn-outline-secondary').addClass('btn-secondary'); // Activate clicked
-            });
-
-            // Establecer estilo inicial del filtro activo
-            $('input[name="filterStatus"]:checked').next('label').removeClass('btn-outline-secondary').addClass('btn-secondary');
-
-            // Llamada inicial para configurar la tabla al cargar
-            updateAndPaginateResults();
-        }
-    }
-
-    // ===== FUNCIONALIDAD PARA ACTUALIZAR ESTADO DE TICKETS =====
-    // Deshabilitar selects de estado para tickets en estado "Terminado" o "Cancelado"
-    document.querySelectorAll('.status-select').forEach(function(select) {
-        const currentStatus = select.value;
-        
-        // Guardar el estado original como atributo de datos (para validar retrocesos)
-        if (!select.getAttribute('data-original-state')) {
-            select.setAttribute('data-original-state', currentStatus);
-        }
-        
-        if (currentStatus === "Terminado" || currentStatus === "Cancelado") {
-            // Deshabilitar el select para evitar cambios de estado
-            select.disabled = true;
-            
-            // Añadir tooltip para mostrar mensaje informativo
-            select.setAttribute('data-bs-toggle', 'tooltip');
-            select.setAttribute('data-bs-placement', 'top');
-            select.setAttribute('title', `Los tickets en estado "${currentStatus}" no pueden ser modificados.`);
-        }
-    });
-    
-    // Escuchar los cambios en el select de estado
-    document.querySelectorAll('.status-select').forEach(function(select) {
-        select.addEventListener('change', function() {
-            const ticketId = this.getAttribute('data-ticket-id');
-            const newStatus = this.value;
-            const previousStatus = this.getAttribute('data-previous-status');
-            const originalState = this.getAttribute('data-original-state');
-            
-            // Si el estado no ha cambiado, no hacer nada
-            if (newStatus === previousStatus) {
-                return;
-            }
-            
-            // Validar si es un retroceso de estado según la jerarquía definida
-            if (stateOrder[newStatus] < stateOrder[originalState]) {
-                // Es un retroceso, mostrar error y revertir
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Operación no permitida',
-                    text: `No se puede cambiar el estado de "${originalState}" a "${newStatus}". No se permite retroceder en el flujo de estados.`,
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'Entendido'
-                });
-                
-                // Restaurar el valor previo
-                this.value = previousStatus;
-                return;
-            }
-            
-            // Texto de confirmación
-            let confirmText = `¿Está seguro de cambiar el estado del ticket #${ticketId} a "${newStatus}"?`;
-            
-            // Si el estado es "Terminado" o "Cancelado", agregar advertencia
-            if (newStatus === "Terminado" || newStatus === "Cancelado") {
-                confirmText += `\n\nIMPORTANTE: Una vez que el ticket esté en estado "${newStatus}", ya no podrá ser editado.`;
-            }
-            
-            // Confirmar con SweetAlert2
-            confirmAction(
-                '¿Cambiar estado?',
-                confirmText,
-                'Sí, cambiar',
-                'Cancelar',
-                () => {
-                    // Hacer la petición AJAX
-                    updateTicketStatus(ticketId, newStatus, select);
-                }
-            );
-        });
-    });
-});
-
-// Asegurarse de que el evento change se dispare cuando se selecciona una opción con Select2
-$(document).ready(function () {
-    // Para el select de referencia
-    $('#reference').on('select2:select', function (e) {
-        // Disparar el evento change manualmente
-        this.dispatchEvent(new Event('change'));
     });
 
-    // Para otros selects que usan Select2
-    $('.searchable-select').on('select2:select', function (e) {
-        // Disparar el evento change manualmente
-        this.dispatchEvent(new Event('change'));
+    // Botón para limpiar selección
+    $('#clearProblems').on('click', function () {
+        checkboxes.prop('checked', false);
+        updateSelectedProblems();
     });
-});
 
-// Función para formatear números como moneda (separador de miles sin decimales)
-function formatCurrency(value) {
-    // Convertir a número entero y luego a string con formato
-    const numValue = Math.round(parseFloat(value) || 0);
-    return numValue.toLocaleString('es-CO', {
+    // Filtrado de problemas
+    $('#searchProblems').on('input', function () {
+        const searchTerm = $(this).val().toLowerCase();
+        $('.problem-option').each(function () {
+            const problemText = $(this).text().toLowerCase();
+            $(this).toggle(problemText.includes(searchTerm));
+        });
+    });
+
+    // Inicializar textarea con problemas seleccionados
+    updateSelectedProblems();
+}
+
+// Funciones para manejar la tabla de repuestos
+function setupPartsTable() {
+    // Configurar el botón para añadir una nueva fila de repuesto
+    $('#addPartBtn').on('click', function () {
+        addNewPartRow();
+    });
+
+    // Actualizar índices de las filas
+    updateRowIndices();
+}
+
+function updateRowIndices() {
+    $('#partsTable tbody tr').each(function (index) {
+        $(this).find('.row-index').text(index + 1);
+
+        // Actualizar los nombres de los campos para mantener el índice correcto
+        $(this).find('input[name^="parts["]').each(function () {
+            const name = $(this).attr('name');
+            const newName = name.replace(/parts\[\d+\]/, `parts[${index}]`);
+            $(this).attr('name', newName);
+        });
+    });
+}
+
+// Validar la tabla de repuestos
+function validatePartsTable() {
+    let isValid = true;
+
+    $('#partsTable tbody tr.part-row').each(function () {
+        const $row = $(this);
+        const spareCode = $row.find('select[name="spare_part_code[]"]').val();
+        const quantity = $row.find('.part-quantity').val();
+        const unitValue = unformatValue($row.find('.part-unit-value').val());
+
+        if (!spareCode) {
+            isValid = false;
+            $row.addClass('table-danger');
+        } else if (!quantity || quantity < 1) {
+            isValid = false;
+            $row.find('.part-quantity').addClass('is-invalid');
+        } else if (!unitValue || unitValue <= 0) {
+            isValid = false;
+            $row.find('.part-unit-value').addClass('is-invalid');
+        } else {
+            $row.removeClass('table-danger');
+            $row.find('.part-quantity, .part-unit-value').removeClass('is-invalid');
+        }
+    });
+
+    return isValid;
+}
+
+function formatCurrency(input) {
+    // Asegurar que input es un objeto jQuery
+    input = $(input);
+
+    if (!input.length || input.val() === '') {
+        input.val(0);
+        return;
+    }
+
+    // Obtener el valor actual y limpiarlo
+    let value = input.val().toString();
+
+    // Si ya tiene formato (contiene puntos), extraer el valor numérico
+    if (value.includes('.')) {
+        value = value.replace(/\./g, '').replace(',', '.');
+    }
+
+    // Convertir a número, usar 0 si no es un número
+    const numericValue = parseFloat(value) || 0;
+
+    // Formatear con separador de miles
+    const formattedValue = formatNumberWithCommas(numericValue);
+
+    // Actualizar el valor del input
+    input.val(formattedValue);
+
+    // Actualizar el campo oculto de valor raw si existe
+    const rawInputId = input.attr('id') + '_raw';
+    const rawValueField = $('#' + rawInputId);
+    if (rawValueField.length) {
+        rawValueField.val(numericValue);
+    }
+}
+
+
+// Asegúrate de que esta función esté correcta
+function formatNumberWithCommas(number) {
+    return number.toLocaleString('es-CO', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
-    });
+    }).replace(/,/g, '.');
 }
 
-// Función para quitar el formato y obtener solo el número
-function unformatCurrency(value) {
+// Quitar el formato de un valor
+function unformatValue(value) {
     if (!value) return 0;
     // Quitar todos los puntos que son separadores de miles
-    return parseInt(value.replace(/\./g, '')) || 0;
+    return parseInt(value.toString().replace(/\./g, '')) || 0;
 }
 
-// Formatear todos los campos de moneda
-function formatAllCurrencyFields() {
-    // Formatear campos de valor de servicio, repuestos y total
-    const serviceValue = document.getElementById('service_value');
-    const spareValue = document.getElementById('spare_value');
-    const totalValue = document.getElementById('total');
+// Función para calcular el total
+function updateTotal() {
+    const serviceValue = unformatValue($('#service_value').val());
+    const spareValue = unformatValue($('#spare_value').val());
+    const total = serviceValue + spareValue;
 
-    if (serviceValue) serviceValue.value = formatCurrency(serviceValue.value);
-    if (spareValue) spareValue.value = formatCurrency(spareValue.value);
-    if (totalValue) totalValue.value = formatCurrency(totalValue.value);
-
-    // Formatear valores en la tabla de repuestos
-    document.querySelectorAll('.part-unit-value, .part-total-value').forEach(input => {
-        input.value = formatCurrency(input.value);
-    });
+    $('#total').val(formatNumberWithCommas(total));
+    $('#total_raw').val(total);
 }
 
-// Función para actualizar los totales cuando cambia un valor
-function updateTotalsWithFormat() {
-    // Primero actualizar los totales de cada fila
-    document.querySelectorAll('.part-row').forEach(row => {
-        const quantity = parseInt(row.querySelector('.part-quantity').value) || 0;
-        const unitValue = unformatCurrency(row.querySelector('.part-unit-value').value);
-        const totalValue = quantity * unitValue;
+// Mejora la función updateRowTotal
+function updateRowTotal($row) {
+    // Asegurarse de que $row es un objeto jQuery
+    $row = $($row);
 
-        row.querySelector('.part-total-value').value = formatCurrency(totalValue);
-    });
+    const quantity = parseInt($row.find('.part-quantity').val()) || 0;
+    const unitPriceElement = $row.find('.part-unit-value');
+    const unitPrice = unformatValue(unitPriceElement.val());
+    const total = quantity * unitPrice;
 
-    // Luego calcular el total de repuestos
-    let totalPartsValue = 0;
-    document.querySelectorAll('.part-total-value').forEach(input => {
-        totalPartsValue += unformatCurrency(input.value);
+    // Formatear el valor unitario correctamente
+    unitPriceElement.val(formatNumberWithCommas(unitPrice));
+
+    // Actualizar el campo de total de la fila
+    $row.find('.part-total-value').val(formatNumberWithCommas(total));
+    $row.find('input[name$="[total_value_raw]"]').val(total);
+
+    // Actualizar el total general
+    updatePartsTotals();
+}
+
+
+// Función para actualizar los totales de repuestos y el total general
+function updatePartsTotals() {
+    let totalParts = 0;
+
+    // Sumar todos los totales de repuestos
+    $('#partsTable tbody tr.part-row').each(function () {
+        const rowTotal = unformatValue($(this).find('.part-total-value').val());
+        totalParts += rowTotal;
     });
 
     // Actualizar el campo de valor de repuestos
-    const spareValue = document.getElementById('spare_value');
-    if (spareValue) {
-        spareValue.value = formatCurrency(totalPartsValue);
-    }
+    $('#spare_value').val(formatNumberWithCommas(totalParts));
+    $('#spare_value_raw').val(totalParts);
 
-    // Calcular el total general
-    const serviceValue = document.getElementById('service_value');
-    const totalValue = document.getElementById('total');
-
-    if (serviceValue && totalValue) {
-        const serviceAmount = unformatCurrency(serviceValue.value);
-        totalValue.value = formatCurrency(serviceAmount + totalPartsValue);
-    }
+    // Actualizar el total general
+    updateTotal();
 }
 
-// Inicializar eventos para campos de moneda
-document.addEventListener('DOMContentLoaded', function () {
-    // Formatear valores iniciales
-    formatAllCurrencyFields();
+// Configurar eventos para los campos formateados
+function setupFormattedNumbers() {
+    // Inicializar los inputs con formato de número
+    $('.formatted-number').each(function () {
+        const input = $(this);
 
-    // Manejar el evento de cambio en el valor del servicio
-    const serviceValue = document.getElementById('service_value');
-    if (serviceValue) {
-        serviceValue.addEventListener('focus', function () {
-            this.value = unformatCurrency(this.value);
+        // Formatear inicialmente
+        formatCurrency(input);
+
+        // Evento para formatear al perder el foco
+        input.on('blur', function () {
+            formatCurrency($(this));
         });
 
-        serviceValue.addEventListener('blur', function () {
-            this.value = formatCurrency(this.value);
-            updateTotalsWithFormat();
+        // Evento para limpiar el formato al obtener el foco
+        input.on('focus', function () {
+            // No cambiar el valor si ya está formateado, solo seleccionarlo
+            $(this).select();
         });
-    }
 
-    // Observar cambios en la tabla para formatear nuevas filas
-    const observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // Buscar nuevos campos de moneda en las filas agregadas
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1 && node.classList.contains('part-row')) {
-                        const unitValueInput = node.querySelector('.part-unit-value');
-
-                        if (unitValueInput) {
-                            // Formatear el valor inicial
-                            unitValueInput.value = formatCurrency(unitValueInput.value);
-
-                            // Agregar eventos
-                            unitValueInput.addEventListener('focus', function () {
-                                this.value = unformatCurrency(this.value);
-                            });
-
-                            unitValueInput.addEventListener('blur', function () {
-                                this.value = formatCurrency(this.value);
-                                updateTotalsWithFormat();
-                            });
-                        }
-
-                        // Agregar evento a la cantidad
-                        const quantityInput = node.querySelector('.part-quantity');
-                        if (quantityInput) {
-                            quantityInput.addEventListener('change', updateTotalsWithFormat);
-                        }
-                    }
-                });
+        // Actualizar totales cuando cambie el valor
+        input.on('change', function () {
+            if ($(this).attr('id') === 'service_value') {
+                updateTotal();
             }
         });
     });
+}
 
-    // Observar cambios en la tabla de repuestos
-    const partsTable = document.querySelector('#partsTable tbody');
-    if (partsTable) {
-        observer.observe(partsTable, { childList: true });
+// Variable global para rastrear qué fila se está editando actualmente
+let currentEditingRow = null;
+
+function addNewPartRow() {
+    // Ocultar la fila "no hay repuestos"
+    $('#noPartsRow').hide();
+
+    // Clonar la plantilla
+    const template = document.getElementById('partRowTemplate');
+    if (!template) {
+        console.error('No se encontró la plantilla de fila de repuesto');
+        return;
     }
 
-    // Manejar eliminación de filas
-    document.addEventListener('click', function (e) {
-        if (e.target.classList.contains('remove-part') || e.target.closest('.remove-part')) {
-            // Esperar a que se elimine la fila antes de actualizar totales
-            setTimeout(updateTotalsWithFormat, 0);
-        }
-    });
-});
-
-// Configuración para actualizar el estado de los tickets
-document.addEventListener('DOMContentLoaded', function() {
-    // La configuración de los event listeners para .status-select se maneja 
-    // en la sección anterior del código, por lo que se elimina la duplicación aquí.
+    // Crear una nueva fila a partir de la plantilla
+    const content = template.content.cloneNode(true);
+    const newRow = content.querySelector('tr');
     
-    // Dejamos solamente la función updateTicketStatus para que sea accesible globalmente
-});
-
-// Función para hacer la petición AJAX (definida globalmente para que sea accesible desde cualquier lugar)
-function updateTicketStatus(ticketId, newStatus, selectElement) {
-    // Mostrar un indicador de carga
-    showInfoToast('Actualizando...', 'top-end');
+    // Agregar la fila a la tabla
+    const tbody = document.querySelector('#partsTable tbody');
+    if (tbody) {
+        tbody.appendChild(newRow);
+    }
     
-    // Usar la URL correcta para la ruta de actualización de estado
-    fetch('/update_ticket_status_ajax', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: `ticket_id=${ticketId}&state=${newStatus}`
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(data => {
-                throw new Error(data.message || `Error HTTP: ${response.status}`);
+    // Configurar la nueva fila con jQuery
+    const $newRow = $(newRow);
+    
+    // Si estamos en la página de edición y existe la función de configuración específica, usarla
+    if (typeof window.setupNewSpareRow === 'function') {
+        window.setupNewSpareRow(newRow);
+    } else {
+        // Configuración estándar para la página de creación
+        $newRow.find('.part-unit-value').val('0');
+        $newRow.find('.part-total-value').val('0');
+        
+        // Configurar eventos para actualizar el total de la fila
+        $newRow.find('.part-quantity, .part-unit-value').on('input change', function() {
+            updateRowTotal($newRow);
+        });
+        
+        // Configurar evento para eliminar la fila
+        $newRow.find('.remove-part').on('click', function() {
+            $newRow.remove();
+            updateRowIndices();
+            updatePartsTotals();
+            
+            // Mostrar la fila "no hay repuestos" si no hay más filas
+            if ($('#partsTable tbody tr.part-row').length === 0) {
+                $('#noPartsRow').show();
+            }
+        });
+        
+        // Configurar el select de repuestos si existe
+        const $select = $newRow.find('select[name="spare_part_code[]"]');
+        if ($select.length) {
+            $select.on('change', function() {
+                // Actualizar datos del repuesto seleccionado si es necesario
+                updateRowTotal($newRow);
             });
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Actualizar el atributo de estado anterior
-            selectElement.setAttribute('data-previous-status', newStatus);
-            
-            // Cambiar el color de la fila según el nuevo estado
-            const row = selectElement.closest('tr');
-            if (row) {
-                row.setAttribute('data-status', newStatus);
-            }
-            
-            // Si el nuevo estado es Terminado o Cancelado, deshabilitar el select
-            if (newStatus === "Terminado" || newStatus === "Cancelado") {
-                selectElement.disabled = true;
-                
-                // Añadir tooltip para mostrar mensaje informativo
-                selectElement.setAttribute('data-bs-toggle', 'tooltip');
-                selectElement.setAttribute('data-bs-placement', 'top');
-                selectElement.setAttribute('title', `Los tickets en estado "${newStatus}" no pueden ser modificados.`);
-                
-                // Reinicializar el tooltip
-                new bootstrap.Tooltip(selectElement);
-            }
-            
-            // Mostrar confirmación
-            showSuccessToast(data.message || 'Estado actualizado correctamente', 'top-end');
-        } else {
-            // Si hay error, mostrar alerta y restaurar valor anterior
-            showErrorToast(data.message || 'Error al actualizar el estado', 'top-end');
-            selectElement.value = selectElement.getAttribute('data-previous-status');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        
-        // Mostrar toast de error
-        showErrorToast('Error al actualizar el estado: ' + error.message, 'top-end');
-        
-        // Restaurar el valor anterior
-        selectElement.value = selectElement.getAttribute('data-previous-status');
+    }
+    
+    // Actualizar índices de las filas
+    updateRowIndices();
+    
+    // Configurar botón de búsqueda de repuestos
+    $newRow.find('.select-part').on('click', function() {
+        currentEditingRow = $newRow;
+        $('#searchPartsModal').modal('show');
     });
+    
+    return $newRow;
 }
 
 
+function updatePartRow(row, partData) {
+    // Asegurarse de que row es un objeto jQuery
+    const $row = $(row);
+
+    // Seleccionar el select de repuestos y agregar una nueva opción
+    const select = $row.find('select[name="spare_part_code[]"]');
+
+    // Vaciar opciones actuales
+    select.empty();
+
+    // Agregar la opción seleccionada
+    const option = new Option(`${partData.code} - ${partData.description}`, partData.code, true, true);
+    select.append(option);
+
+    // Establecer valores predeterminados para cantidad y precio unitario si no existen
+    const quantity = $row.find('.part-quantity').val() || 1;
+    const unitPrice = $row.find('.part-unit-value').val() || 0;
+
+    $row.find('.part-quantity').val(quantity);
+    $row.find('.part-unit-value').val(unitPrice);
+
+    // Recalcular el total de la fila
+    updateRowTotal($row);
+
+    // Recalcular el total general
+    updatePartsTotals();
+
+    // Aplicar estilos para indicar que la fila fue actualizada
+    $row.addClass('bg-success-subtle');
+    setTimeout(() => {
+        $row.removeClass('bg-success-subtle');
+    }, 500);
+}
+
+
+// Configurar el modal de búsqueda de repuestos
+function setupSearchPartsModal() {
+    // Verificar que el modal existe
+    if ($('#searchPartsModal').length === 0) {
+        console.error('Error: No se encontró el modal de búsqueda de repuestos');
+        return;
+    }
+
+    // Configurar la búsqueda al escribir en el campo
+    $('#modalPartSearch').on('input', function () {
+        const searchTerm = $(this).val().trim();
+        if (searchTerm.length >= 3) {
+            searchParts(searchTerm);
+        } else {
+            $('#initialSearchMessage').show();
+            $('#noResultsMessage').hide();
+            $('#searchResultsLoader').hide();
+            $('#searchResultsList').hide().empty();
+        }
+    });
+
+    // Limpiar resultados al cerrar el modal
+    $('#searchPartsModal').on('hidden.bs.modal', function () {
+        $('#modalPartSearch').val('');
+        $('#initialSearchMessage').show();
+        $('#noResultsMessage').hide();
+        $('#searchResultsLoader').hide();
+        $('#searchResultsList').hide().empty();
+    });
+
+    // Limpiar resultados al abrir el modal
+    $('#searchPartsModal').on('shown.bs.modal', function () {
+        $('#modalPartSearch').val('');
+        $('#initialSearchMessage').show();
+        $('#noResultsMessage').hide();
+        $('#searchResultsLoader').hide();
+        $('#searchResultsList').hide().empty();
+        $('#modalPartSearch').focus();
+    });
+}
+
+// Función para buscar repuestos
+function searchParts(searchTerm) {
+    // Referencias a elementos del DOM
+    const searchResultsLoader = $('#searchResultsLoader');
+    const initialSearchMessage = $('#initialSearchMessage');
+    const noResultsMessage = $('#noResultsMessage');
+    const searchResultsList = $('#searchResultsList');
+
+    // Mostrar loader, ocultar otros mensajes
+    searchResultsLoader.show();
+    initialSearchMessage.hide();
+    noResultsMessage.hide();
+    searchResultsList.hide().empty();
+
+    // Crear el objeto FormData para enviar los datos
+    const formData = new FormData();
+    formData.append('search', searchTerm);
+
+    console.log(`Buscando repuestos con término: "${searchTerm}"`);
+
+    // Realizar petición fetch a la URL
+    fetch('/internal_repair/search_spare_parts', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Respuesta recibida:", data);
+            
+            // Ocultar loader
+            searchResultsLoader.hide();
+
+            // Verificar si hay resultados - Compatibilidad con ambos formatos de respuesta
+            const parts = data.parts || [];
+            
+            if (parts.length === 0) {
+                const message = data.message || 'No se encontraron repuestos que coincidan con la búsqueda';
+                noResultsMessage.show().html(`
+                    <h5 class="text-muted mb-2">No se encontraron resultados</h5>
+                    <p class="text-muted mb-0">${message}</p>
+                `);
+                return;
+            }
+
+            // Crear o mostrar el contenedor de resultados
+            let resultsContainer = document.querySelector('#searchResultsList');
+            resultsContainer.style.display = 'block';
+            resultsContainer.innerHTML = '';
+            // Crear una fila para los resultados
+            const row = document.createElement('div');
+            row.className = 'row g-3';
+            resultsContainer.appendChild(row);
+
+            // Agregar contador de resultados
+            const resultCount = document.createElement('div');
+            resultCount.className = 'col-12 mb-2';
+            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${parts.length} repuestos</small>`;
+            row.appendChild(resultCount);
+
+            // Añadir cada repuesto como una tarjeta
+            parts.forEach(part => {
+                // Asegurar que code y description son strings
+                const code = String(part.code || '');
+                const description = String(part.description || '');
+                
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-md-6';
+
+                colDiv.innerHTML = `
+                            <div class="card mb-2 shadow-sm search-result-card" 
+                                 data-code="${code}" 
+                                 data-description="${description}">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">${code} - ${description}</h6>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-primary select-result">
+                                            <i class="fas fa-check me-1"></i>Seleccionar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                row.appendChild(colDiv);
+            });
+
+            // Agregar evento de clic a las tarjetas
+            $('.search-result-card').on('click', function () {
+                const code = $(this).data('code');
+                const description = $(this).data('description');
+
+                // Actualizar la fila con los datos seleccionados
+                updatePartRow(currentEditingRow, {
+                    code: code,
+                    description: description
+                });
+
+                // Cerrar el modal
+                $('#searchPartsModal').modal('hide');
+            });
+
+            // Evento para los botones de seleccionar
+            $('.select-result').on('click', function (e) {
+                e.stopPropagation(); // Evitar que se propague al card
+                const card = $(this).closest('.search-result-card');
+                const code = card.data('code');
+                const description = card.data('description');
+
+                // Actualizar la fila con los datos seleccionados
+                updatePartRow(currentEditingRow, {
+                    code: code,
+                    description: description
+                });
+
+                // Cerrar el modal
+                $('#searchPartsModal').modal('hide');
+            });
+        })
+        .catch(error => {
+            searchResultsLoader.hide();
+            console.error('Error al buscar repuestos:', error);
+            noResultsMessage.show().html(`
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                        <h5 class="text-danger">Error al buscar repuestos</h5>
+                        <p class="text-muted mb-0">${error.message || 'Intente nuevamente'}</p>
+                    `);
+        });
+}
+
+// Función para buscar productos
+function searchProducts(searchTerm) {
+    const searchResultsLoader = $('#productSearchResultsLoader');
+    const initialSearchMessage = $('#initialProductSearchMessage');
+    const noResultsMessage = $('#noProductResultsMessage');
+    const searchResultsList = $('#productSearchResultsList');
+
+    searchResultsLoader.show();
+    initialSearchMessage.hide();
+    noResultsMessage.hide();
+    searchResultsList.hide().empty();
+
+    const formData = new FormData();
+    formData.append('search', searchTerm);
+
+    fetch('/search_products', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            searchResultsLoader.hide();
+
+            if (!data.products || data.products.length === 0) {
+                noResultsMessage.show();
+                return;
+            }
+
+            searchResultsList.show().empty();
+
+            const row = document.createElement('div');
+            row.className = 'row g-3';
+            searchResultsList.append(row);
+
+            const resultCount = document.createElement('div');
+            resultCount.className = 'col-12 mb-2';
+            resultCount.innerHTML = `<small class="text-muted">Se encontraron ${data.products.length} productos</small>`;
+            row.appendChild(resultCount);
+
+            data.products.forEach(product => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-md-6';
+
+                colDiv.innerHTML = `
+                            <div class="card mb-2 shadow-sm product-result-card" 
+                                 data-code="${product.CODIGO}" 
+                                 data-description="${product.DESCRIPCIO}">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">${product.CODIGO} - ${product.DESCRIPCIO}</h6>
+                                        </div>
+                                        <button class="btn btn-sm btn-primary select-product">
+                                            <i class="fas fa-check me-1"></i>Seleccionar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                row.appendChild(colDiv);
+            });
+
+            // Evento para seleccionar un producto
+            $('.product-result-card').on('click', function () {
+                selectProduct($(this).data('code'), $(this).data('description'));
+            });
+
+            $('.select-product').on('click', function (e) {
+                e.stopPropagation();
+                const card = $(this).closest('.product-result-card');
+                selectProduct(card.data('code'), card.data('description'));
+            });
+        })
+        .catch(error => {
+            searchResultsLoader.hide();
+            console.error('Error al buscar productos:', error);
+            noResultsMessage.show().html(`
+                        <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                        <h5 class="text-danger">Error al buscar productos</h5>
+                        <p class="text-muted mb-0">Intente nuevamente</p>
+                    `);
+        });
+}
+
+// Función para seleccionar un producto
+function selectProduct(code, description) {
+    $('#product_code').val(code);
+    $('#reference').val(description);
+    $('#searchProductsModal').modal('hide');
+}
+
+// Reemplaza la función processFlashMessages actual
+function processFlashMessages() {
+    const alerts = $('.alert');
+
+    alerts.each(function () {
+        const type = $(this).hasClass('alert-success') ? 'success' :
+            $(this).hasClass('alert-danger') ? 'error' :
+                $(this).hasClass('alert-warning') ? 'warning' : 'info';
+
+        const message = $(this).text().trim();
+
+        if (message) {
+            showToast(type, message);
+        }
+    });
+}
+
+// Reemplaza la función showToast actual para usar SweetAlert
+function showToast(type, message) {
+    // Configurar el icono según el tipo
+    const icon =
+        type === 'success' ? 'success' :
+            type === 'error' ? 'error' :
+                type === 'warning' ? 'warning' : 'info';
+
+    // Mostrar la notificación con SweetAlert
+    Swal.fire({
+        toast: true,
+        icon: icon,
+        title: message,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+}
+
+// Función para actualizar el estado de un ticket de reparación interna
+function updateRepairStatus($select, ticketId, newStatus, previousStatus) {
+    // Mostrar indicador de carga
+    $select.addClass('opacity-50');
+    $select.prop('disabled', true);
+
+    // Preparar datos
+    const data = {
+        ticket_id: ticketId,
+        state: newStatus  // Usar 'state' para mantener consistencia con el backend
+    };
+
+    // Realizar solicitud AJAX
+    $.ajax({
+        url: '/update_ticket_status_ajax',
+        method: 'POST',
+        data: data,
+        success: function(response) {
+            // Quitar indicador de carga
+            $select.removeClass('opacity-50');
+            $select.prop('disabled', false);
+            
+            if (response.success) {
+                // Actualizar atributos y estado en la interfaz
+                const $row = $select.closest('tr');
+                $row.attr('data-status', newStatus);
+                $select.attr('data-previous-status', newStatus);
+                
+                // Si es un estado final, deshabilitar botón de edición
+                if (newStatus === 'Terminado' || newStatus === 'Cancelado') {
+                    const $editBtn = $row.find('a.btn-outline-secondary');
+                    $editBtn.addClass('disabled');
+                    $editBtn.attr('aria-disabled', 'true');
+                    $editBtn.attr('data-bs-toggle', 'tooltip');
+                    $editBtn.attr('data-bs-placement', 'top');
+                    $editBtn.attr('title', `No se puede editar un ticket en estado ${newStatus}`);
+                    $('[data-bs-toggle="tooltip"]').tooltip();
+                }
+                
+                // Mover la fila al principio de la tabla
+                $row.css('background-color', '#fffde7');
+                const $table = $('#ticketsTable tbody');
+                setTimeout(function() {
+                    $row.fadeOut(300, function() {
+                        $table.prepend($row);
+                        $row.fadeIn(300);
+                        setTimeout(function() {
+                            $row.css('background-color', '');
+                            
+                            // Aplicar filtro activo
+                            const activeFilter = $('input[name="filterStatus"]:checked').attr('id').replace('btn', '');
+                            filterTickets(activeFilter);
+                            
+                            // Mostrar notificación si ya no es visible debido al filtro
+                            if (!$row.is(':visible') && activeFilter !== 'Todos') {
+                                showToast('info', `El ticket #${ticketId} se ha movido al filtro "${newStatus}"`, 5000);
+                            }
+                        }, 1500);
+                    });
+                }, 300);
+                
+                // Notificación de éxito
+                showToast('success', `Estado actualizado a "${newStatus}" correctamente`);
+            } else {
+                // Error al actualizar
+                $select.val(previousStatus);
+                showToast('error', response.message || 'Error al actualizar el estado');
+            }
+        },
+        error: function(xhr, status, error) {
+            // Quitar indicador de carga
+            $select.removeClass('opacity-50');
+            $select.prop('disabled', false);
+            
+            // Restaurar valor original
+            $select.val(previousStatus);
+            
+            // Mostrar error
+            let errorMessage = 'Error al actualizar el estado';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            showToast('error', errorMessage);
+        }
+    });
+}

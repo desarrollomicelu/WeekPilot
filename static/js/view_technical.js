@@ -126,8 +126,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Orden de los estados
         const stateOrder = {
             "Asignado": 1,
-            "En proceso": 2,
-            "En Revision": 3
+            "Reingreso": 2,
+            "En proceso": 3,
+            "En Revision": 4
         };
 
         // Guardar valor original al inicio
@@ -623,8 +624,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const stateOrder = {
                     "Asignado": 1,
-                    "En proceso": 2,
-                    "En Revision": 3
+                    "Reingreso": 2,
+                    "En proceso": 3,
+                    "En Revision": 4
                 };
 
                 if (stateOrder[newStatus] < stateOrder[originalValue]) {

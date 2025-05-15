@@ -49,8 +49,8 @@ function showToast(icon, title, position = 'top-end', timer = 3000) {
 function showSuccessTicketAlert(callback) {
     Swal.fire({
         icon: 'success',
-        title: '¡Ticket creado con éxito!',
-        text: 'El ticket se ha generado correctamente.',
+        title: '¡Operación exitosa!',
+        text: 'El ticket ha sido procesado correctamente.',
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -68,12 +68,143 @@ function showSuccessTicketAlert(callback) {
     });
 }
 
+/**
+ * Función para actualizar el contador de tickets visibles.
+ * @returns {number} El número de filas visibles
+ */
+function updateTicketCounter() {
+    // Contar visibles
+    const visibleRows = $('#ticketsTable tbody tr:visible').not('#noResultsRow').length;
+    
+    // Si hay filas, asegurarnos que el mensaje "no hay tickets" no esté visible
+    if (visibleRows > 0) {
+        // Verificar si existe una fila con el mensaje de no hay resultados
+        const $noResultsRow = $('#ticketsTable tbody tr#noResultsRow');
+        if ($noResultsRow.length) {
+            $noResultsRow.remove();
+        }
+    }
+    
+    // Actualizar contador en el badge
+    $('.badge.bg-secondary strong').text(visibleRows);
+    
+    // YA NO actualizamos el contador en el footer - eso lo hace la paginación
+    // $('#currentRowsCount').text(visibleRows);
+    
+    return visibleRows;
+}
 
-/***** Funcionalidad de Búsqueda y Filtrado *****/
+/**
+ * Mostrar u ocultar el mensaje de "No hay resultados"
+ */
+function showNoResultsMessage(show) {
+    // Remover cualquier mensaje existente
+    $('#noResultsRow').remove();
+    
+    if (show) {
+        // Crear y añadir la fila de "No hay resultados"
+        const colspan = $('#ticketsTable thead th').length; // Contar dinámicamente el número de columnas
+        const statusText = $('input[name="filterStatus"]:checked').next('label').text().trim();
+        const cityText = $('input[name="filterCity"]:checked').next('label').text().trim();
+        
+        let message = 'No hay tickets';
+        if (cityText !== 'Todas') {
+            message += ` en ${cityText}`;
+        }
+        if (statusText !== 'Todos') {
+            message += ` con estado "${statusText}"`;
+        }
+        
+        const $noResults = $(`
+            <tr id="noResultsRow">
+                <td colspan="${colspan}" class="text-center py-5">
+                    <i class="fas fa-filter fa-3x mb-3 text-muted"></i>
+                    <p class="text-muted">${message}</p>
+                    <button class="btn btn-outline-secondary btn-sm reset-filter mt-2">
+                        <i class="fas fa-times me-1"></i>Limpiar filtros
+                    </button>
+                </td>
+            </tr>
+        `);
+        
+        $('#ticketsTable tbody').append($noResults);
+        
+        // Agregar evento al botón de reseteo
+        $('.reset-filter').on('click', function() {
+            // Seleccionar el filtro "Todos" para estado
+            $('#btnTodos').prop('checked', true);
+            // Seleccionar el filtro "Todas" para ciudad
+            $('#btnTodas').prop('checked', true);
+            // Aplicar filtros
+            filterTickets();
+        });
+    }
+}
+
+// Función para filtrar tickets (disponible globalmente)
+window.filterTickets = function() {
+    // Obtener filtros activos
+    const selectedStatus = $('input[name="filterStatus"]:checked').next('label').text().trim();
+    const selectedCity = $('input[name="filterCity"]:checked').next('label').text().trim();
+    
+    console.log(`Filtrando por: Estado=${selectedStatus}, Ciudad=${selectedCity}`);
+    
+    // Primero mostrar todas las filas para aplicar los filtros desde cero
+    $('#ticketsTable tbody tr').show();
+    
+    // Aplicar filtros a todas las filas
+    $('#ticketsTable tbody tr').not('#noResultsRow').each(function() {
+        const $row = $(this);
+        let statusMatch = true;
+        let cityMatch = true;
+        
+        // Verificar filtro de estado
+        const rowStatus = $row.attr('data-status');
+        if (selectedStatus === 'Todos') {
+            statusMatch = true;
+        } else if (selectedStatus === 'Activos') {
+            statusMatch = (rowStatus !== 'Terminado');
+        } else {
+            statusMatch = (rowStatus === selectedStatus);
+        }
+        
+        // Verificar filtro de ciudad
+        const rowCity = $row.attr('data-city');
+        if (selectedCity === 'Todas') {
+            cityMatch = true;
+        } else {
+            // Comparación exacta - asegurarnos de que coincida exactamente con el valor del atributo
+            cityMatch = (rowCity === selectedCity);
+        }
+        
+        // Para depuración - imprimimos en consola las filas que no coinciden por ciudad
+        if (!cityMatch && selectedCity !== 'Todas') {
+            console.log(`Fila no coincide por ciudad: El botón es '${selectedCity}' y la fila tiene '${rowCity}'`);
+        }
+        
+        // Mostrar u ocultar la fila basado en ambos filtros
+        const shouldShow = statusMatch && cityMatch;
+        $row.toggle(shouldShow);
+    });
+    
+    // Actualizar contador de tickets visibles
+    const visibleCount = updateTicketCounter();
+    
+    // Mostrar mensaje si no hay resultados visibles
+    showNoResultsMessage(visibleCount === 0);
+    
+    // Actualizar paginación - usamos el método explícito en lugar de setTimeout
+    if (typeof window.initPagination === 'function') {
+        window.initPagination();
+    }
+};
+
+/***** Funcionalidad Principal *****/
 document.addEventListener("DOMContentLoaded", function () {
     // Verificar si venimos de una actualización exitosa
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_updated') === 'success') {
+    
+    if (urlParams.get('ticket_updated') === 'success' || urlParams.get('ticket_created') === 'success') {
         showSuccessTicketAlert();
         // Limpiar la URL para evitar que se muestre la alerta al refrescar
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -81,18 +212,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Búsqueda en la tabla de tickets ---
     const searchInput = document.getElementById("searchInput");
-    const ticketsTable = document.getElementById("ticketsTable");
-    if (searchInput && ticketsTable) {
+    if (searchInput) {
         searchInput.addEventListener("input", function () {
             const searchValue = this.value.toLowerCase();
-            const rows = ticketsTable.getElementsByTagName("tr");
-            // Se omite la cabecera (índice 0)
-            for (let i = 1; i < rows.length; i++) {
-                let rowText = rows[i].textContent.toLowerCase();
-                rows[i].style.display = rowText.includes(searchValue) ? "" : "none";
+            
+            // Guardar estado de visibilidad antes de la búsqueda
+            $('#ticketsTable tbody tr').not('#noResultsRow').each(function() {
+                const $row = $(this);
+                // Solo buscar en filas que ya son visibles según los filtros actuales
+                if ($row.is(':visible')) {
+                    const rowText = $row.text().toLowerCase();
+                    $row.toggle(rowText.includes(searchValue));
+                }
+            });
+            
+            // Actualizar contador y paginación
+            const visibleCount = updateTicketCounter();
+            showNoResultsMessage(visibleCount === 0);
+            
+            // Actualizar paginación
+            if (typeof window.initPagination === 'function') {
+                window.initPagination();
             }
-            // Actualizar paginación tras la búsqueda
-            setTimeout(updatePaginationAfterFilter, 100);
         });
     }
 
@@ -102,14 +243,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const stateOrder = {
             "Sin asignar": 1,
             "Asignado": 2,
-            "En proceso": 3,
-            "En Revision": 4,
-            "Terminado": 5
+            "Reingreso": 3,
+            "En proceso": 4,
+            "En Revision": 5,
+            "Terminado": 6
         };
 
         // Mapeo de estados para timestamps
         const stateTimestampMap = {
             "Asignado": "assigned",
+            "Reingreso": "re_entry",
             "En proceso": "in_progress",
             "En Revision": "in_revision",
             "Terminado": "finished",
@@ -127,12 +270,6 @@ document.addEventListener("DOMContentLoaded", function () {
             // Asegurar que la fila tenga el atributo data-status correcto
             const currentState = $select.val();
             $select.closest('tr').attr('data-status', currentState);
-            
-            // Asegurar que los timestamps tengan las clases correctas
-            if (currentState in stateTimestampMap) {
-                const timestampClass = stateTimestampMap[currentState];
-                $select.closest('tr').find(`.${timestampClass}-timestamp`).addClass('active-timestamp');
-            }
         });
 
         $('.status-select').on('change', function () {
@@ -141,9 +278,12 @@ document.addEventListener("DOMContentLoaded", function () {
             const newStatus = $select.val();
             const originalValue = $select.attr('data-original-state');
             
-            // Validar si es un retroceso de estado
-            if (stateOrder[newStatus] < stateOrder[originalValue]) {
-                // Es un retroceso, mostrar error y revertir
+            // Validar si es un retroceso de estado (con excepciones específicas)
+            const isBackward = stateOrder[newStatus] < stateOrder[originalValue];
+            const isExceptionCase = (originalValue === "Asignado" && newStatus === "Reingreso");
+            
+            if (isBackward && !isExceptionCase) {
+                // Es un retroceso no permitido, mostrar error y revertir
                 Swal.fire({
                     icon: 'error',
                     title: 'Operación no permitida',
@@ -185,14 +325,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Mostrar toast de carga
                     showToast('info', 'Actualizando estado...', 'top-end');
 
-                    // Enviar solicitud AJAX con el parámetro state (compatible con todos los módulos)
+                    // Datos a enviar
+                    const postData = {
+                        ticket_id: ticketId,
+                        state: newStatus    // Nombre del parámetro unificado con otros módulos
+                    };
+                    
+                    // Enviar solicitud AJAX
                     $.ajax({
                         url: '/update_ticket_status_ajax',
                         method: 'POST',
-                        data: {
-                            ticket_id: ticketId,
-                            state: newStatus    // Nombre del parámetro unificado con otros módulos
-                        },
+                        data: postData,
                         success: function (response) {
                             // Quitar indicador de carga
                             $select.removeClass('opacity-50');
@@ -205,9 +348,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Actualizar el atributo data-status de la fila para los filtros
                                 const $row = $select.closest('tr');
                                 $row.attr('data-status', newStatus);
-                                
-                                console.log("Estado actualizado a:", newStatus);
-                                console.log("Atributo data-status:", $row.attr('data-status'));
 
                                 // Si el estado cambia a Terminado, deshabilitar el botón de edición
                                 if (newStatus === "Terminado") {
@@ -217,27 +357,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     editButton.attr('disabled', true);
                                 }
 
-                                // Actualizar el timestamp si está disponible
-                                if (response.timestamp) {
-                                    const timestampField = stateTimestampMap[newStatus];
-                                    if (timestampField) {
-                                        console.log(`Estado actualizado a: ${newStatus}, campo timestamp: ${timestampField}`);
-                                        const $timestamp = $row.find(`.${timestampField}-timestamp`);
-                                        
-                                        if ($timestamp.length) {
-                                            console.log(`Actualizando timestamp con valor: ${response.timestamp}`);
-                                            $timestamp.text(response.timestamp);
-                                            $timestamp.addClass('active-timestamp');
-                                        } else {
-                                            console.log(`No se encontró elemento para mostrar el timestamp de ${newStatus}`);
-                                        }
-                                    } else {
-                                        console.log(`No se encontró mapeo de timestamp para el estado ${newStatus}`);
-                                    }
-                                } else {
-                                    console.log('No se recibió información de timestamp en la respuesta');
-                                }
-                            
                                 // Mover la fila al principio de la tabla
                                 $row.css('background-color', '#fffde7');
                                 const $table = $('#ticketsTable tbody');
@@ -247,20 +366,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         $row.fadeIn(300);
                                         setTimeout(function() {
                                             $row.css('background-color', '');
-                                            // Actualizar contador y paginación
-                                            updateTicketCounter();
-                                            updatePaginationAfterFilter();
-                                            
-                                            // Reaplica el filtro activo para que se muestre correctamente
-                                            const activeFilter = $('input[name="filterStatus"]:checked').next('label').text().trim();
-                                            if (activeFilter === newStatus || activeFilter === 'Todos' || 
-                                                (activeFilter === 'Activos' && newStatus !== 'Terminado')) {
-                                                $row.show();
-                                            } else {
-                                                $row.hide();
-                                                // Mostrar notificación informativa de que el ticket ya no es visible
-                                                showToast('info', `El ticket #${ticketId} se ha movido al filtro "${newStatus}"`, 'top-end', 5000);
-                                            }
+                                            // Actualizar filtros y paginación
+                                            filterTickets();
                                         }, 1500);
                                     });
                                 }, 300);
@@ -297,116 +404,69 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-
-    // --- Filtros Rápidos por Estado ---
+    // --- Filtros Rápidos por Estado y Ciudad ---
     $(document).ready(function () {
-        function filterTickets(status) {
-            if (status === 'Todos') {
-                // Mostrar todos los tickets
-                $('#ticketsTable tbody tr').show();
-            } else if (status === 'Activos') {
-                // Mostrar todos los tickets que NO están en estado "Terminado"
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    $(this).toggle(ticketState !== 'Terminado');
-                });
-            } else {
-                // Filtrar por el estado específico seleccionado
-                $('#ticketsTable tbody tr').each(function () {
-                    const ticketState = $(this).attr('data-status');
-                    // Comparación exacta de cadenas para evitar problemas con mayúsculas/minúsculas o espacios
-                    $(this).toggle(ticketState === status);
-                });
-            }
-            // Actualizar contador de tickets visibles
-            updateTicketCounter();
-            
-            // Mostrar mensaje si no hay resultados visibles
-            showNoResultsMessage($('#ticketsTable tbody tr:visible').length === 0);
-        }
-        
-        // Función para mostrar u ocultar el mensaje de "No hay resultados"
-        function showNoResultsMessage(show) {
-            const noResultsRow = $('#noResultsRow');
-            
-            if (show) {
-                if (noResultsRow.length === 0) {
-                    // Crear y añadir la fila de "No hay resultados"
-                    const newRow = `
-                        <tr id="noResultsRow">
-                            <td colspan="10" class="text-center py-4">
-                                <i class="fas fa-filter fa-2x mb-3 text-muted"></i>
-                                <p class="text-muted">No hay tickets que coincidan con el filtro seleccionado.</p>
-                            </td>
-                        </tr>
-                    `;
-                    $('#ticketsTable tbody').append(newRow);
-                }
-            } else {
-                // Eliminar la fila de "No hay resultados" si existe
-                noResultsRow.remove();
-            }
-        }
-
-        // Manejo del evento de cambio en los botones de filtro
+        // Manejo del evento de cambio en los botones de filtro de estado
         $('input[name="filterStatus"]').on('change', function () {
-            const selectedStatus = $(this).next('label').text().trim();
-            filterTickets(selectedStatus);
             // Actualizar clase visual activa
-            $('.btn-outline-secondary').removeClass('filter-active');
+            $('input[name="filterStatus"]').next('label').removeClass('filter-active');
             $(this).next('label').addClass('filter-active');
-            // Actualizar paginación después de filtrar
-            setTimeout(updatePaginationAfterFilter, 100);
+            
+            // Aplicar filtros
+            filterTickets();
         });
-
-        // Inicializar con "Todos" seleccionado
-        filterTickets('Todos');
-        $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
         
-        // Búsqueda en la tabla
-        $('#searchInput').on('input', function() {
-            const searchValue = this.value.toLowerCase();
-            let visibleCount = 0;
+        // Manejo del evento de cambio en los botones de filtro de ciudad
+        $('input[name="filterCity"]').on('change', function () {
+            // Actualizar clase visual activa
+            $('input[name="filterCity"]').next('label').removeClass('filter-active');
+            $(this).next('label').addClass('filter-active');
             
-            // Filtrar filas según el texto de búsqueda
-            $('#ticketsTable tbody tr').each(function() {
-                if ($(this).attr('id') === 'noResultsRow') return; // Ignorar la fila de "No hay resultados"
-                
-                const rowText = $(this).text().toLowerCase();
-                const visible = rowText.includes(searchValue);
-                $(this).toggle(visible);
-                
-                if (visible) visibleCount++;
-            });
-            
-            // Mostrar mensaje si no hay resultados
-            showNoResultsMessage(visibleCount === 0);
-            
-            // Actualizar contador y paginación
-            updateTicketCounter();
-            setTimeout(updatePaginationAfterFilter, 100);
+            // Aplicar filtros
+            filterTickets();
         });
-    });
 
+        // Inicializar filtros al cargar la página
+        setTimeout(function() {
+            // Activar clase visual en los filtros seleccionados
+            $('input[name="filterStatus"]:checked').next('label').addClass('filter-active');
+            $('input[name="filterCity"]:checked').next('label').addClass('filter-active');
+            
+            // Aplicar filtros iniciales
+            filterTickets();
+        }, 100);
+    });
 
     /***** Paginación de Tickets *****/
     $(document).ready(function () {
         let currentPage = 1;
         let rowsPerPage = 10;
         let totalPages = 1;
-        let filteredRows = [];
 
-        function initPagination() {
-            const allRows = $('#ticketsTable tbody tr').not('.no-results');
-            filteredRows = allRows;
+        // Función para inicializar la paginación
+        window.initPagination = function() {
+            // Considerar solo las filas visibles (ya filtradas)
+            const visibleRows = $('#ticketsTable tbody tr:visible').not('#noResultsRow');
             rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
-            totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+            totalPages = Math.ceil(visibleRows.length / rowsPerPage);
+            
+            // Ajustar a página 1 con los nuevos datos filtrados
+            currentPage = 1;
             generatePaginationButtons();
-            showPage(1);
-        }
+            showPage(currentPage);
+        };
 
+        // Función para generar botones de paginación
         function generatePaginationButtons() {
             $('#pagination li').not('#prevPage, #nextPage').remove();
+            
+            // Si no hay páginas, mostrar solo página 1 inactiva
+            if (totalPages === 0) {
+                $('#nextPage').before(`<li class="page-item active" data-page="1"><a class="page-link" href="#">1</a></li>`);
+                $('#prevPage, #nextPage').addClass('disabled');
+                return;
+            }
+            
             if (totalPages <= 7) {
                 for (let i = 1; i <= totalPages; i++) {
                     const isActive = i === currentPage ? 'active' : '';
@@ -431,18 +491,36 @@ document.addEventListener("DOMContentLoaded", function () {
             updatePrevNextButtons();
         }
 
-        function showPage(pageNum) {
+        // Función para mostrar una página específica
+        window.showPage = function(pageNum) {
             if (pageNum < 1 || pageNum > totalPages) return;
+            
+            // Actualizar la página actual
             currentPage = pageNum;
-            filteredRows.hide();
+            
+            // Seleccionar solo las filas visibles (ya filtradas)
+            const visibleRows = $('#ticketsTable tbody tr:visible').not('#noResultsRow');
+            
+            // Ocultar todas las filas visibles primero
+            visibleRows.hide();
+            
+            // Calcular qué filas mostrar en la página actual
             const startIndex = (pageNum - 1) * rowsPerPage;
-            const endIndex = Math.min(startIndex + rowsPerPage, filteredRows.length);
-            filteredRows.slice(startIndex, endIndex).show();
-            $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length - startIndex));
+            const endIndex = Math.min(startIndex + rowsPerPage, visibleRows.length);
+            
+            // Mostrar solo las filas correspondientes a la página actual
+            visibleRows.slice(startIndex, endIndex).show();
+            
+            // Calcular información para el contador
+            const currentPageCount = Math.min(rowsPerPage, endIndex - startIndex);
+            const totalVisible = visibleRows.length;
+            
+            // Actualizar contadores y UI
+            $('#currentRowsCount').text(`${currentPageCount} de ${totalVisible}`);
             $('#pagination li').removeClass('active');
             $(`#pagination li[data-page="${pageNum}"]`).addClass('active');
             updatePrevNextButtons();
-        }
+        };
 
         function updatePrevNextButtons() {
             if (currentPage === 1) {
@@ -457,14 +535,13 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        // Evento de cambio en la cantidad de filas por página
         $('#rowsPerPage').on('change', function () {
             rowsPerPage = parseInt($(this).val());
-            totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-            currentPage = 1;
-            generatePaginationButtons();
-            showPage(1);
+            initPagination(); // Reinicializar con la nueva cantidad
         });
 
+        // Eventos de navegación por paginación
         $('#pagination').on('click', 'li:not(.disabled)', function (e) {
             e.preventDefault();
             const $this = $(this);
@@ -480,45 +557,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        $('#searchInput').on('input', function () {
-            setTimeout(updatePaginationAfterFilter, 100);
-        });
-
-        $('input[name="filterStatus"]').on('change', function () {
-            setTimeout(updatePaginationAfterFilter, 100);
-        });
-
+        // Inicializar la paginación
         initPagination();
-        
-        // Exponer la función initPagination globalmente
-        window.initPagination = initPagination;
-    });
-
-
-    // Función para ordenar tickets
-    function sortTickets(sortBy) {
-        const rows = $('#ticketsTable tbody tr').get();
-        
-        rows.sort(function(a, b) {
-            // Por defecto, ordenar por ID descendente (más reciente primero)
-            const idA = parseInt($(a).find('td:first').text().replace('#', ''));
-            const idB = parseInt($(b).find('td:first').text().replace('#', ''));
-            return idB - idA;
-        });
-        
-        $.each(rows, function(index, row) {
-            $('#ticketsTable tbody').append(row);
-        });
-        
-        // Reinicializar la paginación después de ordenar
-        if (typeof window.initPagination === 'function') {
-            window.initPagination();
-        }
-    }
-
-    // Ordenar por ID descendente al cargar la página
-    $(document).ready(function() {
-        sortTickets('id-desc');
     });
 
     // Deshabilitar botones de edición para tickets terminados
@@ -532,74 +572,5 @@ document.addEventListener("DOMContentLoaded", function () {
             editButton.attr('disabled', true);
         }
     });
-
-    // Lógica para mostrar el toast de éxito si viene de una creación
-    // ESTE BLOQUE SE MUEVE FUERA DEL $(document).ready()
-    // document.addEventListener('DOMContentLoaded', function() {
-    //     const urlParams = new URLSearchParams(window.location.search);
-    //     if (urlParams.get('ticket_created') === 'success') {
-    //         showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-    //         window.history.replaceState({}, document.title, window.location.pathname);
-    //     }
-    //     if (urlParams.get('ticket_updated') === 'success') {
-    //         showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
-    //         window.history.replaceState({}, document.title, window.location.pathname);
-    //     }
-    // });
-}); // Fin del $(document).ready()
-
-/**
- * Función para actualizar el contador de tickets visibles.
- */
-function updateTicketCounter() {
-    const visibleTickets = $('#ticketsTable tbody tr:visible').length;
-    $('.badge.bg-secondary strong').text(visibleTickets);
-}
-
-/**
- * Actualiza la paginación después de filtrar o modificar la tabla.
- * Esta función es global para que pueda usarse desde otros scripts.
- */
-window.updatePaginationAfterFilter = function() {
-    const filteredRows = $('#ticketsTable tbody tr:visible').not('.no-results');
-    const rowsPerPage = parseInt($('#rowsPerPage').val() || 10);
-    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-    
-    // Actualizar contador de tickets visibles
-    $('#currentRowsCount').text(Math.min(rowsPerPage, filteredRows.length));
-    
-    // Regenerar botones de paginación si es necesario
-    if ($('#pagination').length) {
-        $('#pagination li').not('#prevPage, #nextPage').remove();
-        for (let i = 1; i <= totalPages; i++) {
-            const isActive = i === 1 ? 'active' : '';
-            $('#nextPage').before(`<li class="page-item ${isActive}" data-page="${i}"><a class="page-link" href="#">${i}</a></li>`);
-        }
-        // Actualizar los botones de navegación
-        $('#prevPage').addClass('disabled');
-        if (totalPages <= 1) {
-            $('#nextPage').addClass('disabled');
-        } else {
-            $('#nextPage').removeClass('disabled');
-        }
-    }
-};
-
-// Lógica para mostrar el toast de éxito/actualización (movido aquí fuera del ready)
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('ticket_created') === 'success') {
-        // Usar la función global showToast definida al inicio del archivo
-        showToast('success', '¡Ticket creado con éxito!', 'top-end', 3000);
-        // Limpiar el parámetro de la URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    if (urlParams.get('ticket_updated') === 'success') {
-        // Usar la función global showToast
-        showToast('success', '¡Ticket actualizado con éxito!', 'top-end', 3000);
-        // Limpiar el parámetro de la URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
 });
 

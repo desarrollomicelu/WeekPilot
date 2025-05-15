@@ -18,20 +18,18 @@ def login():
             # Usa la instancia 'bcrypt' para verificar la contraseña
             if empleado and bcrypt.check_password_hash(empleado.password, password):
                 login_user(empleado)
-                if empleado.cargo == "Admin":
-                    # Suponiendo que en routes/dashboard.py el endpoint se define como "dashboard"
-                    return redirect(url_for("dashboard.dashboard"))
-                elif empleado.cargo == "servicioTecnico":
+                if empleado.cargo == "servicioTecnico":
                     # Redirigir al técnico a su vista de tickets
                     return redirect(url_for("view_technical.view_technical"))
                 else:
-                    flash("Acceso denegado. No tienes permisos para acceder a esta página.", "error")
-                    return redirect(url_for("auth.login"))
+                    # Todos los demás cargos (incluido Admin) van al dashboard
+                    return redirect(url_for("dashboard.dashboard"))
             else:
                 flash("Nombre o contraseña incorrectos", "error")
         except Exception as e:
             flash(f"Error al intentar iniciar sesión: {str(e)}", "error")
     return render_template("login.html")
+
 @auth_bp.route("/logout")
 def logout():
     logout_user()

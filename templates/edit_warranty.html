@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block title %}Editar Garantía{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/warranty.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div id="edit-warranty-page" class="container-fluid py-4">
+    <!-- Cabecera -->
+    <div class="row align-items-center mb-2">
+        <div class="col-md-6">
+            <h2 class="mb-0">
+                <i class="fas fa-edit text-primary me-2"></i>Editar Garantía #{{ ticket.id_ticket }}
+            </h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('warranty.edit_warranty', ticket_id=ticket.id_ticket) }}" id="warrantyForm">
+        <!-- Fila 1: Información del Cliente y Detalles del Ticket -->
+        <div class="row mb-2">
+            <!-- Información del Cliente (solo lectura) -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-2 h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-user me-2 text-primary"></i>Información del Cliente</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Documento - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="document" class="col-sm-4 col-form-label">Documento</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="document" name="document" 
+                                    value="{{ client.document }}" readonly>
+                                <input type="hidden" name="document" value="{{ client.document }}">
+                            </div>
+                        </div>
+
+                        <!-- Nombres - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="client_names" class="col-sm-4 col-form-label">Nombres</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_names" name="client_names"
+                                    value="{{ client.name }}" readonly>
+                                <input type="hidden" name="client_names" value="{{ client.name }}">
+                            </div>
+                        </div>
+
+                        <!-- Apellidos - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="client_lastnames" class="col-sm-4 col-form-label">Apellidos</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="client_lastnames"
+                                    name="client_lastnames" value="{{ client.lastname }}" readonly>
+                                <input type="hidden" name="client_lastnames" value="{{ client.lastname }}">
+                            </div>
+                        </div>
+
+                        <!-- Teléfono - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="phone" class="col-sm-4 col-form-label">Teléfono</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control bg-light" id="phone" name="phone" 
+                                    value="{{ client.phone }}" readonly>
+                                <input type="hidden" name="phone" value="{{ client.phone }}">
+                            </div>
+                        </div>
+
+                        <!-- Correo electrónico - solo lectura -->
+                        <div class="mb-3 row">
+                            <label for="mail" class="col-sm-4 col-form-label">Correo electrónico</label>
+                            <div class="col-sm-8">
+                                <input type="email" class="form-control bg-light" id="mail" name="mail" 
+                                    value="{{ client.mail }}" readonly>
+                                <input type="hidden" name="mail" value="{{ client.mail }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles del Ticket (técnico editable) -->
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-2 h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2 text-primary"></i>Detalles del Ticket
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Técnico - editable -->
+                        <div class="mb-3 row">
+                            <label for="technical_name" class="col-sm-4 col-form-label">Técnico</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" id="technical_name" name="technical_name">
+                                    <option value="">Sin asignar</option>
+                                    {% for technician in technicians %}
+                                    <option value="{{ technician.NOMBRE }}" data-document="{{ technician.DOCUMENT }}" 
+                                        {% if ticket.technical_name and technician.NOMBRE and ticket.technical_name.strip() == technician.NOMBRE.strip() %}selected{% endif %}>
+                                        {{ technician.NOMBRE }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="technical_document" class="col-sm-4 col-form-label">Documento</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="technical_document"
+                                    name="technical_document" value="{{ ticket.technical_document }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="state" class="col-sm-4 col-form-label">Estado</label>
+                            <div class="col-sm-8">
+                                <input type="text" class="form-control" id="state_display" value="{{ ticket.state }}" readonly>
+                                <input type="hidden" id="state" name="state" value="{{ ticket.state }}">
+                            </div>
+                        </div>
+
+                        <!-- Ciudad - editable -->
+                        <div class="mb-3 row">
+                            <label for="city" class="col-sm-4 col-form-label">Ciudad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select searchable-select" id="city" name="city">
+                                    {% for city in ['Medellín', 'Bogotá'] %}
+                                    <option value="{{ city }}" {% if ticket.city == city %}selected{% endif %}>{{ city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row">
+                            <label for="priority" class="col-sm-4 col-form-label">Prioridad</label>
+                            <div class="col-sm-8">
+                                <select class="form-select searchable-select" id="priority" name="priority">
+                                    {% for priority in ['Alta', 'Media', 'Baja'] %}
+                                    <option value="{{ priority }}" {% if ticket.priority == priority %}selected{% endif %}>{{ priority }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NUEVA FILA: Información de Factura - solo lectura -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice me-2 text-primary"></i>Información de Factura</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Código Producto</label>
+                                    <input type="text" class="form-control bg-light" id="product_code" name="product_code"
+                                        value="{{ ticket.product_code }}" readonly>
+                                    <input type="hidden" name="product_code" value="{{ ticket.product_code }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Serie/IMEI</label>
+                                    <input type="text" class="form-control bg-light" id="IMEI" name="IMEI"
+                                        value="{{ ticket.IMEI }}" readonly>
+                                    <input type="hidden" name="IMEI" value="{{ ticket.IMEI }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4 col-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Factura</label>
+                                    <input type="text" class="form-control bg-light" id="invoice_number" name="invoice_number"
+                                        value="{{ ticket.invoice_number }}" readonly>
+                                    <input type="hidden" name="invoice_number" value="{{ ticket.invoice_number }}">
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Referencia</label>
+                                    <input type="text" class="form-control bg-light" id="reference" name="reference"
+                                        value="{{ ticket.reference }}" readonly>
+                                    <input type="hidden" name="reference" value="{{ ticket.reference }}">
+                                </div>
+                            </div>
+                            <input type="hidden" id="type_of_service" name="type_of_service" value="{{ ticket.type_of_service }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 2: Repuestos Utilizados - editable -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2 text-primary"></i>Repuestos Utilizados</h5>
+                        <button type="button" class="btn btn-sm btn-primary" id="addPartBtn">
+                            <i class="fas fa-plus me-1"></i> Agregar repuesto
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="partsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 30%;">Descripción</th>
+                                        <th class="text-center" style="width: 5%;">Cant.</th>
+                                        <th class="text-center" style="width: 20%;">V. Unit</th>
+                                        <th class="text-center" style="width: 20%;">V. Total</th>
+                                        <th class="text-center" style="width: 5%;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if current_spare_tickets %}
+                                    {% for spare in current_spare_tickets %}
+                                    <tr class="part-row">
+                                        <td>
+                                            <div class="input-group">
+                                                <select class="form-select" name="spare_part_code[]" required>
+                                                    <option value="" disabled>Seleccione un repuesto</option>
+                                                    {% for part in spare_parts %}
+                                                    <option value="{{ part.code }}" {% if spare.spare_code==part.code %}selected{% endif %}>
+                                                        {{ part.code }} - {{ part.description }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" 
+                                                value="{{ spare.quantity }}" required>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="text" class="form-control text-end part-unit-value formatted-number" name="part_unit_value[]" 
+                                                    value="{{ '{:,.0f}'.format(spare.unit_price).replace(',', '.') if spare.unit_price else '0' }}" required>
+                                                <input type="hidden" name="part_unit_value_raw[]" value="{{ spare.unit_price if spare.unit_price else 0 }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="text" class="form-control text-end part-total-value formatted-number" name="part_total_value[]" 
+                                                    value="{{ '{:,.0f}'.format(spare.total_price).replace(',', '.') if spare.total_price else '0' }}" readonly>
+                                                <input type="hidden" name="part_total_value_raw[]" value="{{ spare.total_price if spare.total_price else 0 }}">
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-danger remove-part" title="Eliminar repuesto">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr id="noPartsRow">
+                                        <td colspan="5" class="text-center py-4">
+                                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">No se han agregado repuestos para este servicio.</p>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila 3: Problemas del Dispositivo y Valores -->
+        <div class="row mb-2">
+            <!-- Problemas del Dispositivo - editable -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>Problemas del Dispositivo
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <input type="text" id="searchProblems" class="form-control mb-2"
+                            placeholder="Buscar problema...">
+
+                        <div class="form-check-container mb-3"
+                            style="max-height: 200px; overflow-y: auto; border: 1px solid #ced4da; border-radius: 0.25rem; padding: 10px;">
+                            {% for problem in problems %}
+                            <div class="form-check problem-option">
+                                <input class="form-check-input problem-checkbox" type="checkbox"
+                                    value="{{ problem.id }}" id="problem_{{ problem.id }}" name="device_problems[]"
+                                    {% if problem in ticket.problems %}checked{% endif %}>
+                                <label class="form-check-label" for="problem_{{ problem.id }}">
+                                    {{ problem.name }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <label for="selected_problems" class="form-label">Problemas Seleccionados:</label>
+                            <textarea id="selected_problems" class="form-control" rows="3" readonly></textarea>
+                            <div class="d-flex justify-content-between mt-2">
+                                <button type="button" id="selectAllProblems"
+                                    class="btn btn-sm btn-outline-primary">Seleccionar Todos</button>
+                                <button type="button" id="clearProblems" class="btn btn-sm btn-outline-danger">Limpiar
+                                    Selección</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Valores - valor de servicio editable -->
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Valores</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Apartado para agregar comentarios -->
+                        <div class="mb-4">
+                            <label for="comment" class="form-label">
+                                <i class="fas fa-comment text-primary me-1"></i> Agregar Comentario
+                            </label>
+                            <textarea id="comment" name="comment" class="form-control" rows="3"
+                                placeholder="Escribe aquí tus observaciones, diagnóstico o comentarios sobre la garantía..."
+                                aria-describedby="commentHelp">{{ ticket.comment }}</textarea>
+                            <div id="commentHelp" class="form-text text-muted">
+                                Puede incluir detalles adicionales o información relevante para la garantía.
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                         <!-- Valor del Servicio -->
+                         <div class="mb-3 row">
+                            <label for="service_value" class="col-sm-5 col-form-label">Valor del Servicio</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end formatted-number" id="service_value" name="service_value"
+                                        data-original-value="{{ ticket.service_value }}"
+                                        value="{{ '{:,.0f}'.format(ticket.service_value).replace(',', '.') if ticket.service_value else '0' }}" required>
+                                    <input type="hidden" name="service_value_raw" id="service_value_raw" value="{{ ticket.service_value if ticket.service_value else 0 }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Valor de Repuestos -->
+                        <div class="mb-3 row">
+                            <label for="spare_value" class="col-sm-5 col-form-label">Valor de Repuestos</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end formatted-number" id="spare_value" name="spare_value" 
+                                        data-original-value="{{ ticket.spare_value }}"
+                                        value="{{ '{:,.0f}'.format(ticket.spare_value).replace(',', '.') if ticket.spare_value else '0' }}" readonly>
+                                    <input type="hidden" name="spare_value_raw" id="spare_value_raw" value="{{ ticket.spare_value if ticket.spare_value else 0 }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TOTAL -->
+                        <div class="row">
+                            <label for="total" class="col-sm-5 col-form-label fw-bold">TOTAL</label>
+                            <div class="col-sm-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control text-end fw-bold formatted-number" id="total" name="total" 
+                                        data-original-value="{{ ticket.total }}"
+                                        value="{{ '{:,.0f}'.format(ticket.total).replace(',', '.') if ticket.total else '0' }}" readonly>
+                                    <input type="hidden" name="total_raw" id="total_raw" value="{{ ticket.total if ticket.total else 0 }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensajes flash ocultos para ser procesados por el sistema de notificaciones -->
+        <div class="d-none">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-between my-2">
+            <a href="{{ url_for('warranty.list_warranties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+            </a>
+            <div>
+                <button type="button" id="saveButton" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Template para nueva fila de repuesto -->
+<template id="partRowTemplate">
+    <tr class="part-row">
+        <td>
+            <div class="input-group">
+                <select class="form-select" name="spare_part_code[]" required>
+                    <option value="" disabled selected>Seleccione un repuesto</option>
+                    {% for part in spare_parts %}
+                    <option value="{{ part.code }}">{{ part.code }} - {{ part.description }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-outline-primary select-part" title="Buscar repuesto">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </td>
+        <td class="text-center" style="width: 5%;">
+            <input type="number" class="form-control part-quantity" min="1" name="part_quantity[]" value="1" required>
+        </td>
+        <td>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control text-end part-unit-value formatted-number" name="part_unit_value[]" value="0" required>
+                <input type="hidden" name="part_unit_value_raw[]" value="0">
+            </div>
+        </td>
+        <td style="width: 40%;">
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="text" class="form-control text-end part-total-value formatted-number" name="part_total_value[]" value="0" readonly>
+                <input type="hidden" name="part_total_value_raw[]" value="0">
+            </div>
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger remove-part" title="Eliminar repuesto">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<!-- Modal de búsqueda de repuestos -->
+<div class="modal fade" id="searchPartsModal" tabindex="-1" aria-labelledby="searchPartsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchPartsModalLabel">
+                    <i class="fas fa-search me-2 text-primary"></i>Buscar Repuestos
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control search-input" id="modalPartSearch"
+                            placeholder="Ingrese código o descripción del repuesto...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Mínimo 3 caracteres para iniciar búsqueda</small>
+                </div>
+                <div id="searchResults" class="mt-3">
+                    <div id="initialSearchMessage" class="text-center py-5">
+                        <h5 class="text-muted mb-2">Buscar Repuestos</h5>
+                    </div>
+                    <div id="searchResultsLoader" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Buscando...</span>
+                        </div>
+                        <h5 class="text-primary mb-0">Buscando repuestos...</h5>
+                    </div>
+                    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+                        <h5 class="text-muted mb-2">No se encontraron resultados</h5>
+                        <p class="text-muted mb-0">Intente con otros términos de búsqueda</p>
+                    </div>
+                    <div id="searchResultsList" style="display: none;">
+                        <!-- Los resultados se insertarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Se incluye jQuery y Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- SweetAlert2 para notificaciones -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    /* Estilos personalizados para SweetAlert2 */
+    .colored-toast {
+        background-color: #fff !important;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .colored-toast .swal2-title {
+        color: #212529 !important;
+    }
+    /* Estilos adicionales para consistencia */
+    .swal2-popup {
+        font-family: 'Nunito', sans-serif !important;
+    }
+    
+    /* Estilos para búsqueda de repuestos */
+    .part-card {
+        transition: all 0.2s ease;
+        border: 1px solid #dee2e6;
+    }
+    .part-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+        border-color: #6c757d;
+    }
+    .highlight {
+        background-color: #ffeeba;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+    .search-input:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .search-results-container {
+        max-height: 350px;
+        overflow-y: auto;
+        margin-top: 10px;
+    }
+</style>
+<script src="{{ url_for('static', filename='js/edit_warranty.js') }}"></script>
+
+{% endblock %}
