@@ -25,7 +25,7 @@ class Tickets(db.Model, UserMixin):
     creation_date = db.Column(
         db.DateTime, nullable=True, default=datetime.utcnow)
     assigned = db.Column(db.DateTime, nullable=True)
-    received = db.Column(db.DateTime, nullable=True)
+    discounted_value = db.Column(db.DateTime, nullable=True)
     in_progress = db.Column(db.DateTime, nullable=True)
     in_revision = db.Column(db.DateTime, nullable=True)
     finished = db.Column(db.DateTime, nullable=True)
@@ -61,7 +61,5 @@ class Tickets(db.Model, UserMixin):
             print(f"Actualizando in_revision con timestamp: {now}")
         elif new_state == "Terminado":
             self.finished = now
-        elif new_state == "Recibido":
-            self.received = now
             
         return now

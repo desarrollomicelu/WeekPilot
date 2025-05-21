@@ -415,7 +415,6 @@ i.text-primary,
 .in_revision-timestamp.active-timestamp { border-left-color: #ffc107; }
 .in_progress-timestamp.active-timestamp { border-left-color: #17a2b8; }
 .finished-timestamp.active-timestamp { border-left-color: #28a745; }
-.received-timestamp.active-timestamp { border-left-color: #6f42c1; }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

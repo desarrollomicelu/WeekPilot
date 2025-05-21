@@ -179,7 +179,6 @@ def create_ticket():
             try:
                 creation_date = datetime.now()
                 assigned = None
-                received = None
                 in_progress = None
                 in_revision = None
                 finished = None
@@ -188,10 +187,7 @@ def create_ticket():
                 if ticket_data["state"] == "Asignado":
                     assigned = datetime.now()
 
-                if ticket_data["state"] == "Recibido":
-                    received = datetime.now()
-
-                if ticket_data["state"] == "En Proceso":
+                if ticket_data["state"] == "En proceso":
                     in_progress = datetime.now()
 
                 if ticket_data["state"] == "En Revision":
@@ -255,7 +251,6 @@ def create_ticket():
                     client=client.id_client,
                     creation_date=creation_date,
                     assigned=assigned,
-                    received=received,
                     in_progress=in_progress,
                     in_revision=in_revision,
                     finished=finished,
@@ -609,8 +604,6 @@ def update_ticket_status_ajax():
             print(f"Flagged in_revision as modified. Value: {ticket.in_revision}")
         elif new_status == "Terminado":
             flag_modified(ticket, "finished")
-        elif new_status == "Recibido":
-            flag_modified(ticket, "received")
             
         # Guardar cambios en la base de datos
         db.session.commit()
